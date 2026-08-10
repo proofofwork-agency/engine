@@ -65,7 +65,7 @@ The current repository contains:
 - `engine-heart`, with the Heart, durable world store, policy, learning, and routines;
 - `engine-sdk`, with `engine.plugin/v2`, scaffolding, and conformance tooling;
 - `engine-runtime`, with the composition root, discovery, lease, and the `engine` CLI;
-- a warehouse reference plugin, context plugin, and Homey plugin;
+- a warehouse reference plugin, context plugin, Homey plugin, and opt-in bounded ntfy lifecycle observer;
 - tests for reconstruction, stale/denied/malformed cases, immediate and task lifecycles, and bounded learning.
 
 The current evidence boundary is deliberately narrower than the vision: Homey observation is **Live read-only**, while its v2 mutation path is **Fake/simulation-tested**. `STREAM`, multiple general executive brains, trained mini-brains, and physical-safety certification have not been demonstrated. [The end goal](concepts/end-goal.md#five-plugin-and-application-examples) works through five possible applications and labels each one at this boundary.

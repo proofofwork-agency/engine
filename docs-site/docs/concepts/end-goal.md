@@ -64,7 +64,7 @@ An always-on loop is not the same as a hard-realtime loop. The target controller
 
 ## What “multiple worlds” ultimately means
 
-New worlds must be installable without building a second Heart. A plugin supplies its world providers, controllers, executors, oracles, specialists, and optional experience/routine components. The runtime discovers them through the v2 manifest and entry point.
+New worlds must be installable without building a second Heart. A plugin supplies its world providers, controllers, executors, oracles, specialists, and optional experience, routine, or lifecycle-observer components. The runtime discovers them through the v2 manifest and entry point. A lifecycle observer can report a durable milestone, but cannot add facts, propose, authorize, dispatch, or certify an effect.
 
 The end goal is not for every target to have the same capability names. It is for every target to follow the same evidence discipline:
 

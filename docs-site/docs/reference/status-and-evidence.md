@@ -168,6 +168,7 @@ The current deterministic tests and reference plugins cover, among other things:
 - task polling/cancellation and recovery after process restart;
 - exactly-once experience import and bounded learning;
 - routine guards, shadow without dispatch, conflict, and rollback;
+- bounded, post-persistence lifecycle observers whose delivery failures are isolated and non-authoritative;
 - one executive interface with deterministic and model-backed implementations.
 
 This is software and simulation evidence. The repository does not thereby claim

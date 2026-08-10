@@ -20,7 +20,7 @@ chat or API      model/planner     durable     software, home,
 
 The boundaries between these layers are deliberate. An interaction product can collect intent. A general model, classical planner, or specialist can propose a next step. Engine determines whether the exact action is valid and authorized against a fresh view of the world. The target-specific executor and controller perform it.
 
-> **Status:** experimental. The v2 contracts, SDK, runtime, reference world, and context plugin are **Implemented**; their closed software loops and the Homey mutation path are **Fake/simulation-tested**. Homey observation is also **Live read-only**. This is not a production platform, a safety certification, or evidence of broad physical autonomy.
+> **Status:** experimental. The v2 contracts, SDK, runtime, reference world, context plugin, and bounded ntfy lifecycle observer are **Implemented**; their closed software loops and the Homey mutation path are **Fake/simulation-tested**. Homey observation is also **Live read-only**. This is not a production platform, a safety certification, or evidence of broad physical autonomy.
 
 ## A living cycle, not a longer model session
 
@@ -121,7 +121,7 @@ Run the deterministic test suite:
 uv run --with pytest pytest -q
 ```
 
-The publication gate for this repository is `131 passed, 2 skipped, 34 subtests passed`. The skips are explicitly configured live-model canaries; core correctness does not require a live model.
+The publication gate for this repository is `138 passed, 2 skipped, 34 subtests passed`. The skips are explicitly configured live-model canaries; core correctness does not require a live model.
 
 ## Create a plugin
 
