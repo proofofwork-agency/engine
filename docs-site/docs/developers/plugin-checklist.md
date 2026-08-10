@@ -1,128 +1,127 @@
 ---
-title: Pluginchecklist
-description: Enrollment- en reviewchecklist voor een engine.plugin/v2-plugin.
+title: Plugin checklist
+description: Enrollment and review checklist for an engine.plugin/v2 plugin.
 sidebar_position: 6
 ---
 
-# Pluginchecklist
+# Plugin checklist
 
-Gebruik deze checklist vóór je een plugin laat observeren of muteren. Een vinkje
-betekent dat er code én passend bewijs is; een manifestclaim alleen is niet
-genoeg.
+Use this checklist before allowing a plugin to observe or mutate. A check means
+there is code and appropriate evidence; a manifest claim alone is insufficient.
 
-## Identiteit en packaging
+## Identity and packaging
 
-- [ ] `plugin.id` is stabiel, dotted, lowercase en niet afgeleid van vrije tekst.
-- [ ] `version`, `engine_api` en `contract_version = "engine.plugin/v2"` zijn gezet.
-- [ ] `pyproject.toml` declareert exact één passende `engine.plugins`-entrypoint.
-- [ ] `engine-plugin.toml` zit in wheel en editable install.
-- [ ] Import en factory zijn inert: geen netwerk, mutatie of background thread.
-- [ ] Statisch manifest en `plugin.manifest` zijn exact gelijk waar de runtime dat eist.
-- [ ] Target- en entity-ID's zijn canoniek en stabiel over restart.
-- [ ] De pluginstore heeft eigen `identity` en positieve `schema_version`.
+- [ ] `plugin.id` is stable, dotted, lowercase, and not derived from free text.
+- [ ] `version`, `engine_api`, and `contract_version = "engine.plugin/v2"` are set.
+- [ ] `pyproject.toml` declares exactly one appropriate `engine.plugins` entry point.
+- [ ] `engine-plugin.toml` is present in both wheel and editable installation.
+- [ ] Import and factory invocation are inert: no network, mutation, or background thread.
+- [ ] The static manifest and `plugin.manifest` match exactly where the runtime requires it.
+- [ ] Target and entity IDs are canonical and stable across restart.
+- [ ] The plugin store has its own `identity` and positive `schema_version`.
 
-## Behoeften en secrets
+## Needs and secrets
 
-- [ ] Netwerk-, filesystem-, secret- en privacybehoeften zijn minimaal gedeclareerd.
-- [ ] Geen secret verschijnt in manifest, observatie, receipt, log of modelcontext.
-- [ ] Externe transmissie van private data vereist expliciete opt-in.
-- [ ] De plugin werkt fail-closed als credentials of consent ontbreken.
-- [ ] Je deployment legt aanvullende OS/containerisolatie vast.
+- [ ] Network, filesystem, secret, and privacy needs are declared minimally.
+- [ ] No secret appears in a manifest, observation, receipt, log, or model context.
+- [ ] External transmission of private data requires explicit opt-in.
+- [ ] The plugin fails closed when credentials or consent are absent.
+- [ ] The deployment documents additional OS or container isolation.
 
-De huidige Engine-runtime dwingt `[needs]` nog niet af met een algemene sandbox
-en verifieert geen cryptografische artefactsignatures. Zet die open gaps niet als
-afgeronde beveiligingscontrols in je pluginreadme.
+The current Engine runtime does not yet enforce `[needs]` through a general
+sandbox and does not verify cryptographic artifact signatures. Do not present
+these open gaps as completed security controls in the plugin README.
 
-## Wereldobservatie
+## World observation
 
-- [ ] `WorldProvider` declareert poll- en freshnessintervallen.
-- [ ] Targetrevisions zijn monotoon en survive/reconstrueren na restart waar nodig.
-- [ ] Entities, relations en observations verwijzen alleen naar geldige stabiele ID's.
-- [ ] Elke observation heeft bron, tijd, evidence grade, unit waar relevant en dekking.
-- [ ] `quality` en `confidence` blijven apart van evidence grade.
-- [ ] Ontbrekende data wordt `UNKNOWN`/onbeschikbaar, niet automatisch `false`.
-- [ ] Stale data wordt als `STALE` behandeld voor muterende beslissingen.
-- [ ] Providerfouten behouden de laatst bekende state plus expliciete failure/staleness.
-- [ ] Een event plant een wake; een verse observation blijft authoritative.
+- [ ] `WorldProvider` declares polling and freshness intervals.
+- [ ] Target revisions are monotonic and survive or reconstruct after restart where required.
+- [ ] Entities, relations, and observations reference only valid stable IDs.
+- [ ] Every observation includes source, time, evidence grade, relevant units, and coverage.
+- [ ] `quality` and `confidence` remain separate from evidence grade.
+- [ ] Missing data becomes `UNKNOWN` or unavailable, not automatically `false`.
+- [ ] Stale data is treated as `STALE` for mutating decisions.
+- [ ] Provider failures retain last-known state plus explicit failure and staleness.
+- [ ] An event schedules a wake; a fresh observation remains authoritative.
 
 ## Capabilities
 
-- [ ] Iedere family heeft stable ID, versie en beschrijving.
-- [ ] `input_schema` beschrijft het concrete request; `effect_schema` het semantische voorstel.
-- [ ] `control_layer`, `invocation_mode`, risk en privacy zijn expliciet.
-- [ ] Units, preconditions, deadlines, limieten en recovery zijn expliciet.
-- [ ] Idempotency is eerlijk: `false` als herhalen een effect kan dupliceren.
-- [ ] `effect_measurements` noemen de observaties die succes kunnen dragen.
-- [ ] Dynamisch onbekende families blijven opaque/read-only.
+- [ ] Every family has a stable ID, version, and description.
+- [ ] `input_schema` describes the concrete request; `effect_schema` describes the semantic proposal.
+- [ ] `control_layer`, `invocation_mode`, risk, and privacy are explicit.
+- [ ] Units, preconditions, deadlines, limits, and recovery are explicit.
+- [ ] Idempotency is honest: use `false` if retrying may duplicate an effect.
+- [ ] `effect_measurements` name the observations that can support success.
+- [ ] Dynamically unknown families remain opaque and read-only.
 
-## Mutatiepad
+## Mutation path
 
-- [ ] Iedere muterende plugin declareert provider, controller, executor en oracle.
-- [ ] De controller kan target, entity, goal of capability niet verwisselen.
-- [ ] Het request bindt actuele snapshot-, world- en targetrevision.
-- [ ] Parameters passeren JSON Schema en capabilitylimieten.
-- [ ] Preconditions falen gesloten bij `UNKNOWN`, `STALE` of conflict.
-- [ ] De executor controleert request-gebonden authorization.
-- [ ] Authorization heeft exacte scope en korte expiry.
-- [ ] Lost ACK, timeout, duplicate ACK en partial execution zijn getest.
-- [ ] Receiptstates zijn expliciet; ambiguïteit wordt `unknown`.
-- [ ] De oracle gebruikt prestate, receipt én verse poststate.
-- [ ] ACK-only kan nooit `achieved = true` opleveren.
-- [ ] Recovery- of safe-state-succes wordt opnieuw geobserveerd.
+- [ ] Every mutating plugin declares a provider, controller, executor, and oracle.
+- [ ] The controller cannot switch target, entity, goal, or capability.
+- [ ] The request binds the current snapshot, world revision, and target revision.
+- [ ] Parameters pass JSON Schema and capability limits.
+- [ ] Preconditions fail closed on `UNKNOWN`, `STALE`, or conflict.
+- [ ] The executor checks request-bound authorization.
+- [ ] Authorization has exact scope and a short expiry.
+- [ ] Lost ACK, timeout, duplicate ACK, and partial execution are tested.
+- [ ] Receipt states are explicit; ambiguity becomes `unknown`.
+- [ ] The oracle uses pre-state, receipt, and fresh post-state.
+- [ ] An ACK alone can never produce `achieved = true`.
+- [ ] Recovery or safe-state success is observed again.
 
-## `immediate`, `task` en `stream`
+## `immediate`, `task`, and `stream`
 
-- [ ] `immediate`: terminale receipt en post-observation zijn getest.
-- [ ] `task`: durable external handle, poll, deadline cancel en restart recovery zijn getest.
-- [ ] `stream`: cursor, reconnect, deduplicatie, deadline en restart zijn end-to-end getest.
+- [ ] `immediate`: terminal receipt and post-observation are tested.
+- [ ] `task`: durable external handle, polling, deadline cancellation, and restart recovery are tested.
+- [ ] `stream`: cursor, reconnect, deduplication, deadline, and restart are tested end to end.
 
-Engine heeft nu een referenceproof voor `task`. Voor `stream` bestaat contract- en
-storescaffolding, maar nog geen algemene end-to-end referentie. Claim geen
-streamproductierijpheid op basis van het enum alleen.
+Engine currently has a reference proof for `task`. For `stream`, contract and
+store scaffolding exist, but there is no general end-to-end reference. Do not
+claim stream production readiness based on the enum alone.
 
 ## Brains
 
-- [ ] Specialist-ID en `supported_families` zijn stabiel en gedeclareerd.
-- [ ] Advies is typed en kan unsupported/defer uitdrukken.
-- [ ] Een specialist retourneert alleen advies/proposal en bezit geen executor.
-- [ ] Modeloutput wordt als onbetrouwbare data geschema-valideerd.
-- [ ] Provider/model-ID, projectiehash, latency en output worden auditable vastgelegd.
-- [ ] Core correctness en de veilige fallback werken zonder modelprovider.
+- [ ] Specialist ID and `supported_families` are stable and declared.
+- [ ] Advice is typed and can express unsupported or defer.
+- [ ] A specialist returns only advice or a proposal and owns no executor.
+- [ ] Model output is schema-validated as untrusted data.
+- [ ] Provider/model ID, projection hash, latency, and output are recorded for audit.
+- [ ] Core correctness and the safe fallback work without a model provider.
 
-## Experience en routines
+## Experience and routines
 
-- [ ] Experience is optioneel; afwezigheid breekt de gewone lifecycle niet.
-- [ ] De provider gebruikt een opaque cursor en duplicate-vrije signal-ID's.
-- [ ] Preferences zijn onder `<plugin-id>.preference.*` namespaced.
-- [ ] Preferencewaarden hebben een JSON Schema en capabilitybinding.
-- [ ] Signals bevatten provenance en blijven `OBSERVED` of `INFERRED` zoals terecht.
-- [ ] Een signal kan geen mandate, target, family, risk of privacy uitbreiden.
-- [ ] Routine templates hebben pattern-, guard- en goalschema plus vaste priority.
-- [ ] Iedere scoped guardleaf heeft een exacte entityselector.
-- [ ] Shadow dispatch count is structureel nul.
-- [ ] Promotie gebruikt echte kansen, independently observed agreement en conflictchecks.
-- [ ] Automatische promotie vereist exacte low-risk ownerdelegatie; anders approval.
-- [ ] Iedere promotie heeft een exacte rollbackpatch en invalidateert verouderde plancache.
+- [ ] Experience is optional; its absence does not break the normal lifecycle.
+- [ ] The provider uses an opaque cursor and duplicate-free signal IDs.
+- [ ] Preferences are namespaced under `<plugin-id>.preference.*`.
+- [ ] Preference values have a JSON Schema and capability binding.
+- [ ] Signals include provenance and remain `OBSERVED` or `INFERRED` as warranted.
+- [ ] A signal cannot add a mandate, target, family, risk, privacy, or authority.
+- [ ] Routine templates have pattern, guard, and goal schemas plus a fixed priority.
+- [ ] Every scoped guard leaf has an exact entity selector.
+- [ ] Shadow dispatch count is structurally zero.
+- [ ] Promotion uses real opportunities, independently observed agreement, and conflict checks.
+- [ ] Automatic routine promotion requires exact low-risk owner delegation; otherwise it requires approval.
+- [ ] Every promotion has an exact rollback patch and invalidates stale plan cache entries.
 
 ## Tests
 
-- [ ] `engine-plugin validate .` slaagt.
-- [ ] `engine-plugin inspect .` toont alleen bedoelde declarations.
-- [ ] `engine-plugin test .` slaagt met de gegenereerde/gedeelde contracttest.
-- [ ] Deterministische fake dekt observe, controller, executor en oracle.
-- [ ] Conformance draait tegen iedere adapterimplementatie.
-- [ ] Restart/replay levert dezelfde relevante state op.
-- [ ] Stateful tests dekken ongeldige volgordes en crashgrenzen.
-- [ ] Faulttests dekken netwerkverlies, timeout, duplicate response en partial failure.
-- [ ] Geen test gebruikt sealed evaluatiedata als debugfixture.
-- [ ] Fysieke tests beginnen low-energy, begrensd en met onafhankelijke stopmogelijkheid.
+- [ ] `engine-plugin validate .` succeeds.
+- [ ] `engine-plugin inspect .` shows only intended declarations.
+- [ ] `engine-plugin test .` passes the generated or shared contract test.
+- [ ] A deterministic fake covers observe, controller, executor, and oracle.
+- [ ] Conformance runs against every adapter implementation.
+- [ ] Restart or replay produces the same relevant state.
+- [ ] Stateful tests cover invalid sequences and crash boundaries.
+- [ ] Fault tests cover network loss, timeout, duplicate response, and partial failure.
+- [ ] No test uses sealed evaluation data as a debugging fixture.
+- [ ] Physical tests begin low-energy and bounded, with an independent stop mechanism.
 
-## Documentatie en claims
+## Documentation and claims
 
-- [ ] README noemt ondersteunde targets/versies en exacte units.
-- [ ] README noemt failure-, fallback- en recoverygedrag.
-- [ ] Simulatorbewijs wordt niet als fysieke veiligheid of certificering gepresenteerd.
-- [ ] Niet-geïmplementeerde marketplace, signing, sandboxing of stream-E2E staat als gap.
-- [ ] Pluginsemantiek lekt niet als speciale branch naar Heart of runtime.
-- [ ] Een wijziging aan lifecycle, authority of adaptercontract heeft de vereiste ADR.
+- [ ] The README names supported targets and versions, and exact units.
+- [ ] The README describes failure, fallback, and recovery behavior.
+- [ ] Simulator evidence is not presented as physical safety or certification.
+- [ ] Unimplemented marketplace, signing, sandboxing, or stream E2E remains documented as a gap.
+- [ ] Plugin semantics do not leak into the Heart or runtime as a special branch.
+- [ ] A lifecycle, authority, or adapter-contract change has the required ADR.
 

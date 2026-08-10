@@ -1,46 +1,46 @@
 ---
-title: Plugininterface v2
-description: Statisch manifest, runtimeprotocollen en de grens tussen wereldsemantiek en Engine.
+title: Plugin interface v2
+description: The static manifest, runtime protocols, and boundary between world semantics and Engine.
 sidebar_position: 2
 ---
 
-# Plugininterface v2
+# Plugin interface v2
 
-`engine.plugin/v2` is de publieke grens tussen Engine en een wereld. Een plugin
-mag één of meer targets observeren en kan typed capabilities, controllers,
-executors, effectoracles, specialisten en experience providers aanbieden. Engine
-blijft eigenaar van de generieke lifecycle, policy, authorization en audit.
+`engine.plugin/v2` is the public boundary between Engine and a world. A plugin
+may observe one or more targets and provide typed capabilities, controllers,
+executors, effect oracles, specialists, and experience providers. Engine remains
+responsible for the generic lifecycle, policy, authorization, and audit.
 
-Een plugin bestaat altijd uit twee kanten:
+A plugin always has two sides:
 
-1. een statisch `engine-plugin.toml`, leesbaar vóór import;
-2. een Python-factory in de entrypointgroep `engine.plugins` die een object met
-   het `WorldPluginV2`-oppervlak teruggeeft.
+1. a static `engine-plugin.toml`, readable before import;
+2. a Python factory in the `engine.plugins` entry point group that returns an
+   object with the `WorldPluginV2` surface.
 
-Import en factory-aanroep horen inert te zijn: niet verbinden, geen target
-muteren en geen achtergrondproces starten. Verbindingen ontstaan pas in de
-expliciete provider- of executoroperatie.
+Import and factory invocation should be inert: do not connect, mutate a target,
+or start a background process. Connections begin only in an explicit provider
+or executor operation.
 
-## Registratie
+## Registration
 
-Declareer de distributie-entrypoint in `pyproject.toml`:
+Declare the distribution entry point in `pyproject.toml`:
 
 ```toml
 [project.entry-points."engine.plugins"]
-mijn_wereld = "mijn_wereld.plugin:load_plugin"
+my_world = "my_world.plugin:load_plugin"
 ```
 
-De runtime zoekt de bijbehorende `engine-plugin.toml`, valideert die en vergelijkt
-de statische manifestinhoud met `plugin.manifest`. Een verschil in identiteit,
-rollen, capabilities, preferences of routines blokkeert registratie. Dubbele
-plugin- en target-ID's worden eveneens geweigerd.
+The runtime locates the associated `engine-plugin.toml`, validates it, and
+compares the static manifest with `plugin.manifest`. A mismatch in identity,
+roles, capabilities, preferences, or routines blocks registration. Duplicate
+plugin and target IDs are also rejected.
 
-Er is momenteel geen Engine-marketplace. Installatie en distributiekeuze lopen
-via normale Python-packaging en de lokale beheerder.
+Engine does not currently have a marketplace. Installation and distribution
+choices use normal Python packaging and remain under local operator control.
 
-## Minimaal manifest
+## Minimal manifest
 
-Een muterende capability heeft meer informatie nodig dan een toolnaam:
+A mutating capability needs more information than a tool name:
 
 ```toml
 [plugin]
@@ -76,7 +76,7 @@ schema_version = 1
 id = "example.warehouse.transfer-bin/v1"
 family = "warehouse.transfer-bin"
 version = "1.0.0"
-description = "Verplaats een begrensd aantal kratten"
+description = "Move a bounded number of crates"
 control_layer = "semantic"
 invocation_mode = "task"
 risk_class = "low"
@@ -90,111 +90,110 @@ limits = {count = {min = 1, max = 10}}
 recovery = "poll_task_then_observe"
 ```
 
-Het manifest declareert behoefte; het dwingt die behoefte nog niet zelfstandig
-af. De huidige runtime heeft nog geen algemene sandbox- of permission-enforcement
-op basis van `[needs]`, en valideert pluginartefacts nog niet cryptografisch.
-Behandel signing en sandboxing dus als open productgaps, niet als bestaande
-veiligheidsgarantie.
+The manifest declares needs; it does not enforce those needs by itself. The
+current runtime does not yet provide general sandbox or permission enforcement
+based on `[needs]`, and it does not cryptographically verify plugin artifacts.
+Treat signing and sandboxing as open product gaps, not existing safety guarantees.
 
-## De rollen
+## Roles
 
 ### `WorldProvider`
 
-Een provider bezit `plugin_id`, een stabiele `target_id`, poll- en
-freshnessintervallen en implementeert:
+A provider owns a `plugin_id`, a stable `target_id`, polling and freshness
+intervals, and implements:
 
-- `discover()` voor capability-instanties;
-- `observe()` voor een monotone `TargetObservationV2`;
-- `subscribe(wake)` als optionele wake-upbron.
+- `discover()` for capability instances;
+- `observe()` for a monotonic `TargetObservationV2`;
+- `subscribe(wake)` as an optional wake-up source.
 
-`observe()` retourneert entities, relations, observations, dekking, bron,
-targetrevision en beschikbaarheid. Een event is slechts aanleiding om opnieuw te
-observeren; het event zelf is niet automatisch operationele waarheid.
+`observe()` returns entities, relations, observations, coverage, source, target
+revision, and availability. An event is only a reason to observe again; the event
+itself is not automatically operational truth.
 
 ### `DomainController`
 
-De controller vertaalt een semantische `ProposedActionV1` naar een exacte
-`ActionRequestV1`. Dit is waar domeinbetekenis, units, doelparameters,
-targetrevision, deadline en idempotency key worden vastgelegd. De controller mag
-niet van target, entity, goal of capability wisselen.
+The controller translates a semantic `ProposedActionV1` into an exact
+`ActionRequestV1`. This is where domain meaning, units, target parameters,
+target revision, deadline, and idempotency key are fixed. The controller may not
+change the target, entity, goal, or capability.
 
 ### `Executor`
 
-De executor ontvangt uitsluitend een concrete request plus een
-`AuthorizationV1`. Hij implementeert `dispatch`, `poll` en `cancel` en retourneert
-een `ExecutionReceiptV2`. Een receipt zegt wat de executor weet over de
-uitvoering; een ACK bewijst niet dat het gewenste effect in de wereld bestaat.
+The executor receives only a concrete request plus an `AuthorizationV1`. It
+implements `dispatch`, `poll`, and `cancel`, and returns an
+`ExecutionReceiptV2`. A receipt states what the executor knows about execution;
+an acknowledgement does not prove that the intended effect exists in the world.
 
 ### `EffectOracle`
 
-De oracle vergelijkt proposal, pre-snapshot, receipt en een verse post-snapshot.
-Hij levert een `EffectDeltaV1` met bewijsniveau, `achieved: true | false | null`,
-metingen en reden. Bij onvoldoende dekking is `null`/`UNKNOWN` correcter dan
-`false`.
+The oracle compares the proposal, pre-snapshot, receipt, and a fresh
+post-snapshot. It produces an `EffectDeltaV1` with evidence grade,
+`achieved: true | false | null`, measurements, and a reason. With insufficient
+coverage, `null`/`UNKNOWN` is more accurate than `false`.
 
 ### `SpecialistBrainV2`
 
-Een specialist declareert ondersteunde capabilityfamilies en geeft typed
-`SpecialistAdviceV1`. Hij mag een voorstel leveren, maar kan niet autoriseren,
-dispatchen of zijn eigen succes vaststellen.
+A specialist declares supported capability families and returns typed
+`SpecialistAdviceV1`. It may provide a proposal, but cannot authorize, dispatch,
+or establish its own success.
 
 ### `ExperienceProvider`
 
-Een experience provider publiceert cursor-gebaseerde `BehaviorBatchV1`-waarden
-uit plugin-eigen opslag. Engine bewaart signalen exactly-once per cursor en kan
-ze koppelen aan een namespaced preference of routinetemplate. Een behavior
-signal is bewijs, geen impliciete toestemming.
+An experience provider publishes cursor-based `BehaviorBatchV1` values from
+plugin-owned storage. Engine stores signals exactly once per cursor and may link
+them to a namespaced preference or routine template. A behavior signal is
+evidence, not implicit permission.
 
 ### `RoutineCompiler`
 
-Een routinecompiler vertaalt plugin-eigen patroonsemantiek naar een inert
-`RoutineSpecV1` plus `GoalSpecV2`. Hij kan geen mandate of authorization maken.
+A routine compiler translates plugin-owned pattern semantics into an inert
+`RoutineSpecV1` plus `GoalSpecV2`. It cannot create a mandate or authorization.
 
-## Discovery is begrensd door het manifest
+## Discovery is bounded by the manifest
 
-Een provider mag dynamische apparaten ontdekken, maar alleen vooraf gedeclareerde
-capabilityfamilies kunnen de muterende route in. Een onbekende family wordt als
-`opaque`, `query`, `read_only` en `observe_only` geprojecteerd. Dit voorkomt dat
-een nieuw targetdevice automatisch nieuwe authority creëert.
+A provider may discover dynamic devices, but only previously declared capability
+families can enter the mutating path. An unknown family is projected as
+`opaque`, `query`, `read_only`, and `observe_only`. A newly discovered target
+device therefore cannot create new authority automatically.
 
-Voor muterende capabilities vereist de manifestvalidator minimaal een provider,
-controller, executor en effectoracle. Een v1-plugin kan via de compatibiliteitsbrug
-zichtbaar blijven, maar is in de v2-worldruntime observe-only.
+For mutating capabilities, the manifest validator requires at least a provider,
+controller, executor, and effect oracle. A v1 plugin may remain visible through
+the compatibility bridge, but is observe-only in the v2 world runtime.
 
-## Lifecycle van een mutatie
+## Mutation lifecycle
 
 ```text
-verse observatie
-  -> onbetrouwbaar voorstel
-  -> scope- en schemavalidatie
-  -> controller maakt exact request
-  -> deterministische policy
-  -> request-gebonden authorization
+fresh observation
+  -> untrusted proposal
+  -> scope and schema validation
+  -> controller creates exact request
+  -> deterministic policy
+  -> request-bound authorization
   -> executor dispatch/poll/cancel
-  -> verse post-observatie
-  -> plugin-oracle reconcilieert effect
-  -> receipt en EffectDelta worden duurzaam vastgelegd
+  -> fresh post-observation
+  -> plugin oracle reconciles effect
+  -> receipt and EffectDelta are stored durably
 ```
 
-Een capability met `immediate` kan direct terminaal antwoorden. `task` gebruikt
-een duurzaam external handle, polling, deadline cancellation en restart recovery.
-`stream` bestaat in het publieke contract en de store heeft scaffolding, maar er
-is nog geen end-to-end streamreference die reconnect en cursorherstel bewijst.
+A capability with `immediate` can respond terminally at once. `task` uses a
+durable external handle, polling, deadline cancellation, and restart recovery.
+`stream` exists in the public contract and the store has scaffolding, but there
+is no end-to-end stream reference proving reconnect and cursor recovery yet.
 
-## Opslaggrens
+## Storage boundary
 
-Een plugin declareert een eigen store identity en schema version. Plugindata
-hoort niet in Engine's private operationele tabellen en Engine deelt geen
-mutable database als impliciete interface. Wissel alleen publieke contractwaarden
-uit.
+A plugin declares its own store identity and schema version. Plugin data does not
+belong in Engine's private operational tables, and Engine does not share a
+mutable database as an implicit interface. Exchange public contract values only.
 
-## Wat conformance wel en niet bewijst
+## What conformance does and does not prove
 
-`engine-plugin validate` valideert het statische manifest. `engine-plugin test`
-start de gegenereerde `unittest`-suite. `engine_sdk.check_plugin()` controleert
-onder andere identiteiten, duplicate targets, providerobservaties, declarations
-en undeclared families.
+`engine-plugin validate` validates the static manifest. `engine-plugin test`
+runs the generated `unittest` suite. `engine_sdk.check_plugin()` checks identities,
+duplicate targets, provider observations, declarations, and undeclared families,
+among other structural properties.
 
-Dat bewijst contractvorm en fakegedrag. Het bewijst geen netwerkisolatie,
-artefactsigning, fysieke veilige toestand, timinggarantie of certificering.
+That proves contract shape and fake behavior. It does not prove network
+isolation, artifact signing, a physical safe state, timing guarantees, or
+certification.
 

@@ -1,113 +1,110 @@
 ---
-title: Quickstart vanuit de repository
-description: Installeer de uv-workspace, inspecteer plugins en voer de contracttests uit.
+title: Repository quickstart
+description: Install the uv workspace, inspect plugins, and run the contract tests.
 sidebar_position: 1
 ---
 
-# Quickstart vanuit de repository
+# Repository quickstart
 
-Engine wordt in deze repository ontwikkeld als een Python 3.12+-workspace. De
-packages zijn nog niet als algemene PyPI-installatieroute gedocumenteerd. Werk
-daarom vanuit een checkout van de repository en gebruik het gelockte
-workspacebestand.
+Engine is developed in this repository as a Python 3.12+ workspace. The packages
+are not yet documented as a general PyPI installation route. Work from a checkout
+of the repository and use the locked workspace file.
 
-## Vereisten
+## Requirements
 
-- Python 3.12 of nieuwer;
+- Python 3.12 or newer;
 - [uv](https://docs.astral.sh/uv/);
-- een lokale checkout van deze repository.
+- a local checkout of this repository.
 
-## 1. Synchroniseer exact de workspace
+## 1. Synchronize the exact workspace
 
-Voer dit uit in de root van de repository:
+Run this in the repository root:
 
 ```console
 uv sync --all-packages --locked
 ```
 
-`--all-packages` neemt `engine-heart`, `engine-sdk`, `engine-runtime` en de
-workspaceplugins mee. `--locked` weigert een onbedoelde herberekening van
-`uv.lock`.
+`--all-packages` includes `engine-heart`, `engine-sdk`, `engine-runtime`, and the
+workspace plugins. `--locked` refuses an unintended recalculation of `uv.lock`.
 
-## 2. Controleer discovery
+## 2. Check discovery
 
 ```console
 uv run engine plugins list
 uv run engine plugins inspect engine.reference-world
 ```
 
-De runtime vindt geïnstalleerde plugins via de Python-entrypointgroep
-`engine.plugins`. `plugins inspect` toont de statische, gevalideerde declaratie;
-het is geen marketplace-query en downloadt niets.
+The runtime finds installed plugins through the Python entry point group
+`engine.plugins`. `plugins inspect` shows the static, validated declaration; it
+does not query a marketplace or download anything.
 
-## 3. Observeer zonder te muteren
+## 3. Observe without mutating
 
 ```console
 uv run engine world observe
 uv run engine status --json
 ```
 
-`world observe` vraagt de beschikbare providers om een verse observatie en
-slaat een samengestelde `WorldSnapshotV2` op. Een ontbrekende configuratie van
-een optionele plugin verschijnt als discovery failure. Engine verzint daardoor
-geen negatieve toestand: ontbrekende of verouderde dekking blijft `UNKNOWN` of
-`STALE`.
+`world observe` asks the available providers for a fresh observation and stores
+a composed `WorldSnapshotV2`. Missing configuration for an optional plugin is
+reported as a discovery failure. Engine does not invent a negative state in that
+case: missing or expired coverage remains `UNKNOWN` or `STALE`.
 
-Observeren muteert geen target, maar een geconfigureerde provider kan daarvoor
-wel lokale of remote read-API's aanroepen. Controleer de plugindeclaraties en
-privacyconfiguratie voordat je het commando tegen echte systemen gebruikt.
+Observation does not mutate a target, but a configured provider may call local
+or remote read APIs. Check the plugin declarations and privacy configuration
+before using the command against real systems.
 
-`status` toont de lokale store, plugins, targets, laatste snapshot, goals,
-learning candidates, routines, autonomieprofielen en de geselecteerde executive
-brain. De huidige CLI schrijft dit altijd als JSON; `--json` is geaccepteerd om
-de gewenste outputvorm expliciet te maken.
+`status` shows the local store, plugins, targets, latest snapshot, goals,
+learning candidates, routines, autonomy profiles, and selected executive brain.
+The current CLI always writes this as JSON; `--json` is accepted to make the
+intended output format explicit.
 
-## 4. Voer de publieke contracttests uit
+## 4. Run the public contract tests
 
-Deze suites gebruiken alleen `unittest` en werken na de gelockte sync:
+These suites use only `unittest` and work after the locked sync:
 
 ```console
 uv run python -m unittest discover -s packages/engine-sdk/tests -v
 uv run python -m unittest discover -s packages/engine-runtime/tests -v
 ```
 
-Ze controleren onder andere manifestvalidatie, canonical hashing, de
-gegenereerde plugin, CLI-opbouw, modelconfiguratie en setup-preview. Dit is
-software- en contractbewijs, geen certificering van fysieke veiligheid.
+They check manifest validation, canonical hashing, the generated plugin, CLI
+construction, model configuration, and setup preview, among other things. This
+is software and contract evidence, not physical-safety certification.
 
-## 5. Maak een lokale voorbeeldplugin
+## 5. Create a local example plugin
 
-Kies een lege doelmap:
-
-```console
-uv run engine-plugin init mijn-wereld --template world --destination /tmp
-cd /tmp/mijn-wereld
-uv run --project /pad/naar/engine engine-plugin validate .
-uv run --project /pad/naar/engine engine-plugin inspect .
-uv run --project /pad/naar/engine engine-plugin test .
-```
-
-Vervang `/pad/naar/engine` door de absolute repositoryroot. Je kunt ook in een
-shell vanuit de Engine-workspace blijven en het pluginpad als argument geven:
+Choose an empty destination:
 
 ```console
-uv run engine-plugin validate /tmp/mijn-wereld
-uv run engine-plugin inspect /tmp/mijn-wereld
-uv run engine-plugin test /tmp/mijn-wereld
+uv run engine-plugin init my-world --template world --destination /tmp
+cd /tmp/my-world
+uv run --project /path/to/engine engine-plugin validate .
+uv run --project /path/to/engine engine-plugin inspect .
+uv run --project /path/to/engine engine-plugin test .
 ```
 
-De templates zijn `world`, `specialist` en `full`. `world` bevat een
-warehousefake met provider, controller, executor en effectoracle; `specialist`
-bevat alleen een specialist; `full` combineert beide.
+Replace `/path/to/engine` with the absolute repository root. You can also remain
+in a shell at the Engine workspace and pass the plugin path as an argument:
 
-## Geen model nodig voor de kern
+```console
+uv run engine-plugin validate /tmp/my-world
+uv run engine-plugin inspect /tmp/my-world
+uv run engine-plugin test /tmp/my-world
+```
 
-Discovery, observatie, de deterministische executive en de contracttests hebben
-geen LLM nodig. `engine setup` compileert vrije tekst naar een voorgestelde
-`GoalSpecV2` en vereist in de huidige runtime wél een geconfigureerd structured-
-outputmodel. Zonder model faalt dit commando expliciet.
+The templates are `world`, `specialist`, and `full`. `world` contains a warehouse
+fake with a provider, controller, executor, and effect oracle; `specialist`
+contains only a specialist; `full` combines both.
 
-Voor een OpenAI-compatibel endpoint:
+## No model required for the core
+
+Discovery, observation, the deterministic executive, and contract tests do not
+require an LLM. `engine setup` compiles free text into a proposed `GoalSpecV2`
+and does require a configured structured-output model in the current runtime.
+Without one, the command fails explicitly.
+
+For an OpenAI-compatible endpoint:
 
 ```console
 export ENGINE_MODEL_BASE_URL=https://provider.example/v1
@@ -116,15 +113,15 @@ export ENGINE_MODEL_ID=provider-model-id
 uv run engine model canary
 ```
 
-Een loopbackendpoint mag zonder API-key worden gebruikt via
-`ENGINE_LOCAL_MODEL_BASE_URL` en `ENGINE_LOCAL_MODEL_ID`. Een remote URL zonder
-key faalt gesloten. `model canary` doet een echte netwerkcall; voer het niet uit
-als je geen externe transmissie bedoelt.
+A loopback endpoint may omit an API key when configured through
+`ENGINE_LOCAL_MODEL_BASE_URL` and `ENGINE_LOCAL_MODEL_ID`. A remote URL without
+a key fails closed. `model canary` makes a real network call; do not run it unless
+you intend the external transmission.
 
-## Volgende stappen
+## Next steps
 
-- Lees de [plugininterface](./plugin-interface.md) voordat je rollen implementeert.
-- Gebruik de [pluginchecklist](./plugin-checklist.md) vóór enrollment.
-- Zie de [CLI-referentie](./cli.md) voor alle actuele subcommando's.
-- Lees [status en bewijs](../reference/status-en-bewijs.md) voordat je een ACK of
-  modeluitvoer als succes interpreteert.
+- Read the [plugin interface](./plugin-interface.md) before implementing roles.
+- Use the [plugin checklist](./plugin-checklist.md) before enrollment.
+- See the [CLI reference](./cli.md) for all current subcommands.
+- Read [status and evidence](../reference/status-and-evidence.md) before treating
+  an acknowledgement or model output as success.

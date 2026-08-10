@@ -1,185 +1,185 @@
 ---
-title: Veelgestelde vragen
-description: Korte antwoorden over Heart, brains, plugins, learning, veiligheid en huidige grenzen.
+title: Frequently asked questions
+description: Short answers about the Heart, brains, plugins, learning, safety, and current limits.
 sidebar_position: 4
 ---
 
-# Veelgestelde vragen
+# Frequently asked questions
 
-## Is Engine een AI-agent?
+## Is Engine an AI agent?
 
-Niet primair. Engine is een lokale runtime voor levende doelen, typed world
-state en een auditable action lifecycle. Een LLM of agent kan een executive brain
-of intentcompiler leveren, maar blijft proposal provider. Policy,
-authorization, execution en effectwaarheid liggen buiten het model.
+Not primarily. Engine is a local runtime for living goals, typed world state,
+and an auditable action lifecycle. An LLM or agent can provide an executive brain
+or intent compiler, but remains a proposal provider. Policy, authorization,
+execution, and effect truth remain outside the model.
 
-## Wat is het verschil tussen Heart en brain?
+## What is the difference between the Heart and a brain?
 
-De Heart bezit de duurzame loop en operational state. Hij observeert, evalueert,
-valideert, vraagt policy, legt authorization/receipts vast en observeert opnieuw.
-Een brain kiest bij novelty of drift een typed vervolgstap of semantisch
-proposal. Een brain kan worden vervangen of wegvallen zonder dat de world state
-verdwijnt.
+The Heart owns the durable loop and operational state. It observes, evaluates,
+validates, asks policy, records authorizations and receipts, and observes again.
+A brain chooses a typed next step or semantic proposal when novelty or drift
+requires deliberation. A brain can be replaced or become unavailable without
+losing world state.
 
-## Werkt Engine zonder LLM?
+## Does Engine work without an LLM?
 
-Ja voor de kernruntime, observatie, deterministic executive, typed goals,
-plugins, policy, execution, oracle en tests. De huidige `engine setup`-route voor
-vrije natuurlijke taal vereist wel een geconfigureerd structured-outputmodel.
-Een applicatie kan daarnaast zelf een typed GoalSpec aanmaken.
+Yes, for the core runtime, observation, deterministic executive, typed goals,
+plugins, policy, execution, oracle, and tests. The current `engine setup` path
+for free-form natural language does require a configured structured-output
+model. An application can also create a typed GoalSpec itself.
 
-## Kan ik meerdere modellen tegelijk gebruiken?
+## Can I use multiple models at the same time?
 
-Je kunt meerdere pluginspecialisten hebben. Per huidige `EngineApplication` is
-er precies één executive actief: deterministic of één OpenAI-compatible
-modeladapter. Multi-executive voting, fallback of ensemble-routing is nog niet
-geïmplementeerd.
+You can have multiple plugin specialists. Each current `EngineApplication` has
+exactly one active executive: deterministic or one OpenAI-compatible model
+adapter. Multi-executive voting, fallback, or ensemble routing is not yet
+implemented.
 
-Meer brains zouden geen extra authority krijgen: ieder proposal moet dezelfde
-validation, policy, authorization en oracle doorlopen.
+Additional brains would receive no additional authority: every proposal must
+pass through the same validation, policy, authorization, and oracle.
 
-## Kan één goal meerdere plugins gebruiken?
+## Can one goal use multiple plugins?
 
-Ja. De Heart composeert alle aangesloten targetobservaties in één snapshot en
-een GoalSpec kan entities/conditions over meerdere targets gebruiken. Scoped
-routineguards kunnen bijvoorbeeld een tijdentity uit een contextplugin combineren
-met een devicezone uit een andere plugin. Muterende desired effects blijven aan
-een exacte capabilityfamily, target en entity gebonden.
+Yes. The Heart composes all connected target observations into one snapshot,
+and a GoalSpec may use entities and conditions across multiple targets. Scoped
+routine guards can, for example, combine a time entity from a context plugin
+with a device zone from another plugin. Mutating desired effects remain bound to
+an exact capability family, target, and entity.
 
-## Is iedere Python-plugin automatisch vertrouwd?
+## Is every Python plugin trusted automatically?
 
-Nee. Engine vergelijkt statisch en geladen manifest en houdt onbekende families
-observe-only, maar de huidige runtime heeft geen algemene processandbox en
-dwingt manifest-needs niet op OS-/netwerkniveau af. Ook pluginartefactsigning is
-nog niet afgedwongen. Installeer alleen code die je op deploymentniveau vertrouwt.
+No. Engine compares the static and loaded manifests and keeps unknown families
+observe-only, but the current runtime has no general process sandbox and does
+not enforce manifest needs at the OS or network level. Plugin artifact signing
+is not enforced either. Install only code that you trust at the deployment
+level.
 
-## Is er een pluginmarketplace?
+## Is there a plugin marketplace?
 
-Nee. Discovery gebruikt lokaal geïnstalleerde Python-distributies met de
-`engine.plugins`-entrypointgroep. Er is nog geen marketplace, automatische trust
-chain of version-resolverdienst.
+No. Discovery uses locally installed Python distributions with the
+`engine.plugins` entry-point group. There is not yet a marketplace, automatic
+trust chain, or version-resolver service.
 
-## Kan een plugin zichzelf nieuwe capabilities geven?
+## Can a plugin give itself new capabilities?
 
-Niet voor mutatie. Dynamische discovery mag nieuwe instanties tonen, maar een
-niet vooraf in `engine-plugin.toml` gedeclareerde family wordt opaque,
-query-only en read-only. Een statisch manifest plus enrollment/mandate is nodig
-voordat authority kan bestaan.
+Not for mutation. Dynamic discovery may expose new instances, but a family that
+was not declared in advance in `engine-plugin.toml` becomes opaque, query-only,
+and read-only. A static manifest plus enrollment/mandate is required before
+authority can exist.
 
-## Welke modi bestaan er?
+## Which modes exist?
 
-Op goalniveau zijn er `achieve` en `maintain`. Op capabilityniveau bestaan
-`immediate`, `task` en `stream`. Cognitieve beslissingen gebruiken
-`query_world`, `consult_specialist`, `propose_effect`, `wait`, `complete` en
-`abandon`. Daarnaast is er een begrensd `yolo`-autonomieprofiel voor de eerste
-Homey-lightingtranche; dat is geen onbeperkte modus.
+At the goal level, there are `achieve` and `maintain`. At the capability level,
+there are `immediate`, `task`, and `stream`. Cognitive decisions use
+`query_world`, `consult_specialist`, `propose_effect`, `wait`, `complete`, and
+`abandon`. There is also a bounded `yolo` autonomy profile for the first Homey
+lighting tranche; it is not an unrestricted mode.
 
-## Zijn `task` en `stream` productierijp?
+## Are `task` and `stream` production-ready?
 
-`task` heeft een non-home referenceproof met durable handle, poll, deadline
-cancel en reconstruction na restart. `stream` bestaat in contract en store-
-scaffolding, maar mist een end-to-end referenceproof voor reconnect en cursor-
-herstel. Beoordeel daarnaast ieder concreet target afzonderlijk.
+`task` has a non-home reference proof with a durable handle, polling, deadline
+cancellation, and reconstruction after restart. `stream` exists in the contract
+and store scaffolding, but lacks an end-to-end reference proof for reconnect and
+cursor recovery. Each concrete target must also be assessed independently.
 
-## Wat betekent “Engine leert”?
+## What does “Engine learns” mean?
 
-De huidige learningroute importeert plugin-owned behavior evidence, valideert
-scope en schema, maakt een candidate, draait minimaal een begrensde shadowfase
-en kan daarna een nieuwe GoalSpec-preference of routineversie opslaan. Promotie
-is auditable en rollbackbaar en mag nooit target, capability, risk, privacy of
-authority uitbreiden.
+The current learning path imports plugin-owned behavior evidence, validates its
+scope and schema, creates a candidate, runs at least a bounded shadow phase, and
+may then store a new GoalSpec preference or routine version. Promotion is
+auditable and reversible and must never expand target, capability, risk,
+privacy, or authority.
 
-Dit is geen online training van modelweights. Engine kan dus voorkeur/state
-aanpassen zonder een model te retrainen.
+This is not online training of model weights. Engine can therefore adjust a
+preference or state without retraining a model.
 
-## Kan Engine zelf skills schrijven of verbeteren?
+## Can Engine write or improve skills itself?
 
-Niet als huidige productkern. Een plugin of extern systeem kan nieuwe code of
-een skill voorstellen, maar installation, trust, signing, sandboxing, tests en
-enrollment blijven aparte stappen. Self-modifying code krijgt niet vanzelf
-authority.
+Not as part of the current product core. A plugin or external system can propose
+new code or a skill, but installation, trust, signing, sandboxing, tests, and
+enrollment remain separate steps. Self-modifying code does not gain authority
+automatically.
 
-## Is een execution receipt hetzelfde als succes?
+## Is an execution receipt the same as success?
 
-Nee. Een receipt vertelt wat de executor over de uitvoering meldt. Daarna moet
-een verse world observation volgen en moet de pluginoracle het gewenste effect
-met relevante measurements reconciliëren. Een ACK zonder effect kan dus een
-`succeeded` receipt en toch `achieved = false` of `null` opleveren.
+No. A receipt reports what the executor says about execution. A fresh world
+observation must then follow, and the plugin oracle must reconcile the desired
+effect against relevant measurements. An ACK without an effect can therefore
+produce a `succeeded` receipt while still yielding `achieved = false` or `null`.
 
-## Waarom is ontbrekende telemetry niet gewoon `false`?
+## Why is missing telemetry not simply `false`?
 
-Omdat afwezigheid alleen een negatief feit bewijst als de bron complete relevante
-coverage garandeert. Een offline sensor, incomplete query of stale snapshot zegt
-niet dat een deur dicht, een lamp uit of een relatie afwezig is. Engine bewaart
-dan `UNKNOWN` of `STALE` en faalt gesloten voor mutatie.
+Absence proves a negative fact only when the source guarantees complete relevant
+coverage. An offline sensor, incomplete query, or stale snapshot does not say
+that a door is closed, a lamp is off, or a relation is absent. Engine records
+`UNKNOWN` or `STALE` and fails closed for mutation.
 
-## Vervangt policy een noodstop of hardware-interlock?
+## Does policy replace an emergency stop or hardware interlock?
 
-Nee. Softwarepolicy beperkt requests maar vervangt geen e-stop, watchdog,
-force/temperature limiter, gecertificeerde PLC of realtime controller. Een
-model kan die onafhankelijke safety plane evenmin overrulen.
+No. Software policy constrains requests but does not replace an emergency stop,
+watchdog, force/temperature limiter, certified PLC, or realtime controller. A
+model cannot overrule that independent safety plane either.
 
-## Kan Engine motoren, drones of auto's rechtstreeks besturen?
+## Can Engine control motors, drones, or cars directly?
 
-Niet in een hard-realtime loop. Realtime stabilisatie en actuatorfeedback horen
-bij een gevalideerde lokale controller. Engine kan op een hoger semantisch niveau
-een begrensde taak voorstellen en autoriseren, mits een geschikte adapter,
-safety boundary en onafhankelijke observation/oracle bestaan.
+Not in a hard-realtime loop. Realtime stabilization and actuator feedback
+belong in a validated local controller. Engine can propose and authorize a
+bounded task at a higher semantic level when a suitable adapter, safety
+boundary, and independent observation/oracle exist.
 
-## Is Engine een vervanger voor Home Assistant, ROS 2, MCP of een agentframework?
+## Does Engine replace Home Assistant, ROS 2, MCP, or an agent framework?
 
-Nee. Die systemen zitten op andere of overlappende lagen en kunnen met Engine
-samenwerken. Home Assistant/openHAB kunnen homewerelden leveren, ROS 2 kan een
-roboticsbody/controllerlaag zijn, MCP kan context/tools transporteren en een
-agentframework kan intent/deliberation leveren. Engine's eigen focus is typed
-operational state plus proposal/authority/effectscheiding.
+No. Those systems occupy different or overlapping layers and can work with
+Engine. Home Assistant or openHAB can provide home worlds, ROS 2 can provide a
+robotics body/controller layer, MCP can transport context and tools, and an
+agent framework can provide intent/deliberation. Engine's own focus is typed
+operational state plus the proposal/authority/effect separation.
 
-## Kan ik Engine nu via PyPI installeren?
+## Can I install Engine from PyPI now?
 
-Deze documentatie publiceert geen PyPI-installclaim. Gebruik de repository-
+This documentation makes no PyPI installation claim. Use the repository
 workspace:
 
 ```console
 uv sync --all-packages --locked
 ```
 
-Daarna voer je de commando's uit met `uv run`.
+Then run commands with `uv run`.
 
-## Waar staat de lokale database?
+## Where is the local database?
 
-Standaard in `.engine/engine.sqlite3`, relatief aan de werkmap. Stel
-`ENGINE_DATABASE` in voor een ander expliciet pad. Plugin-owned stores hebben
-een eigen identity en migratieversie en horen niet als gedeelde private tabellen
-in deze database-interface te lekken.
+By default, it is `.engine/engine.sqlite3`, relative to the working directory.
+Set `ENGINE_DATABASE` to another explicit path. Plugin-owned stores have their
+own identity and migration version and must not leak into this database
+interface as shared private tables.
 
-## Wat gebeurt er bij twee runtimes op dezelfde store?
+## What happens when two runtimes use the same store?
 
-De operationele CLI gebruikt een exclusieve SQLite-lease met heartbeat. Een
-tweede actieve owner wordt geweigerd; leaseverlies vraagt de lopende Heart te
-stoppen. Dit beschermt tegen twee executives die dezelfde store gelijktijdig
-muteren, maar is geen distributed consensusprotocol voor meerdere hosts.
+The operational CLI uses an exclusive SQLite lease with a heartbeat. A second
+active owner is rejected; loss of the lease requires the running Heart to stop.
+This protects against two executives mutating the same store concurrently, but
+it is not a distributed consensus protocol for multiple hosts.
 
-## Wat is het einddoel van Engine?
+## What is Engine's end goal?
 
-De thesis is een local-first runtime die menselijke intentie kan omzetten in
-veilige, typed en auditable acties over heterogene software- en fysieke systemen,
-terwijl modellen optionele proposal providers blijven, realtime controllers hun
-authority houden en een onafhankelijke policy/safety boundary uitvoering
-begrenst.
+The thesis is a local-first runtime that can turn human intent into safe, typed,
+and auditable actions across heterogeneous software and physical systems, while
+models remain optional proposal providers, realtime controllers retain their
+authority, and an independent policy/safety boundary constrains execution.
 
-De eerstvolgende waarde komt uit het bewijzen of falsificeren van die thesis met
-kleine, meetbare werelden. Het einddoel is niet een demo die autonoom lijkt, een
-universele butler of een claim op certificering zonder extern bewijs.
+The next increment of value comes from supporting or falsifying that thesis in
+small, measurable worlds. The end goal is not a demo that merely looks
+autonomous, a universal butler, or a certification claim without external
+evidence.
 
-## Welke grote gaps zijn er nu?
+## What major gaps remain?
 
-- geen marketplace;
-- geen afgedwongen plugin signing;
-- geen algemene sandbox-/needs-enforcement;
-- geen end-to-end streamreference;
-- geen multi-executive runtime;
-- geen universele fysieke safety- of certificeringsclaim.
+- no marketplace;
+- no enforced plugin signing;
+- no general sandbox or needs enforcement;
+- no end-to-end stream reference;
+- no multi-executive runtime;
+- no universal physical-safety or certification claim.
 
-Die gaps zijn bewust zichtbaar gehouden zodat documentatie geen roadmap als
-gerealiseerde capability presenteert.
-
+These gaps remain visible deliberately so the documentation does not present a
+roadmap item as an implemented capability.

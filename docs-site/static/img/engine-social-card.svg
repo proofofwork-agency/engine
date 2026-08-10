@@ -8,7 +8,7 @@
   <rect x="121" y="119" width="56" height="56" rx="3" fill="#071016" stroke="#66F6C2" stroke-width="2"/>
   <path d="M135 132H163V139H143V143H160V150H143V153H163V160H135V132Z" fill="#66F6C2"/>
   <text x="199" y="157" fill="#EDF7F2" font-family="monospace" font-size="28" font-weight="700" letter-spacing="7">ENGINE</text>
-  <text x="121" y="310" fill="#EDF7F2" font-family="Arial, sans-serif" font-size="66" font-weight="600">Van intentie naar actie.</text>
-  <text x="121" y="386" fill="#66F6C2" font-family="Arial, sans-serif" font-size="66" font-weight="500">Met bewijs en grenzen.</text>
+  <text x="121" y="310" fill="#EDF7F2" font-family="Arial, sans-serif" font-size="66" font-weight="600">From intent to action.</text>
+  <text x="121" y="386" fill="#66F6C2" font-family="Arial, sans-serif" font-size="66" font-weight="500">With evidence and boundaries.</text>
   <text x="121" y="478" fill="#99AAA3" font-family="monospace" font-size="21" letter-spacing="2">LOCAL-FIRST · TYPED · AUDITABLE · PROVIDER-NEUTRAL</text>
 </svg>

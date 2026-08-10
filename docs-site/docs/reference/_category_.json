@@ -1,10 +1,10 @@
 {
-  "label": "Referentie",
+  "label": "Reference",
   "position": 4,
   "collapsed": false,
   "link": {
     "type": "generated-index",
-    "title": "Referentie",
-    "description": "Status, bewijsgraden, vergelijking, begrippen en veelgestelde vragen."
+    "title": "Reference",
+    "description": "Status, evidence grades, comparisons, canonical terms, and frequently asked questions."
   }
 }

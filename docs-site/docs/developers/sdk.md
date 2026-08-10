@@ -1,39 +1,39 @@
 ---
-title: SDK-referentie
-description: Publieke types, protocollen, manifesthelpers en conformance in engine-sdk.
+title: SDK reference
+description: Public types, protocols, manifest helpers, and conformance in engine-sdk.
 sidebar_position: 3
 ---
 
-# SDK-referentie
+# SDK reference
 
-`engine-sdk` is de dependency-light publieke contractlaag. Een plugin hoeft de
-Heart, SQLite-store, modeladapter of runtime-CLI niet te importeren. In deze
-repository is contractversie `engine.plugin/v2` gekoppeld aan Engine API 2.x.
+`engine-sdk` is the dependency-light public contract layer. A plugin does not
+need to import the Heart, SQLite store, model adapter, or runtime CLI. In this
+repository, contract version `engine.plugin/v2` is paired with Engine API 2.x.
 
-Gebruik de SDK vanuit de uv-workspace; deze documentatie doet geen claim dat de
-packages al als publieke PyPI-release beschikbaar zijn.
+Use the SDK from the uv workspace; this documentation does not claim that the
+packages are already available as public PyPI releases.
 
-## Hoofdgroepen
+## Main groups
 
-| Groep | Belangrijkste exports | Doel |
+| Group | Main exports | Purpose |
 | --- | --- | --- |
-| wereld | `EntityV1`, `RelationV1`, `ObservationV1`, `TargetObservationV2`, `WorldSnapshotV2` | Typed state met bron, tijd, dekking en revision |
-| doel | `GoalSpecV2`, `DesiredEffectV1`, `ConditionV1`, `ScopedConditionV1` | Gewenste effecten, constraints en guards |
-| capability | `CapabilitySpecV2`, `ControlLayer`, `InvocationModeV2`, `RiskClass`, `PrivacyClass` | Statisch operationeel contract |
-| actie | `ProposedActionV1`, `ActionRequestV1`, `PolicyDecisionV1`, `AuthorizationV1` | Scheiding tussen voorstel, exact request en authority |
-| resultaat | `ExecutionReceiptV2`, `ExecutionStateV2`, `EffectDeltaV1`, `EvidenceGrade` | Uitvoeringsfeit en onafhankelijk waargenomen effect |
-| cognition | `BrainDecisionV2`, `SpecialistAdviceV1`, `DecisionKindV2` | Typed, onbetrouwbare beslisoutput |
-| learning | `PreferenceSpecV1`, `BehaviorSignalV1`, `BehaviorBatchV1`, `LearningCandidateV1` | Begrensde preference-evidence en promotie |
-| routines | `RoutineTemplateSpecV1`, `RoutineSpecV1`, `RoutineCandidateV1`, `AutonomyProfileV1` | Guards, shadow, approval en exact gedelegeerde scope |
-| manifest | `PluginManifestV2`, `load_static_manifest`, `validate_manifest`, `compare_manifests` | Statische enrollment en driftcontrole |
-| conformance | `check_plugin` (root-export) en aanvullende helpers in `engine_sdk.conformance` | Dependency-light structurele checks |
+| world | `EntityV1`, `RelationV1`, `ObservationV1`, `TargetObservationV2`, `WorldSnapshotV2` | Typed state with source, time, coverage, and revision |
+| goal | `GoalSpecV2`, `DesiredEffectV1`, `ConditionV1`, `ScopedConditionV1` | Desired effects, constraints, and guards |
+| capability | `CapabilitySpecV2`, `ControlLayer`, `InvocationModeV2`, `RiskClass`, `PrivacyClass` | Static operational contract |
+| action | `ProposedActionV1`, `ActionRequestV1`, `PolicyDecisionV1`, `AuthorizationV1` | Separation of proposal, exact request, and authority |
+| result | `ExecutionReceiptV2`, `ExecutionStateV2`, `EffectDeltaV1`, `EvidenceGrade` | Execution fact and independently observed effect |
+| cognition | `BrainDecisionV2`, `SpecialistAdviceV1`, `DecisionKindV2` | Typed, untrusted decision output |
+| learning | `PreferenceSpecV1`, `BehaviorSignalV1`, `BehaviorBatchV1`, `LearningCandidateV1` | Bounded preference evidence and promotion |
+| routines | `RoutineTemplateSpecV1`, `RoutineSpecV1`, `RoutineCandidateV1`, `AutonomyProfileV1` | Guards, shadow, approval, and exact delegated scope |
+| manifest | `PluginManifestV2`, `load_static_manifest`, `validate_manifest`, `compare_manifests` | Static enrollment and drift detection |
+| conformance | `check_plugin` (root export) and additional helpers in `engine_sdk.conformance` | Dependency-light structural checks |
 
-Alle contractwaarden zijn frozen dataclasses of enums. Ze zijn data; het bezit
-van een `ProposedActionV1` geeft geen uitvoeringsrecht.
+All contract values are frozen dataclasses or enums. They are data; possession
+of a `ProposedActionV1` does not grant execution rights.
 
-## Publieke protocollen
+## Public protocols
 
-`engine_sdk` exporteert de volgende `typing.Protocol`-interfaces:
+`engine_sdk` exports the following `typing.Protocol` interfaces:
 
 - `WorldProvider`
 - `DomainController`
@@ -45,12 +45,13 @@ van een `ProposedActionV1` geeft geen uitvoeringsrecht.
 - `RoutineCompiler`
 - `WorldPluginV2`
 
-Structurele typing houdt plugins los van een concrete basisklasse. De runtime
-controleert daarnaast identiteiten en manifestovereenkomst tijdens registratie.
+Structural typing keeps plugins independent of a concrete base class. At
+registration time, the runtime also checks identities and agreement with the
+manifest.
 
-## Canonieke serialisatie en hashes
+## Canonical serialization and hashes
 
-Gebruik de SDK-helpers voor auditable artefactidentiteit:
+Use the SDK helpers for auditable artifact identity:
 
 ```python
 from engine_sdk import artifact_sha256, canonical_data, canonical_json
@@ -62,15 +63,15 @@ as_json = canonical_json(payload)
 fingerprint = artifact_sha256(payload)
 ```
 
-`canonical_data()` accepteert SDK-dataclasses, `StrEnum`, mappings, tuples/lijsten
-en JSON-primitieven. Mappings worden op sleutel gesorteerd. Niet-serialiseerbare
-objecten geven een `TypeError`; er is geen stille `repr()`-fallback.
+`canonical_data()` accepts SDK dataclasses, `StrEnum`, mappings, tuples/lists,
+and JSON primitives. Mapping keys are sorted. Non-serializable objects raise a
+`TypeError`; there is no silent `repr()` fallback.
 
-Een `WorldSnapshotV2` heeft `sha256`, een `ActionRequestV1` heeft `sha256` en een
-`PluginManifestV2` heeft `fingerprint`. Authorization bindt aan de hash van één
+A `WorldSnapshotV2` has `sha256`, an `ActionRequestV1` has `sha256`, and a
+`PluginManifestV2` has `fingerprint`. Authorization binds to the hash of one
 exact request.
 
-## Manifest laden en vergelijken
+## Loading and comparing manifests
 
 ```python
 from engine_sdk import (
@@ -79,7 +80,7 @@ from engine_sdk import (
     validate_manifest,
 )
 
-static = load_static_manifest(".")  # leest ./engine-plugin.toml
+static = load_static_manifest(".")  # reads ./engine-plugin.toml
 validate_manifest(static)
 
 loaded = load_plugin().manifest
@@ -88,30 +89,30 @@ if mismatches:
     raise RuntimeError(f"manifest drift: {mismatches}")
 ```
 
-`load_static_manifest()` accepteert een manifestbestand of pluginmap.
-Contractfouten zijn `ContractError`, een subtype van `ValueError`.
+`load_static_manifest()` accepts a manifest file or plugin directory. Contract
+errors are `ContractError`, a subtype of `ValueError`.
 
-De validator controleert onder andere:
+The validator checks, among other things:
 
-- stabiele dotted lowercase plugin-ID;
-- `engine_api` en contractversie;
-- unieke capability-, preference- en routine-ID's;
-- pluginownership van declarations;
-- preference/routinebinding aan een gedeclareerde capabilityfamily;
-- benodigde experience provider en routinecompiler;
-- provider + controller + executor + oracle voor iedere muterende plugin;
-- positieve store schema version.
+- a stable dotted lowercase plugin ID;
+- `engine_api` and the contract version;
+- unique capability, preference, and routine IDs;
+- plugin ownership of declarations;
+- preference and routine binding to a declared capability family;
+- the required experience provider and routine compiler;
+- provider + controller + executor + oracle for every mutating plugin;
+- a positive store schema version.
 
-Versiebereikcompatibiliteit wordt in deze slice als declaration bewaard; een
-volledige package-resolver of marketplace-compatibiliteitsservice is er niet.
+The version range is stored as a declaration in this slice; there is no complete
+package resolver or marketplace compatibility service.
 
-## Conformance in een plugintest
+## Conformance in a plugin test
 
 ```python
 import unittest
 
 from engine_sdk import check_plugin
-from mijn_wereld import load_plugin
+from my_world import load_plugin
 
 
 class PluginContractTest(unittest.TestCase):
@@ -119,17 +120,17 @@ class PluginContractTest(unittest.TestCase):
         self.assertEqual((), check_plugin(load_plugin()))
 ```
 
-`check_plugin()` retourneert alle gevonden foutteksten in plaats van bij de
-eerste te stoppen. `engine_sdk.conformance` bevat daarnaast
-`assert_authorization_matches()`, `assert_receipt_terminal()` en
-`observation_fingerprint()`; die drie worden niet vanuit de SDK-root
-gere-exporteerd. De huidige checks zijn bewust klein en deterministisch. Voeg
-daarnaast tests toe voor foutmapping, stale revisions, idempotency, taskherstel,
-lost acknowledgements en de domeinspecifieke oracle.
+`check_plugin()` returns all discovered failure messages instead of stopping at
+the first one. `engine_sdk.conformance` also contains
+`assert_authorization_matches()`, `assert_receipt_terminal()`, and
+`observation_fingerprint()`; those three are not re-exported from the SDK root.
+The current checks are intentionally small and deterministic. Add tests for
+error mapping, stale revisions, idempotency, task recovery, lost
+acknowledgements, and the domain-specific oracle.
 
-## Van proposal naar request
+## From proposal to request
 
-Een controller ontvangt alleen een semantisch proposal:
+A controller receives only a semantic proposal:
 
 ```python
 class Controller:
@@ -137,7 +138,7 @@ class Controller:
     supported_families = ("warehouse.transfer-bin",)
 
     def concretize(self, proposal, snapshot, capability):
-        # Kies exacte parameters uit observed state en capability limits.
+        # Choose exact parameters from observed state and capability limits.
         return ActionRequestV1(
             id="request:...",
             proposal_id=proposal.id,
@@ -158,13 +159,13 @@ class Controller:
         )
 ```
 
-Gebruik in echte code een verse deadline en een stabiele idempotencystrategie.
-Heart valideert daarna schema, identiteit, snapshot, targetrevision en
-preconditions voordat policy wordt aangeroepen.
+Use a fresh deadline and a stable idempotency strategy in real code. The Heart
+then validates schema, identity, snapshot, target revision, and preconditions
+before invoking policy.
 
-## Compatibiliteit en wijzigingsdiscipline
+## Compatibility and change discipline
 
-Breid contractdata additief uit waar mogelijk. Een wijziging aan de lifecycle,
-authority, adapter-/skillcontracten of Engine/wereldgrens vereist volgens de
-projectregels een ADR en expliciete goedkeuring. Een nieuwe modelprovider hoort
-achter dezelfde typed outputseam te blijven.
+Extend contract data additively where possible. Under the project rules, a
+change to the lifecycle, authority, adapter/skill contracts, or Engine/world
+boundary requires an ADR and explicit approval. A new model provider should
+remain behind the same typed output seam.

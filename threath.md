@@ -275,5 +275,4 @@ world proof.
 | --- | --- |
 | `GOAL.md` | 0.1-anker; winconditie t.o.v. category collapse |
 | `plan.md` | Langere product-/contractinventaris |
-| `grok-final.md` | Eindoordeel concept/realisatie |
 | `threath.md` | Dit document — OpenClaw/Hermes threat & positionering |

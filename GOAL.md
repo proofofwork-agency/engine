@@ -3,7 +3,7 @@
 > Status: actief anker.  
 > Dit document **definieert niet opnieuw** wat Engine is. Het legt vast *welk doel* de eerste realisatie haalt, en *wat telt als afwijken*.  
 > Conceptbron: owner-intentie + `plan.md`. Bij conflict wint de owner-uitleg van Engine als levend systeem (hart én brein).  
-> Analyses (`grok.md`, `grok-deep.md`, andere agentnotes) zijn commentaar; zij mogen dit doel niet stilletjes vervangen.
+> Analyses en agentnotities zijn commentaar; zij mogen dit doel niet stilletjes vervangen.
 
 ---
 

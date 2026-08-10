@@ -1,10 +1,10 @@
 {
-  "label": "Bouwen met Engine",
+  "label": "Build with Engine",
   "position": 3,
   "collapsed": false,
   "link": {
     "type": "generated-index",
-    "title": "Bouwen met Engine",
-    "description": "Quickstart, plugininterface, SDK, CLI en conformancechecklist."
+    "title": "Build with Engine",
+    "description": "Quickstart, plugin interface, SDK, CLI, and conformance checklist."
   }
 }

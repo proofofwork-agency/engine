@@ -1,95 +1,95 @@
 ---
-title: Engine in één overzicht
+title: Engine at a glance
 sidebar_position: 1
 slug: /intro
-description: Start hier voor het mentale model, de huidige bewijsgrens en de juiste leesroute.
+description: Start here for the mental model, the current evidence boundary, and the right reading path.
 ---
 
-# Engine in één overzicht
+# Engine at a glance
 
-Engine is een experimentele, local-first runtime voor blijvende doelen over software- en fysieke werelden. Het systeem combineert een duurzaam **Heart**, één verwisselbaar **algemeen brein**, nul of meer **specialistische brains** en installeerbare **world plugins**.
+Engine is an experimental, local-first runtime for durable goals across software and physical worlds. It combines a durable **Heart**, one replaceable **general executive brain**, zero or more **specialist brains**, and installable **world plugins**.
 
-Het ontwerp begint niet bij een chatsessie, maar bij een wereld die ook zonder modelcontext blijft bestaan:
+The design starts with a world that continues to exist without a model context, rather than with a chat session:
 
 ```text
-duurzame wereldstate + duurzaam doel
-               |
-               v
-        observeren en beoordelen
-               |
-               v
-      brain/specialist stelt voor
-               |
-               v
- schema → policy → authorization
-               |
-               v
-    uitvoeren → opnieuw observeren
-               |
-               v
-     oracle → receipt → ervaring
+durable world state + durable goal
+                |
+                v
+          observe and assess
+                |
+                v
+     brain/specialist proposes
+                |
+                v
+ schema -> policy -> authorization
+                |
+                v
+       execute -> observe again
+                |
+                v
+      oracle -> receipt -> experience
 ```
 
-Een brain mag kiezen en voorstellen. Het Heart houdt de cyclus, state en causaliteit bij. Policy verleent of weigert authority. Een target-specifieke executor handelt. Alleen een verse observatie en effect-oracle mogen vaststellen wat werkelijk is gebeurd.
+A brain may choose and propose. The Heart maintains the cycle, state, and causal history. Policy grants or denies authority. A target-specific executor acts. Only a fresh observation and an effect oracle may establish what actually happened.
 
-## De essentie in vier regels
+## The essence in four statements
 
-1. **Heart betekent continuïteit.** Goals, snapshots, receipts en ervaring staan duurzaam buiten de modelsessie.
-2. **Brain betekent cognition, niet authority.** Een deterministische of model-backed executive kiest de volgende cognitieve stap; specialisten leveren begrensd advies.
-3. **Plugins betekenen werelden met eigen semantiek.** Providers observeren; controllers vertalen; executors handelen; oracles meten effecten.
-4. **Succes betekent onafhankelijk bewijs.** Een modeltekst of API-ACK is nooit voldoende.
+1. **Heart means continuity.** Goals, snapshots, receipts, and experience remain durable outside the model session.
+2. **Brain means cognition, not authority.** A deterministic or model-backed executive chooses the next cognitive step; specialists provide bounded advice.
+3. **Plugins represent worlds with their own semantics.** Providers observe; controllers translate; executors act; oracles measure effects.
+4. **Success requires independent evidence.** Model output or an API acknowledgement is never enough.
 
-## Wat je nu kunt verwachten
+## What to expect today
 
-| Status | Betekenis in deze documentatie |
+| Status | Meaning in this documentation |
 | --- | --- |
-| **Bestaat nu** | In de huidige v2-code en publieke contracts geïmplementeerd |
-| **Getest in fake/simulatie** | Automatisch bewezen, maar geen bewijs van fysieke veiligheid |
-| **Live read-only** | Tegen een echt target geobserveerd zonder mutatie |
-| **Roadmap** | Richting of hypothese, niet als bestaande feature gebruiken |
+| **Implemented** | Present in the current v2 code and public contracts |
+| **Tested with a fake or simulation** | Proved automatically, but not evidence of physical safety |
+| **Live read-only** | Observed against a real target without mutation |
+| **Roadmap** | A direction or hypothesis, not a feature available today |
 
-De huidige repository bevat:
+The current repository contains:
 
-- `engine-heart` met Heart, durable world store, policy, learning en routines;
-- `engine-sdk` met `engine.plugin/v2`, scaffolding en conformance;
-- `engine-runtime` met composition root, discovery, lease en de `engine`-CLI;
-- een warehouse-referenceplugin, contextplugin en Homey-plugin;
-- tests voor reconstructie, stale/denied/malformed cases, immediate/task-lifecycles en begrensde learning.
+- `engine-heart`, with the Heart, durable world store, policy, learning, and routines;
+- `engine-sdk`, with `engine.plugin/v2`, scaffolding, and conformance tooling;
+- `engine-runtime`, with the composition root, discovery, lease, and the `engine` CLI;
+- a warehouse reference plugin, context plugin, and Homey plugin;
+- tests for reconstruction, stale/denied/malformed cases, immediate and task lifecycles, and bounded learning.
 
-De huidige bewijsgrens is bewust smaller dan de visie: Homey is live read-only geobserveerd, maar de v2-mutaties zijn alleen met een fake getest; `STREAM`, meerdere algemene brains, getrainde mini-brains en fysieke safety-certificering zijn niet bewezen.
+The current evidence boundary is deliberately narrower than the vision: Homey has been observed live in read-only mode, but v2 mutations have only been tested with a fake. `STREAM`, multiple general executive brains, trained mini-brains, and physical-safety certification have not been demonstrated.
 
-## Kies je leesroute
+## Choose a reading path
 
-### Ik wil begrijpen wat Engine is
+### I want to understand Engine
 
-1. [Wat is Engine?](concepts/wat-is-engine.md)
-2. [Wat Engine niet is](concepts/wat-engine-niet-is.md)
-3. [Heart en brains](concepts/heart-en-brains.md)
-4. [Architectuur](concepts/architectuur.md)
+1. [What is Engine?](concepts/what-is-engine.md)
+2. [What Engine is not](concepts/what-engine-is-not.md)
+3. [Heart and brains](concepts/heart-and-brains.md)
+4. [Architecture](concepts/architecture.md)
 
-### Ik wil alle mogelijkheden en grenzen kennen
+### I want to understand every capability and boundary
 
-1. [Alle modi en statussen](concepts/modi.md)
-2. [Hoe Engine leert — en niet leert](concepts/leren.md)
-3. [Het einddoel](concepts/einddoel.md)
-4. [Status en bewijs](reference/status-en-bewijs.md)
+1. [Modes and statuses](concepts/modes.md)
+2. [How Engine learns—and how it does not](concepts/learning.md)
+3. [The end goal](concepts/end-goal.md)
+4. [Status and evidence](reference/status-and-evidence.md)
 
-### Ik wil bouwen
+### I want to build
 
 1. [Quickstart](developers/quickstart.md)
-2. [Plugininterface v2](developers/plugin-interface.md)
-3. [SDK-referentie](developers/sdk.md)
-4. [CLI-referentie](developers/cli.md)
-5. [Meerdere plugins en brains](developers/meerdere-plugins-en-brains.md)
-6. [Pluginchecklist](developers/plugin-checklist.md)
+2. [Plugin interface v2](developers/plugin-interface.md)
+3. [SDK reference](developers/sdk.md)
+4. [CLI reference](developers/cli.md)
+5. [Multiple plugins and brains](developers/multiple-plugins-and-brains.md)
+6. [Plugin checklist](developers/plugin-checklist.md)
 
-### Ik wil Engine positioneren
+### I want to position Engine
 
-- [Vergelijking met andere projecten](reference/vergelijking.md)
-- [Begrippenlijst](reference/begrippenlijst.md)
-- [Veelgestelde vragen](reference/faq.md)
+- [Comparison with other projects](reference/comparison.md)
+- [Glossary](reference/glossary.md)
+- [Frequently asked questions](reference/faq.md)
 
-## De vaste checksum
+## The fixed checksum
 
 ```text
 LLM proposal != authority
@@ -102,4 +102,4 @@ state != weights
 imagine != execute
 ```
 
-Die regels zijn geen slogans achteraf. Ze bepalen welke code, tests en claims bij Engine horen.
+These statements are not slogans added after the fact. They define which code, tests, and claims belong in Engine.

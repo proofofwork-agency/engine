@@ -7,7 +7,7 @@ const showGitLastUpdate = process.env.GITHUB_ACTIONS === 'true';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Engine',
-  tagline: 'Van menselijke intentie naar begrensde, getypeerde en controleerbare acties',
+  tagline: 'From human intent to bounded, typed, and auditable actions',
   favicon: 'img/engine-mark.svg',
   url: siteUrl,
   baseUrl,
@@ -18,12 +18,12 @@ const config = {
   onBrokenLinks: 'throw',
 
   i18n: {
-    defaultLocale: 'nl',
-    locales: ['nl'],
+    defaultLocale: 'en',
+    locales: ['en'],
     localeConfigs: {
-      nl: {
-        label: 'Nederlands',
-        htmlLang: 'nl-NL',
+      en: {
+        label: 'English',
+        htmlLang: 'en-US',
       },
     },
   },
@@ -65,14 +65,14 @@ const config = {
       {
         name: 'description',
         content:
-          'Engine is een local-first runtime voor begrensde, getypeerde en auditeerbare acties over software en fysieke systemen.',
+          'Engine is a local-first runtime for bounded, typed, and auditable actions across software and physical systems.',
       },
       {name: 'theme-color', content: '#0a1118'},
     ],
     navbar: {
       title: 'ENGINE',
       logo: {
-        alt: 'Engine-beeldmerk',
+        alt: 'Engine mark',
         src: 'img/engine-mark.svg',
       },
       hideOnScroll: true,
@@ -81,7 +81,7 @@ const config = {
           type: 'docSidebar',
           sidebarId: 'mainSidebar',
           position: 'left',
-          label: 'Documentatie',
+          label: 'Documentation',
         },
         {
           href: 'https://github.com/proofofwork-agency/engine',
@@ -97,12 +97,12 @@ const config = {
         {
           title: 'Engine',
           items: [
-            {label: 'Documentatie', to: '/docs/concepts/wat-is-engine'},
+            {label: 'Documentation', to: '/docs/concepts/what-is-engine'},
             {label: 'GitHub', href: 'https://github.com/proofofwork-agency/engine'},
           ],
         },
         {
-          title: 'Uitgangspunt',
+          title: 'Invariants',
           items: [
             {
               html: '<span>LLM-proposal ≠ authority</span>',
@@ -113,7 +113,7 @@ const config = {
           ],
         },
       ],
-      copyright: `Engine — experimenteel onderzoek · ${new Date().getFullYear()}`,
+      copyright: `Engine — experimental research · ${new Date().getFullYear()}`,
     },
     prism: {
       theme: prismThemes.github,
