@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "engine-heart"
+version = "0.2.0"
+description = "Experimental Engine 0.1 heart-and-brain runtime"
+requires-python = ">=3.12"
+dependencies = [
+  "engine-sdk>=0.2,<0.3",
+  "jsonschema>=4.23,<5",
+]
+
+[project.scripts]
+engine-demo = "engine.demo:main"
+engine-live-heart-demo = "engine.live_heart_demo:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.workspace]
+members = [
+  "packages/engine-sdk",
+  "packages/engine-runtime",
+  "plugins/engine-homey",
+  "plugins/engine-context",
+  "plugins/reference-world",
+]
+
+[tool.uv.sources]
+engine-heart = { workspace = true }
+engine-sdk = { workspace = true }
+engine-runtime = { workspace = true }
+engine-homey = { workspace = true }
+engine-context = { workspace = true }
+engine-reference-world = { workspace = true }

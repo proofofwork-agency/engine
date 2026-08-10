@@ -1,0 +1,992 @@
+[
+  {
+    "caller_wall_ms": 1604.4432089984184,
+    "cycle": 0,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "9a594c8a39fb4a1c8456e14ca0a939a1",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1604.4432089984184,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "8105c39a5a3c9102a62fed7a460f0bd238bc36cf77414f763dea3607e233ae9a",
+      "timings": {
+        "cache_n": 603,
+        "predicted_ms": 1008.376,
+        "predicted_n": 36,
+        "predicted_per_second": 35.70096868628369,
+        "predicted_per_token_ms": 28.010444444444445,
+        "prompt_ms": 544.71,
+        "prompt_n": 320,
+        "prompt_per_second": 587.4685612527767,
+        "prompt_per_token_ms": 1.7022187500000001
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 603
+        },
+        "total_tokens": 959
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1548.4974580031121,
+    "cycle": 1,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "323be57061dc41fda59f7009bef6546f",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1548.4974580031121,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "c26bdbd69f4e95014a7900eb4a70c36767de327032e3bec1bd87a52b47e391bd",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 1003.531,
+        "predicted_n": 36,
+        "predicted_per_second": 35.873331267295185,
+        "predicted_per_token_ms": 27.87586111111111,
+        "prompt_ms": 536.354,
+        "prompt_n": 314,
+        "prompt_per_second": 585.4342467847727,
+        "prompt_per_token_ms": 1.7081337579617837
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 959
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1534.6711250022054,
+    "cycle": 2,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "17dd82ef92ba4e579d2911df662cc78b",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1534.6711250022054,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "5562bc27905e74c920b8dcec3fa9a5420760eeda052f814f2bf2960613bc86b5",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 990.165,
+        "predicted_n": 36,
+        "predicted_per_second": 36.35757676750845,
+        "predicted_per_token_ms": 27.504583333333333,
+        "prompt_ms": 535.069,
+        "prompt_n": 314,
+        "prompt_per_second": 586.8402019178835,
+        "prompt_per_token_ms": 1.7040414012738851
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 959
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1064.9383749987464,
+    "cycle": 3,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.fs.move-file/v1', 'based_on': []}",
+    "executive_attempt_id": "60e1c9cd2b074e52a44f3b2732a96210",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1064.9383749987464,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "eb99c31bbea507fc7e4e9160ef2b7ae6da9dc9fee3a2c386aca51f566dd4b9de",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 520.495,
+        "predicted_n": 21,
+        "predicted_per_second": 40.34620889729969,
+        "predicted_per_token_ms": 24.785476190476192,
+        "prompt_ms": 536.062,
+        "prompt_n": 314,
+        "prompt_per_second": 585.7531404949427,
+        "prompt_per_token_ms": 1.707203821656051
+      },
+      "usage": {
+        "completion_tokens": 21,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 944
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1551.6250000073342,
+    "cycle": 4,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "32f7074e9000423d849c5b0a43752c03",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1551.6250000073342,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "4413d816b3890a8eeec356a52284e3d90e38fb8b1554732407157694bc6a28da",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 1009.222,
+        "predicted_n": 36,
+        "predicted_per_second": 35.67104165386803,
+        "predicted_per_token_ms": 28.033944444444444,
+        "prompt_ms": 534.427,
+        "prompt_n": 314,
+        "prompt_per_second": 587.5451651956207,
+        "prompt_per_token_ms": 1.7019968152866243
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 959
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1519.0202499943553,
+    "cycle": 5,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "0e8c886a183e4ed4aed7793e015d9d6f",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1519.0202499943553,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "0c4883ce9442b8bbaf6273b2080328ea86830fbbb281e250b984e3280d39fd5c",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 976.217,
+        "predicted_n": 36,
+        "predicted_per_second": 36.877046804142935,
+        "predicted_per_token_ms": 27.11713888888889,
+        "prompt_ms": 534.291,
+        "prompt_n": 314,
+        "prompt_per_second": 587.6947206672019,
+        "prompt_per_token_ms": 1.701563694267516
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 959
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1495.8469580014935,
+    "cycle": 6,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "5bdf115d94c645d1a40874094c2a0bc5",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1495.8469580014935,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "28cbdfebb8fad53427fbaaf2b86faad437bd204c22dba20b906d238d59238147",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 962.366,
+        "predicted_n": 36,
+        "predicted_per_second": 37.40780534640667,
+        "predicted_per_token_ms": 26.732388888888888,
+        "prompt_ms": 524.315,
+        "prompt_n": 314,
+        "prompt_per_second": 598.876629507071,
+        "prompt_per_token_ms": 1.6697929936305733
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 959
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1495.9298749890877,
+    "cycle": 7,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "aaea816554624e83bb6ec03611226707",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1495.9298749890877,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "e5a229ec2555aaa20942f8b1013b9359f14585f82b5658d71c568c977db631c4",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 961.951,
+        "predicted_n": 36,
+        "predicted_per_second": 37.42394363122446,
+        "predicted_per_token_ms": 26.720861111111113,
+        "prompt_ms": 524.279,
+        "prompt_n": 314,
+        "prompt_per_second": 598.9177518077207,
+        "prompt_per_token_ms": 1.6696783439490446
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 959
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1500.6234160100576,
+    "cycle": 8,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "f68ab9e69ebb4008a402cd23563b2e1f",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1500.6234160100576,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "6dce6cfc2e1cc0107b30a66f6b6caa2dc6824bcb86d870c7c3cf6d16b8008c50",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 969.896,
+        "predicted_n": 36,
+        "predicted_per_second": 37.11738165741482,
+        "predicted_per_token_ms": 26.941555555555553,
+        "prompt_ms": 522.121,
+        "prompt_n": 314,
+        "prompt_per_second": 601.3931636536358,
+        "prompt_per_token_ms": 1.6628057324840764
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 959
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1492.7752499934286,
+    "cycle": 9,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "6b21fdc390d6443683e9fc639355f01f",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1492.7752499934286,
+      "input_bytes": 3945,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "d2d033e8a60ae4e10752c1498c0b86246df526bafa306cd214c77a2c9da9f737",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 961.581,
+        "predicted_n": 36,
+        "predicted_per_second": 37.43834372767349,
+        "predicted_per_token_ms": 26.710583333333332,
+        "prompt_ms": 522.752,
+        "prompt_n": 314,
+        "prompt_per_second": 600.6672380019589,
+        "prompt_per_token_ms": 1.6648152866242036
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 923,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 959
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1503.35191701015,
+    "cycle": 10,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "c30d0c8f9fbf4a00abe9fb6e0147c4a8",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1503.35191701015,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "82c7daf5cffde5e32de036cf86aa6e48ec7704c35485cb7133ac84612afd3669",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 970.737,
+        "predicted_n": 36,
+        "predicted_per_second": 37.08522493734143,
+        "predicted_per_token_ms": 26.964916666666667,
+        "prompt_ms": 523.111,
+        "prompt_n": 315,
+        "prompt_per_second": 602.1666529665788,
+        "prompt_per_token_ms": 1.6606698412698413
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1028.1151669914834,
+    "cycle": 11,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.fs.move-file/v1', 'based_on': []}",
+    "executive_attempt_id": "9991f55a3830415998261d32beb7897a",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1028.1151669914834,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "6d546baf56bb4b2f19d8f0bea1972e995d3c32375cc8f443e08b300e4bb9b6c4",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 495.228,
+        "predicted_n": 21,
+        "predicted_per_second": 42.404710557561366,
+        "predicted_per_token_ms": 23.582285714285714,
+        "prompt_ms": 524.405,
+        "prompt_n": 314,
+        "prompt_per_second": 598.7738484568225,
+        "prompt_per_token_ms": 1.6700796178343948
+      },
+      "usage": {
+        "completion_tokens": 21,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 945
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1492.4445409997134,
+    "cycle": 12,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "33d7d0905f1346efaecf99de0c82855a",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1492.4445409997134,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "275e47610b9952475445f333212dd7de92f4315133178399de58028409049fcc",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 960.682,
+        "predicted_n": 36,
+        "predicted_per_second": 37.47337828750825,
+        "predicted_per_token_ms": 26.68561111111111,
+        "prompt_ms": 524.158,
+        "prompt_n": 314,
+        "prompt_per_second": 599.0560098290973,
+        "prompt_per_token_ms": 1.6692929936305734
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1492.9016250098357,
+    "cycle": 13,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "765de119b7ac42859d610c88d01adb0a",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1492.9016250098357,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "875eb79b4dc1a063f04b82628e5a83a7110b82616a12190a52832ebb62746939",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 961.2,
+        "predicted_n": 36,
+        "predicted_per_second": 37.453183520599254,
+        "predicted_per_token_ms": 26.700000000000003,
+        "prompt_ms": 522.423,
+        "prompt_n": 314,
+        "prompt_per_second": 601.045512927264,
+        "prompt_per_token_ms": 1.663767515923567
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1494.8616659967229,
+    "cycle": 14,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "6368bb024a02448696b1d13560d557d0",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1494.8616659967229,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "05b89dd47d6e545453e128ddc7f635af272bbdc7d571e08aecb3ea14a9a6f874",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 962.723,
+        "predicted_n": 36,
+        "predicted_per_second": 37.39393366523912,
+        "predicted_per_token_ms": 26.742305555555554,
+        "prompt_ms": 522.588,
+        "prompt_n": 314,
+        "prompt_per_second": 600.855741042657,
+        "prompt_per_token_ms": 1.664292993630573
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1500.082124999608,
+    "cycle": 15,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "681867dc32d14d0e94170c67b92ce732",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1500.082124999608,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "1bffdfb6c8a5ab12b587a28fe3ec57f250bbc58e638a709f374a877e38b27056",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 968.722,
+        "predicted_n": 36,
+        "predicted_per_second": 37.1623644347914,
+        "predicted_per_token_ms": 26.908944444444444,
+        "prompt_ms": 522.667,
+        "prompt_n": 314,
+        "prompt_per_second": 600.7649229815543,
+        "prompt_per_token_ms": 1.6645445859872612
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1492.3665829992387,
+    "cycle": 16,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "1f3fafbccfba4187843c07dd338b6312",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1492.3665829992387,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "744a4791788e409ae89c65e91abf1c92108fb96339f84eb5322c024e34eeeb3a",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 960.554,
+        "predicted_n": 36,
+        "predicted_per_second": 37.478371856241296,
+        "predicted_per_token_ms": 26.682055555555554,
+        "prompt_ms": 522.545,
+        "prompt_n": 314,
+        "prompt_per_second": 600.9051851993609,
+        "prompt_per_token_ms": 1.6641560509554139
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1504.2885839939117,
+    "cycle": 17,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "83f5e75229d6441f83136a28ca52f3cd",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1504.2885839939117,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "90a0546d2c2d5d9c01023006e55b643c4bce9f487142098ad97e7c4c6612c2f6",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 973.223,
+        "predicted_n": 36,
+        "predicted_per_second": 36.99049447043483,
+        "predicted_per_token_ms": 27.03397222222222,
+        "prompt_ms": 522.542,
+        "prompt_n": 314,
+        "prompt_per_second": 600.9086350953608,
+        "prompt_per_token_ms": 1.6641464968152868
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1499.131791992113,
+    "cycle": 18,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "39bd0fa080dc43d08115f3f301edd732",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1499.131791992113,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "65fea245e761532034cb2be2b5b8e51395c0641f841da6dcbd5e7143aaa0d921",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 964.449,
+        "predicted_n": 36,
+        "predicted_per_second": 37.327012625862025,
+        "predicted_per_token_ms": 26.79025,
+        "prompt_ms": 523.96,
+        "prompt_n": 314,
+        "prompt_per_second": 599.2823879685471,
+        "prompt_per_token_ms": 1.6686624203821656
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1496.35041700094,
+    "cycle": 19,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "e6dae1e5af5d4f09b70c514164347204",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1496.35041700094,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "467b3205ceb2f0db04bacb03183cb3e9b69cb8999d1cf95de43364e1e20cd607",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 965.373,
+        "predicted_n": 36,
+        "predicted_per_second": 37.29128533737737,
+        "predicted_per_token_ms": 26.815916666666666,
+        "prompt_ms": 522.747,
+        "prompt_n": 314,
+        "prompt_per_second": 600.6729832978477,
+        "prompt_per_token_ms": 1.6647993630573248
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1490.5752920021769,
+    "cycle": 20,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "f5283b792c014d199bb4d08be01957c2",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1490.5752920021769,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "2a5dee86b64253bfec5a17c8547d97b5bb29b6a3eac2801bb1d897a5948d7d55",
+      "timings": {
+        "cache_n": 609,
+        "predicted_ms": 956.332,
+        "predicted_n": 36,
+        "predicted_per_second": 37.64383080352848,
+        "predicted_per_token_ms": 26.564777777777778,
+        "prompt_ms": 523.734,
+        "prompt_n": 315,
+        "prompt_per_second": 601.4503545693043,
+        "prompt_per_token_ms": 1.6626476190476192
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 609
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1514.3007089936873,
+    "cycle": 21,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "1569adc530d84d958a56fe174cd098c7",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1514.3007089936873,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "7f64f61c85e3a61610c7426820213f23cb5fc8f5ead1a9912847bee7898d9f98",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 981.785,
+        "predicted_n": 36,
+        "predicted_per_second": 36.667905906079234,
+        "predicted_per_token_ms": 27.271805555555556,
+        "prompt_ms": 523.939,
+        "prompt_n": 314,
+        "prompt_per_second": 599.3064078070157,
+        "prompt_per_token_ms": 1.6685955414012739
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1502.336749996175,
+    "cycle": 22,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "5c0fefd58c014b39bbc1d806a9a9c2fe",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1502.336749996175,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "48436c846be1746049ce46a9d796657a5c1db714546b0f6021616ce3bc250e41",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 969.598,
+        "predicted_n": 36,
+        "predicted_per_second": 37.128789457073964,
+        "predicted_per_token_ms": 26.933277777777775,
+        "prompt_ms": 523.718,
+        "prompt_n": 314,
+        "prompt_per_second": 599.5593048167143,
+        "prompt_per_token_ms": 1.6678917197452228
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1517.5762500002747,
+    "cycle": 23,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "f7c513ef50b64848a76a3a05030bece7",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1517.5762500002747,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "67ade61e608aeccb5238fea5fc0728dcee6fb95eb962d1d9f4b165d47b51b551",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 984.013,
+        "predicted_n": 36,
+        "predicted_per_second": 36.584882516796014,
+        "predicted_per_token_ms": 27.333694444444447,
+        "prompt_ms": 523.961,
+        "prompt_n": 314,
+        "prompt_per_second": 599.2812442147412,
+        "prompt_per_token_ms": 1.6686656050955415
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1499.7207919950597,
+    "cycle": 24,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "c18ad6f235a041008c9efbb2d334b538",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1499.7207919950597,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "fe318133af1e4b1934f5a6232ee883d9050597abe227106cc309ed95ebad84a2",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 967.564,
+        "predicted_n": 36,
+        "predicted_per_second": 37.20684109784986,
+        "predicted_per_token_ms": 26.876777777777775,
+        "prompt_ms": 523.596,
+        "prompt_n": 314,
+        "prompt_per_second": 599.6990045760472,
+        "prompt_per_token_ms": 1.6675031847133759
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1497.3448749951785,
+    "cycle": 25,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "71617a4708374ed597594a0d43417a48",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1497.3448749951785,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "d1698673bc724b6a32367f3b43981d63fa97a4af81bdc2ebdc491af4bda4cabb",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 966.49,
+        "predicted_n": 36,
+        "predicted_per_second": 37.24818673757618,
+        "predicted_per_token_ms": 26.846944444444446,
+        "prompt_ms": 523.51,
+        "prompt_n": 314,
+        "prompt_per_second": 599.7975205822238,
+        "prompt_per_token_ms": 1.6672292993630573
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1491.9408330024453,
+    "cycle": 26,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "ef020819818d42c79ebfb4dfd4748021",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1491.9408330024453,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "f2c2b6260f4d56f3462756db90de1519cf77019cc66c81fd700e5850ecb7e304",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 959.278,
+        "predicted_n": 36,
+        "predicted_per_second": 37.52822435206478,
+        "predicted_per_token_ms": 26.646611111111113,
+        "prompt_ms": 523.595,
+        "prompt_n": 314,
+        "prompt_per_second": 599.7001499250374,
+        "prompt_per_token_ms": 1.6675
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1495.2155420032796,
+    "cycle": 27,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "c94fcd98e35e46649edc7428a0367afc",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1495.2155420032796,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "6130101b0cfe553881ba32386e5cdad9531e23ea94c227a8cb7d2b5a12362931",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 964.29,
+        "predicted_n": 36,
+        "predicted_per_second": 37.33316740814485,
+        "predicted_per_token_ms": 26.785833333333333,
+        "prompt_ms": 522.607,
+        "prompt_n": 314,
+        "prompt_per_second": 600.8338962164686,
+        "prompt_per_token_ms": 1.6643535031847132
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1495.7523330085678,
+    "cycle": 28,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "8040452f13d64231b5ca5cbab8ad99eb",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1495.7523330085678,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "5b4319918fe4e3597f7febded512e9526583fc632fbe624b93b497f16b5b24d8",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 963.09,
+        "predicted_n": 36,
+        "predicted_per_second": 37.379684141669,
+        "predicted_per_token_ms": 26.7525,
+        "prompt_ms": 523.514,
+        "prompt_n": 314,
+        "prompt_per_second": 599.7929377246836,
+        "prompt_per_token_ms": 1.6672420382165605
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 1490.2919169981033,
+    "cycle": 29,
+    "error": "RuntimeError: decision provider violated schema: ['brain_request_id_1234567890'] is expected to be empty: {'name': 'engine.fs.move-file/v1', 'based_on': ['brain_request_id_1234567890']}",
+    "executive_attempt_id": "92afa504c8e94b5dbe591931055de2be",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 1490.2919169981033,
+      "input_bytes": 3946,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "1a08bb9e7c3e80afba4f45e36861061b0e74001e119eebde56aff27145886466",
+      "timings": {
+        "cache_n": 610,
+        "predicted_ms": 958.232,
+        "predicted_n": 36,
+        "predicted_per_second": 37.56918992477814,
+        "predicted_per_token_ms": 26.617555555555555,
+        "prompt_ms": 524.029,
+        "prompt_n": 314,
+        "prompt_per_second": 599.203479196762,
+        "prompt_per_token_ms": 1.6688821656050956
+      },
+      "usage": {
+        "completion_tokens": 36,
+        "prompt_tokens": 924,
+        "prompt_tokens_details": {
+          "cached_tokens": 610
+        },
+        "total_tokens": 960
+      }
+    }
+  }
+]

@@ -1,0 +1,174 @@
+{
+  "baseline_contracts": {
+    "C0": "favorable external harness: fresh target snapshot and GoalSpec each turn, last four provider turns plus recent in-memory outcomes",
+    "C1": "Engine Heart plus same executive model, no specialists",
+    "C2": "same Heart/model plus deterministic task-solving specialists; C2-C1 mixes added competence and orchestration"
+  },
+  "claim_scope": "Instrumentation and directional comparison only; one consumed run per hand-built fixture. No statistical or architectural-superiority claim.",
+  "condition_order": [
+    "C0_bounded_monolith",
+    "C1_durable_single",
+    "C2_engine_multi"
+  ],
+  "condition_order_warning": "fixed order; latency comparisons are confounded",
+  "conditions": {
+    "C0_bounded_monolith": {
+      "filesystem": {
+        "capability_validation_or_execution_exceptions": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 0,
+        "condition_wall_ms": 26580.398,
+        "decisions_by_kind": {},
+        "executive_attempts": 30,
+        "executive_decisions": 0,
+        "executive_failed": 30,
+        "executive_succeeded": 0,
+        "final_cycle_index": 30,
+        "final_snapshot_sha256": "84f04085f41eff1321a838e46c0d73c474abe1e252d416241b32e380ad3e02b7",
+        "initial_snapshot_sha256": "84f04085f41eff1321a838e46c0d73c474abe1e252d416241b32e380ad3e02b7",
+        "invocation_states": {},
+        "model_caller_wall_latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0
+        },
+        "oracle": false,
+        "prompt_tokens_known": 0,
+        "provider_input_bytes": {
+          "max": 0,
+          "p50": 0,
+          "p95": 0
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0
+        },
+        "restart_boundary": null,
+        "restart_contract": null,
+        "returned_models": [],
+        "semantic_decision_rejections": 0,
+        "specialist_calls": 0,
+        "status": "budget_exhausted",
+        "tool_dispatches": 0,
+        "tool_invocation_attempts": 0,
+        "tool_results_failed": 0,
+        "tool_results_partial": 0,
+        "tool_results_unknown": 0,
+        "usage_coverage": {
+          "attempts": 30,
+          "records": 0
+        }
+      },
+      "grid": {
+        "capability_validation_or_execution_exceptions": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 0,
+        "condition_wall_ms": 26375.794,
+        "decisions_by_kind": {},
+        "executive_attempts": 40,
+        "executive_decisions": 0,
+        "executive_failed": 40,
+        "executive_succeeded": 0,
+        "final_cycle_index": 40,
+        "final_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+        "initial_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+        "invocation_states": {},
+        "model_caller_wall_latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0
+        },
+        "oracle": false,
+        "prompt_tokens_known": 0,
+        "provider_input_bytes": {
+          "max": 0,
+          "p50": 0,
+          "p95": 0
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0
+        },
+        "restart_boundary": null,
+        "restart_contract": null,
+        "returned_models": [],
+        "semantic_decision_rejections": 0,
+        "specialist_calls": 0,
+        "status": "budget_exhausted",
+        "tool_dispatches": 0,
+        "tool_invocation_attempts": 0,
+        "tool_results_failed": 0,
+        "tool_results_partial": 0,
+        "tool_results_unknown": 0,
+        "usage_coverage": {
+          "attempts": 40,
+          "records": 0
+        }
+      }
+    },
+    "C1_durable_single": {
+      "filesystem": {
+        "capability_validation_errors": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 0,
+        "condition_wall_ms": 33862.152,
+        "decisions_by_kind": {},
+        "executive_attempts": 30,
+        "executive_decisions": 0,
+        "executive_failed": 30,
+        "executive_succeeded": 0,
+        "final_cycle_index": 30,
+        "final_snapshot_sha256": "84f04085f41eff1321a838e46c0d73c474abe1e252d416241b32e380ad3e02b7",
+        "initial_snapshot_sha256": "84f04085f41eff1321a838e46c0d73c474abe1e252d416241b32e380ad3e02b7",
+        "invocation_states": {},
+        "model_caller_wall_latency_ms": {
+          "p50": 1047.115,
+          "p95": 1530.687,
+          "total": 33611.378
+        },
+        "oracle": false,
+        "prompt_tokens_known": 0,
+        "provider_input_bytes": {
+          "max": 0,
+          "p50": 0,
+          "p95": 0
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0
+        },
+        "restart_boundary": null,
+        "returned_models": [],
+        "semantic_decision_rejections": 0,
+        "specialist_calls": 0,
+        "status": "budget_exhausted",
+        "tool_invocation_attempts": 0,
+        "tool_results_failed": 0,
+        "tool_results_partial": 0,
+        "tool_results_unknown": 0,
+        "usage_coverage": {
+          "attempts": 30,
+          "records": 0
+        }
+      }
+    }
+  },
+  "decision_schema_family_sha256": "0fb14ef79ac627c9be49213f628cb0640bae3b708cd6b1b2176b4625bde6ac5a",
+  "model_artifact_sha256": "ab27b9bfa375a178d6cba48f3ad892b94b7739659dcc7aae8058ce0ffed6b328",
+  "model_requested": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+  "prompt_sha256": "3b9ebd0bb8148b250dff40ff113c006c8f6ea605bc54a36af9f30f4018ecb128",
+  "provider_config": {
+    "base_url": "http://127.0.0.1:18080/v1",
+    "max_input_bytes": 64000,
+    "max_output_tokens": 640,
+    "seed": "server default/unknown; temperature fixed at 0",
+    "session_history": "C0 only, bounded to the last four user/assistant turns",
+    "temperature": 0.0
+  },
+  "restart_after_terminal_tool_invocations": 1,
+  "source_sha256": "4dd0d8d4d7d419bfb5bd63325212c69c3c07b8ce233d3e96b15c90293acdf698",
+  "status": "exploratory_pilot_running"
+}

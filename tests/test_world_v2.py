@@ -1,0 +1,496 @@
+from __future__ import annotations
+
+import importlib
+import sys
+import tempfile
+import unittest
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import Any
+
+from engine_reference_world import create_plugin
+from engine_sdk import (
+    BrainDecisionV2,
+    ConditionV1,
+    DecisionKindV2,
+    DesiredEffectV1,
+    EvidenceGrade,
+    ExecutionReceiptV2,
+    ExecutionStateV2,
+    GoalModeV2,
+    GoalSpecV2,
+    LearningStatus,
+    PolicyOutcome,
+    ProposedActionV1,
+    StandingMandateV1,
+)
+from engine_sdk.scaffold import scaffold_plugin
+
+from engine import (
+    DeterministicExecutiveBrainV2,
+    EngineStore,
+    PluginRegistryV2,
+    WorldHeartV2,
+    WorldStore,
+)
+from engine.conditions_v2 import evaluate_condition
+from engine.learning_v2 import BoundedPreferenceLearner
+from engine.models import Goal
+
+PLUGIN_ID = "engine.reference-world"
+TARGET_ID = "engine.reference-world.warehouse"
+ENTITY_ID = "warehouse:bin:reserve"
+FAMILY = "warehouse.transfer-bin"
+
+
+class WorldV2Tests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(prefix="engine-world-v2-")
+        self.base = Path(self.temporary.name)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def _system(self, *, executor: Any | None = None):
+        plugin = create_plugin(self.base / "warehouse.sqlite3")
+        self.addCleanup(plugin.providers[0].store.close)
+        if executor is not None:
+            plugin = replace(plugin, executors=(executor,))
+        registry = PluginRegistryV2()
+        registry.register(plugin, "plugins/reference-world")
+        store = WorldStore(self.base / "engine.sqlite3")
+        self.addCleanup(store.close)
+        mandate = _mandate()
+        store.save_mandate(mandate)
+        goal = _goal(mandate.id)
+        store.create_goal(goal)
+        brain = DeterministicExecutiveBrainV2()
+        heart = WorldHeartV2(store, registry, brain)
+        return plugin, registry, store, brain, heart, goal
+
+    def test_reference_world_closes_full_lifecycle_then_stays_cognitively_quiet(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del plugin, registry
+
+        first = heart.run_once(goal.id)
+
+        self.assertEqual("waiting", first.status)
+        self.assertTrue(first.brain_called)
+        self.assertFalse(first.effect_achieved)
+        self.assertEqual(
+            {
+                "proposals": 1,
+                "requests": 1,
+                "decisions": 1,
+                "authorizations": 1,
+                "receipts": 1,
+                "effects": 1,
+            },
+            store.lifecycle_counts(goal.id),
+        )
+        calls = store.brain_call_count(goal.id)
+
+        completed = heart.run_once(goal.id)
+
+        self.assertEqual("monitoring", completed.status)
+        self.assertFalse(completed.brain_called)
+        self.assertTrue(completed.effect_achieved)
+        self.assertEqual(
+            {
+                "proposals": 1,
+                "requests": 1,
+                "decisions": 1,
+                "authorizations": 1,
+                "receipts": 2,
+                "effects": 2,
+            },
+            store.lifecycle_counts(goal.id),
+        )
+
+        stable = heart.run_once(goal.id)
+
+        self.assertEqual("monitoring", stable.status)
+        self.assertFalse(stable.brain_called)
+        self.assertEqual(calls, store.brain_call_count(goal.id))
+        self.assertEqual(1, brain.calls)
+
+    def test_generated_bootstrap_world_runs_same_maintain_heart_without_core_change(self) -> None:
+        root = scaffold_plugin(self.base, "generated-world", "world")
+        sys.path.insert(0, str(root / "src"))
+        try:
+            module = importlib.import_module("generated_world.plugin")
+            plugin = module.load_plugin()
+            registry = PluginRegistryV2()
+            registry.register(plugin, root)
+            store = WorldStore(self.base / "generated-engine.sqlite3")
+            self.addCleanup(store.close)
+            now = datetime.now(UTC)
+            mandate = StandingMandateV1(
+                "mandate:generated",
+                ("example.generated-world",),
+                ("example.generated-world.warehouse",),
+                (ENTITY_ID,),
+                (FAMILY,),
+                {}, (), (),
+                (now - timedelta(minutes=1)).isoformat(),
+                (now + timedelta(days=1)).isoformat(),
+                {"example.generated-world": "0.1.0"},
+                "owner",
+            )
+            store.save_mandate(mandate)
+            goal = replace(
+                _goal(mandate.id),
+                id="goal:generated",
+                entity_scope={"target_ids": ["example.generated-world.warehouse"]},
+            )
+            store.create_goal(goal)
+            heart = WorldHeartV2(
+                store, registry, DeterministicExecutiveBrainV2()
+            )
+
+            result = heart.run_once(goal.id)
+
+            self.assertEqual("monitoring", result.status)
+            self.assertTrue(result.effect_achieved)
+        finally:
+            sys.path.remove(str(root / "src"))
+            for name in tuple(sys.modules):
+                if name == "generated_world" or name.startswith("generated_world."):
+                    del sys.modules[name]
+
+    def test_goal_world_and_target_state_survive_process_restart_without_model_session(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        self.assertEqual("waiting", heart.run_once(goal.id).status)
+        plugin.providers[0].store.close()
+        store.close()
+        del plugin, registry, brain, heart
+
+        plugin2 = create_plugin(self.base / "warehouse.sqlite3")
+        self.addCleanup(plugin2.providers[0].store.close)
+        registry2 = PluginRegistryV2()
+        registry2.register(plugin2, "plugins/reference-world")
+        store2 = WorldStore(self.base / "engine.sqlite3")
+        self.addCleanup(store2.close)
+        brain2 = DeterministicExecutiveBrainV2()
+        heart2 = WorldHeartV2(store2, registry2, brain2)
+
+        result = heart2.run_once(goal.id)
+
+        self.assertEqual("monitoring", result.status)
+        self.assertFalse(result.brain_called)
+        self.assertEqual(0, brain2.calls)
+        self.assertEqual(3, _reserve_count(store2.latest_world_snapshot()))
+
+    def test_task_deadline_cancels_durably_without_applying_the_effect(self) -> None:
+        plugin, registry, store, brain, _, goal = self._system()
+        clock = _MutableClock(datetime.now(UTC))
+        heart = WorldHeartV2(store, registry, brain, clock=clock)
+
+        started = heart.run_once(goal.id)
+        self.assertEqual("waiting", started.status)
+        clock.advance(timedelta(seconds=6))
+
+        cancelled = heart.run_once(goal.id)
+
+        self.assertEqual("active", cancelled.status)
+        self.assertFalse(cancelled.effect_achieved)
+        task = plugin.providers[0].store.task(started.proposal_id)
+        self.assertIsNotNone(task)
+        self.assertEqual("cancelled", task["status"])
+        self.assertEqual(0, _reserve_count(store.latest_world_snapshot()))
+        self.assertIsNone(store.pending_task(goal.id))
+
+    def test_successful_typed_plan_is_reused_for_same_recurrent_situation(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del registry
+        self.assertEqual("waiting", heart.run_once(goal.id).status)
+        self.assertEqual("monitoring", heart.run_once(goal.id).status)
+        connection = plugin.providers[0].store.connection
+        connection.execute(
+            "UPDATE state SET incoming=incoming+reserve, reserve=0 WHERE id=1"
+        )
+        connection.commit()
+        calls = store.brain_call_count(goal.id)
+
+        started = heart.run_once(goal.id)
+        repaired = heart.run_once(goal.id)
+
+        self.assertEqual("waiting", started.status)
+        self.assertEqual("monitoring", repaired.status)
+        self.assertFalse(repaired.brain_called)
+        self.assertEqual(calls, store.brain_call_count(goal.id))
+        self.assertEqual(1, brain.calls)
+
+    def test_ack_without_effect_is_observed_as_failure_not_success(self) -> None:
+        plugin = create_plugin(self.base / "warehouse.sqlite3")
+        self.addCleanup(plugin.providers[0].store.close)
+        ack_only = _AckOnlyExecutor()
+        plugin = replace(plugin, executors=(ack_only,))
+        registry = PluginRegistryV2()
+        registry.register(plugin, "plugins/reference-world")
+        store = WorldStore(self.base / "engine.sqlite3")
+        self.addCleanup(store.close)
+        mandate = _mandate()
+        store.save_mandate(mandate)
+        goal = _goal(mandate.id)
+        store.create_goal(goal)
+        heart = WorldHeartV2(store, registry, DeterministicExecutiveBrainV2())
+
+        result = heart.run_once(goal.id)
+
+        self.assertEqual("active", result.status)
+        self.assertFalse(result.effect_achieved)
+        self.assertEqual(1, ack_only.calls)
+        self.assertIn("below", result.reason)
+        self.assertEqual(0, _reserve_count(store.latest_world_snapshot()))
+
+    def test_malformed_stale_proposal_never_reaches_controller_or_dispatch(self) -> None:
+        plugin = create_plugin(self.base / "warehouse.sqlite3")
+        self.addCleanup(plugin.providers[0].store.close)
+        registry = PluginRegistryV2()
+        registry.register(plugin, "plugins/reference-world")
+        store = WorldStore(self.base / "engine.sqlite3")
+        self.addCleanup(store.close)
+        mandate = _mandate()
+        store.save_mandate(mandate)
+        goal = _goal(mandate.id)
+        store.create_goal(goal)
+        heart = WorldHeartV2(store, registry, _StaleBrain())
+
+        result = heart.run_once(goal.id)
+
+        self.assertEqual("waiting", result.status)
+        self.assertIn("stale", result.reason)
+        self.assertEqual(
+            {"proposals": 1, "requests": 0, "decisions": 0, "authorizations": 0, "receipts": 0, "effects": 0},
+            store.lifecycle_counts(goal.id),
+        )
+        self.assertEqual(0, _reserve_count(store.latest_world_snapshot()))
+
+    def test_expired_or_out_of_scope_mandate_denies_before_dispatch(self) -> None:
+        plugin = create_plugin(self.base / "warehouse.sqlite3")
+        self.addCleanup(plugin.providers[0].store.close)
+        registry = PluginRegistryV2()
+        registry.register(plugin, "plugins/reference-world")
+        store = WorldStore(self.base / "engine.sqlite3")
+        self.addCleanup(store.close)
+        expired = _mandate(expired=True)
+        store.save_mandate(expired)
+        goal = _goal(expired.id)
+        store.create_goal(goal)
+        heart = WorldHeartV2(store, registry, DeterministicExecutiveBrainV2())
+
+        result = heart.run_once(goal.id)
+
+        self.assertEqual(PolicyOutcome.DENY, result.policy_outcome)
+        self.assertEqual(
+            {"proposals": 1, "requests": 1, "decisions": 1, "authorizations": 0, "receipts": 0, "effects": 0},
+            store.lifecycle_counts(goal.id),
+        )
+
+    def test_same_target_revision_cannot_change_state(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del registry, brain, heart, goal
+        observation = plugin.providers[0].observe()
+        self.assertTrue(store.save_target_observation(observation))
+        changed = replace(
+            observation,
+            coverage={"bins": "partial"},
+        )
+        with self.assertRaisesRegex(ValueError, "same target revision"):
+            store.save_target_observation(changed)
+
+    def test_declarative_conditions_preserve_units_unknown_and_boolean_composition(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del plugin, registry, brain
+        snapshot = heart.observe_world(goal, refresh_targets=None)
+        condition = ConditionV1(
+            "all",
+            children=(
+                ConditionV1("gte", path="observation:bin.count", value=0, unit="crate"),
+                ConditionV1("not", children=(ConditionV1("lt", path="observation:bin.count", value=0, unit="crate"),)),
+            ),
+        )
+        selector = {"entity_ids": [ENTITY_ID]}
+
+        self.assertTrue(evaluate_condition(condition, snapshot, selector=selector).value)
+        mismatch = evaluate_condition(
+            ConditionV1("gte", path="observation:bin.count", value=0, unit="kg"),
+            snapshot,
+            selector=selector,
+        )
+        self.assertIsNone(mismatch.value)
+        self.assertEqual(EvidenceGrade.CONFLICTING, mismatch.grade)
+
+    def test_v1_goal_migrates_to_observe_only_target_selector(self) -> None:
+        path = self.base / "migration.sqlite3"
+        old = EngineStore(path)
+        old.create_goal(Goal("legacy", "old-target", "legacy intent", {"done": True}))
+        old.close()
+
+        store = WorldStore(path)
+        self.addCleanup(store.close)
+        migrated = store.get_goal("legacy")
+
+        self.assertEqual({"target_ids": ["old-target"]}, migrated.entity_scope)
+        self.assertEqual("imported_observe_only", migrated.status)
+        self.assertIsNone(migrated.mandate_id)
+
+    def test_explicit_learning_is_immediate_but_inferred_habit_waits_for_fixed_gate(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del plugin, registry, brain, heart
+        learner = BoundedPreferenceLearner(store)
+        corrected = learner.record_explicit_correction(
+            goal,
+            field_path="lighting.brightness_band",
+            old_value=[0.2, 0.7],
+            new_value=[0.15, 0.6],
+            context={"period": "quiet"},
+            observed_at=datetime.now(UTC).isoformat(),
+        )
+        self.assertEqual([0.15, 0.6], corrected.budgets["preferences"]["lighting.brightness_band"])
+        base = datetime.now(UTC) - timedelta(days=10)
+        for index in range(5):
+            learner.record_manual_override(
+                corrected.id,
+                field_path="lighting.switch_off_delay_seconds",
+                old_value=60,
+                new_value=120,
+                context={"presence": False, "period": "quiet"},
+                observed_at=(base + timedelta(days=index // 2)).isoformat(),
+            )
+        mandate = replace(_mandate(), learning_permissions=("learning.low-risk",))
+        candidate = learner.candidate(
+            corrected, "lighting.switch_off_delay_seconds", mandate
+        )
+        self.assertIsNotNone(candidate)
+        assert candidate is not None
+        self.assertEqual(LearningStatus.SHADOW, candidate.status)
+        before_shadow_end = learner.promote(
+            corrected, candidate, ({"achieved": True},), now=base + timedelta(days=6)
+        )
+        self.assertIsNone(before_shadow_end)
+        promoted = learner.promote(
+            corrected,
+            candidate,
+            ({"achieved": True, "effect_id": "shadow-1"},),
+            now=datetime.fromisoformat(candidate.shadow_ends_at) + timedelta(seconds=1),
+        )
+        self.assertIsNotNone(promoted)
+        assert promoted is not None
+        self.assertEqual(120, promoted.budgets["preferences"]["lighting.switch_off_delay_seconds"])
+
+    def test_sensitive_learning_domains_never_auto_promote(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del plugin, registry, brain, heart
+        learner = BoundedPreferenceLearner(store)
+        now = datetime.now(UTC)
+        for index in range(5):
+            learner.record_manual_override(
+                goal.id,
+                field_path="camera.surveillance_mode",
+                old_value=False,
+                new_value=True,
+                context={"mode": "away"},
+                observed_at=(now - timedelta(days=4 - index // 2)).isoformat(),
+            )
+        mandate = replace(_mandate(), learning_permissions=("learning.low-risk",))
+        self.assertIsNone(learner.candidate(goal, "camera.surveillance_mode", mandate))
+
+
+class _AckOnlyExecutor:
+    plugin_id = PLUGIN_ID
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def dispatch(self, request: Any, authorization: Any) -> ExecutionReceiptV2:
+        self.calls += 1
+        return ExecutionReceiptV2(
+            "receipt:ack-only", request.id, authorization.id, request.target_id,
+            request.capability_id, ExecutionStateV2.SUCCEEDED,
+            datetime.now(UTC).isoformat(), datetime.now(UTC).isoformat(), True,
+            {"ack": True}, adapter_version="test",
+        )
+
+    def poll(self, external_handle: str) -> Any:
+        raise KeyError(external_handle)
+
+    def cancel(self, external_handle: str) -> Any:
+        raise KeyError(external_handle)
+
+
+class _MutableClock:
+    def __init__(self, value: datetime) -> None:
+        self.value = value
+
+    def __call__(self) -> datetime:
+        return self.value
+
+    def advance(self, delta: timedelta) -> None:
+        self.value += delta
+
+
+class _StaleBrain:
+    id = "test.stale-brain/v1"
+
+    def decide(self, goal: GoalSpecV2, context: dict[str, object]) -> BrainDecisionV2:
+        world = context["world"]
+        assert isinstance(world, dict)
+        return BrainDecisionV2(
+            kind=DecisionKindV2.PROPOSE_EFFECT,
+            proposed_action=ProposedActionV1(
+                "proposal:stale", goal.id, "reserve-minimum", FAMILY,
+                TARGET_ID, ENTITY_ID, {"minimum_count": 3},
+                "world:stale", int(world["revision"]), self.id,
+            ),
+        )
+
+
+def _mandate(*, expired: bool = False) -> StandingMandateV1:
+    now = datetime.now(UTC)
+    return StandingMandateV1(
+        id="mandate:reference",
+        plugin_ids=(PLUGIN_ID,),
+        target_ids=(TARGET_ID,),
+        entity_ids=(ENTITY_ID,),
+        capability_families=(FAMILY,),
+        limits={}, privacy_permissions=(), learning_permissions=(),
+        valid_from=(now - timedelta(days=2)).isoformat(),
+        valid_until=(now - timedelta(days=1) if expired else now + timedelta(days=1)).isoformat(),
+        manifest_versions={PLUGIN_ID: "0.2.0"},
+        activated_by="owner",
+    )
+
+
+def _goal(mandate_id: str) -> GoalSpecV2:
+    effect = DesiredEffectV1(
+        id="reserve-minimum",
+        capability_family=FAMILY,
+        entity_selector={"entity_ids": [ENTITY_ID]},
+        condition=ConditionV1(
+            "gte", path="observation:bin.count", value=3, unit="crate"
+        ),
+        parameters={"minimum_count": 3},
+    )
+    return GoalSpecV2(
+        id="goal:reference",
+        source_intent="Maintain at least three crates in the reserve bin",
+        mode=GoalModeV2.MAINTAIN,
+        entity_scope={"target_ids": [TARGET_ID]},
+        desired_effects=(effect,),
+        mandate_id=mandate_id,
+    )
+
+
+def _reserve_count(snapshot: Any) -> int:
+    assert snapshot is not None
+    return next(
+        int(item.value) for item in snapshot.observations
+        if item.entity_id == ENTITY_ID and item.property == "bin.count"
+    )
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,37 @@
+{
+  "status": "exploratory_smoke_consumed_instrumentation_flawed",
+  "evidence_lifecycle": "CONSUMED",
+  "result": "INCONCLUSIVE",
+  "evidence_environments": {
+    "filesystem": "BOUNDED_REAL_TARGET (sandbox)",
+    "grid": "SIMULATION"
+  },
+  "claim_scope": "Plumbing smoke only. Do not compare cycles, restart recovery, latency, or infer M2 superiority from this artifact.",
+  "known_issues": [
+    "The requested model field reported the artifact constant while requests used the local-model alias.",
+    "Engine cycle index and M0 call count were labeled as the same metric.",
+    "Grid restart happened after two cognitive cycles, which meant different world-action counts by condition.",
+    "M0 latency used provider prediction timing while Engine latency used caller wall time.",
+    "M0/M1 lack the deterministic task-solving specialists available to M2, so M2-M1 mixes competence and orchestration.",
+    "Provider attempts/errors were undercounted and asymmetric; M0 grid likely had 29 caught failures, but the raw errors were deleted so their cause cannot be asserted.",
+    "The prompt hash covers only the static system prompt, not the dynamic schema, context projection, provider configuration, or full request.",
+    "Only summary output was retained; the temporary raw databases were deleted.",
+    "One run per hand-built fixture, fixed condition order, no statistical inference."
+  ],
+  "model_returned": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+  "prompt_sha256": "3b9ebd0bb8148b250dff40ff113c006c8f6ea605bc54a36af9f30f4018ecb128",
+  "conditions": {
+    "M0_monolith_session": {
+      "filesystem": {"status":"completed","oracle":true,"cycles_reported":6,"executive_model_calls_succeeded":6,"tool_calls":6,"invocation_states":{"failed":2,"succeeded":4},"prompt_tokens":18670,"completion_tokens":591,"wall_ms":24643.105},
+      "grid": {"status":"budget_exhausted","oracle":false,"cycles_reported":40,"executive_model_calls_succeeded":11,"tool_calls":11,"invocation_states":{"failed":2,"partial":1,"succeeded":8},"prompt_tokens":41392,"completion_tokens":1129,"wall_ms":49771.935}
+    },
+    "M1_durable_single": {
+      "filesystem": {"status":"completed","oracle":true,"cycles_reported":4,"executive_model_calls_succeeded":5,"tool_calls":5,"invocation_states":{"failed":1,"succeeded":4},"prompt_tokens":5732,"completion_tokens":490,"wall_ms":16259.758},
+      "grid": {"status":"budget_exhausted","oracle":false,"cycles_reported":40,"executive_model_calls_succeeded":40,"tool_calls":40,"invocation_states":{"partial":11,"succeeded":29},"prompt_tokens":41512,"completion_tokens":4141,"wall_ms":131320.331}
+    },
+    "M2_engine_multi": {
+      "filesystem": {"status":"completed","oracle":true,"cycles_reported":9,"executive_model_calls_succeeded":10,"specialist_calls":5,"tool_calls":5,"invocation_states":{"failed":1,"succeeded":4},"prompt_tokens":13781,"completion_tokens":1434,"wall_ms":54195.991},
+      "grid": {"status":"completed","oracle":true,"cycles_reported":17,"executive_model_calls_succeeded":18,"specialist_calls":9,"tool_calls":9,"invocation_states":{"partial":1,"succeeded":8},"prompt_tokens":21815,"completion_tokens":2349,"wall_ms":76472.124}
+    }
+  }
+}

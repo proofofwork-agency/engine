@@ -1,0 +1,115 @@
+[
+  {
+    "created_at": "2026-08-10 00:50:01",
+    "id": 1,
+    "kind": "catalog_changed",
+    "payload": {
+      "catalog": {
+        "generation": 1,
+        "plugins": [
+          {
+            "contract_version": "engine.plugin/v1",
+            "description": "Pilot engine.filesystem",
+            "id": "engine.filesystem",
+            "version": "0.1.0"
+          }
+        ],
+        "specialists": [],
+        "targets": [
+          {
+            "capabilities": [
+              {
+                "affordance": "action",
+                "default_timeout_ms": 30000,
+                "description": "Create a directory and any missing parents inside this target",
+                "id": "engine.fs.make-directory/v1",
+                "idempotent": true,
+                "input_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "invocation_mode": "immediate",
+                "local_name": "make_directory",
+                "output_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "version": "1.0.0"
+              },
+              {
+                "affordance": "action",
+                "default_timeout_ms": 30000,
+                "description": "Move one file to a new relative path inside this target",
+                "id": "engine.fs.move-file/v1",
+                "idempotent": false,
+                "input_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "destination": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "source": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "destination"
+                  ],
+                  "type": "object"
+                },
+                "invocation_mode": "immediate",
+                "local_name": "move_file",
+                "output_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "destination": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "destination"
+                  ],
+                  "type": "object"
+                },
+                "version": "1.0.0"
+              }
+            ],
+            "manifest": {
+              "adapter_version": "0.1",
+              "contract_version": "engine.target/v1",
+              "description": "Sandboxed hierarchical filesystem target",
+              "id": "workspace",
+              "plugin_id": "engine.filesystem"
+            }
+          }
+        ]
+      },
+      "fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+      "previous_fingerprint": null
+    }
+  }
+]

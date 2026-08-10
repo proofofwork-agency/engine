@@ -1,0 +1,30 @@
+{
+  "blocked": [
+    [
+      1,
+      0
+    ]
+  ],
+  "bounds": [
+    4,
+    4
+  ],
+  "inventory": [],
+  "items": {
+    "key": [
+      2,
+      0
+    ]
+  },
+  "known_blocked": [
+    [
+      1,
+      0
+    ]
+  ],
+  "position": [
+    0,
+    0
+  ],
+  "revision": 26
+}

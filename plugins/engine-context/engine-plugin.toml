@@ -1,0 +1,42 @@
+[plugin]
+id = "engine.context"
+version = "0.2.0"
+engine_api = ">=2.0,<3"
+contract_version = "engine.plugin/v2"
+description = "Local time, explicit location and permissioned weather observations"
+
+[declarations]
+world_providers = ["local-context"]
+controllers = []
+executors = []
+effect_oracles = []
+specialists = []
+entity_types = ["context.local", "context.location", "context.weather"]
+relation_types = ["located_at", "weather_for"]
+observation_types = ["time.iso8601", "time.hour", "time.minute_of_day", "time.weekday", "location.latitude", "location.longitude", "weather.temperature_c", "weather.cloud_cover_pct", "weather.precipitation_mm"]
+
+[needs]
+network = ["configured-weather-provider-only"]
+filesystem = ["plugin-private-sqlite"]
+secrets = []
+privacy = ["location-shared-only-after-consent"]
+
+[store]
+identity = "engine.context.store"
+schema_version = 1
+
+[[capability_families]]
+id = "engine.context.observe/v2"
+family = "context.observe"
+version = "2.0.0"
+description = "Observe local time and permissioned context"
+control_layer = "query"
+invocation_mode = "immediate"
+risk_class = "read_only"
+privacy_class = "sensitive"
+idempotent = true
+deadline_ms = 5000
+effect_measurements = []
+recovery = "return_unknown"
+input_schema = {type = "object", additionalProperties = false}
+effect_schema = {type = "object", additionalProperties = false}

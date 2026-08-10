@@ -1,0 +1,31 @@
+{
+  "status": "exploratory_consumed",
+  "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+  "condition": "Engine Heart + general LLM + deterministic specialists, prompt-only phase discipline",
+  "filesystem": {
+    "status": "completed",
+    "oracle": true,
+    "metrics": {
+      "executive_model_calls": 20,
+      "specialist_calls": 16,
+      "tool_calls": 4,
+      "prompt_tokens": 29391,
+      "completion_tokens": 2577,
+      "partial_invocations": 0
+    }
+  },
+  "grid": {
+    "status_before_restart": "active",
+    "status": "completed",
+    "oracle": true,
+    "metrics": {
+      "executive_model_calls": 28,
+      "specialist_calls": 19,
+      "tool_calls": 9,
+      "prompt_tokens": 35169,
+      "completion_tokens": 3635,
+      "partial_invocations": 1
+    }
+  },
+  "interpretation": "Both oracles passed, but the model repeatedly consulted a specialist despite fresh actionable advice. This is a live integration baseline, not a multi-brain superiority result."
+}

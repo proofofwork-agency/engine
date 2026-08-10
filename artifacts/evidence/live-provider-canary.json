@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "purpose": "one-call live llama.cpp grammar compatibility canary after reverting oneOf",
+  "model_requested_and_returned": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+  "provider_input_bytes": 3945,
+  "prompt_tokens": 923,
+  "completion_tokens": 101,
+  "decision": {
+    "kind": "use_tool",
+    "name": "engine.fs.move-file/v1",
+    "arguments": {
+      "source": "inbox/notes.txt",
+      "destination": "archive/text/notes.txt"
+    },
+    "based_on": []
+  },
+  "interpretation": "Flat phase schema generated and validated one complete decision. This is a provider compatibility canary, not task-success evidence."
+}

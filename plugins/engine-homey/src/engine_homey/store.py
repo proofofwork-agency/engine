@@ -1,0 +1,333 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import sqlite3
+import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+
+@dataclass(frozen=True)
+class StoredSnapshot:
+    revision: int
+    state_hash: str
+    state: dict[str, Any]
+    observed_at: str
+
+
+class HomeOpsStore:
+    """Plugin-owned state; never shares mutable tables with EngineStore."""
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._connection = sqlite3.connect(self.path, check_same_thread=False)
+        self._connection.row_factory = sqlite3.Row
+        self._connection.execute("PRAGMA journal_mode=WAL")
+        self._connection.execute("PRAGMA foreign_keys=ON")
+        self._create_schema()
+
+    def _create_schema(self) -> None:
+        self._connection.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS aliases (
+                kind TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                alias TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (kind, source_id),
+                UNIQUE (kind, alias)
+            );
+            CREATE TABLE IF NOT EXISTS snapshots (
+                revision INTEGER PRIMARY KEY,
+                state_hash TEXT NOT NULL,
+                state_json TEXT NOT NULL,
+                observed_at TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS charters (
+                version_id TEXT PRIMARY KEY,
+                parent_version_id TEXT,
+                charter_json TEXT NOT NULL,
+                source_text TEXT NOT NULL,
+                source_sha256 TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS active_charter (
+                singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+                version_id TEXT NOT NULL REFERENCES charters(version_id)
+            );
+            CREATE TABLE IF NOT EXISTS preference_evidence (
+                id TEXT PRIMARY KEY,
+                grade TEXT NOT NULL,
+                source TEXT NOT NULL,
+                text TEXT,
+                context_json TEXT NOT NULL,
+                charter_before TEXT,
+                charter_after TEXT,
+                patch_json TEXT,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS provider_revision_ledger (
+                singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+                revision INTEGER NOT NULL
+            );
+            INSERT OR IGNORE INTO provider_revision_ledger(singleton, revision)
+            VALUES(1, -1);
+            """
+        )
+        self._connection.commit()
+
+    def close(self) -> None:
+        self._connection.close()
+
+    def next_provider_revision(self) -> int:
+        """Monotone v2 observation-boundary revision, including unchanged state."""
+        self._connection.execute(
+            "UPDATE provider_revision_ledger SET revision = revision + 1 WHERE singleton = 1"
+        )
+        self._connection.commit()
+        row = self._connection.execute(
+            "SELECT revision FROM provider_revision_ledger WHERE singleton = 1"
+        ).fetchone()
+        assert row is not None
+        return int(row["revision"])
+
+    def alias_for(
+        self,
+        kind: str,
+        source_id: str,
+        suggested: str,
+        *,
+        fixed: str | None = None,
+    ) -> str:
+        row = self._connection.execute(
+            "SELECT alias FROM aliases WHERE kind = ? AND source_id = ?",
+            (kind, source_id),
+        ).fetchone()
+        if row is not None:
+            existing = str(row["alias"])
+            if fixed is not None and fixed != existing:
+                raise ValueError(
+                    f"configured alias {fixed!r} conflicts with persisted {existing!r}"
+                )
+            return existing
+        base = fixed or _slug(suggested)
+        candidate = base
+        suffix = hashlib.sha256(source_id.encode("utf-8")).hexdigest()[:8]
+        collision = self._connection.execute(
+            "SELECT source_id FROM aliases WHERE kind = ? AND alias = ?",
+            (kind, candidate),
+        ).fetchone()
+        if collision is not None:
+            if fixed is not None:
+                raise ValueError(
+                    f"configured alias {fixed!r} is already bound to another {kind}"
+                )
+            candidate = f"{base[:54]}_{suffix}"
+        self._connection.execute(
+            "INSERT INTO aliases (kind, source_id, alias, created_at) VALUES (?, ?, ?, ?)",
+            (kind, source_id, candidate, _now()),
+        )
+        self._connection.commit()
+        return candidate
+
+    def record_snapshot(
+        self, state: dict[str, Any], observed_at: str
+    ) -> StoredSnapshot:
+        encoded = _dump(state)
+        state_hash = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+        latest = self.latest_snapshot()
+        if latest is not None and latest.state_hash == state_hash:
+            return StoredSnapshot(latest.revision, state_hash, state, observed_at)
+        revision = 0 if latest is None else latest.revision + 1
+        self._connection.execute(
+            """
+            INSERT INTO snapshots (
+                revision, state_hash, state_json, observed_at, created_at
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (revision, state_hash, encoded, observed_at, _now()),
+        )
+        self._connection.commit()
+        return StoredSnapshot(revision, state_hash, state, observed_at)
+
+    def latest_snapshot(self) -> StoredSnapshot | None:
+        row = self._connection.execute(
+            "SELECT * FROM snapshots ORDER BY revision DESC LIMIT 1"
+        ).fetchone()
+        if row is None:
+            return None
+        return StoredSnapshot(
+            revision=int(row["revision"]),
+            state_hash=str(row["state_hash"]),
+            state=json.loads(row["state_json"]),
+            observed_at=str(row["observed_at"]),
+        )
+
+    def snapshot_history(self) -> tuple[StoredSnapshot, ...]:
+        rows = self._connection.execute(
+            "SELECT * FROM snapshots ORDER BY revision"
+        ).fetchall()
+        return tuple(
+            StoredSnapshot(
+                revision=int(row["revision"]),
+                state_hash=str(row["state_hash"]),
+                state=json.loads(row["state_json"]),
+                observed_at=str(row["observed_at"]),
+            )
+            for row in rows
+        )
+
+    def save_charter(
+        self,
+        charter: dict[str, Any],
+        source_text: str,
+        *,
+        parent_version_id: str | None = None,
+    ) -> str:
+        version_id = str(charter["version_id"])
+        source_hash = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
+        self._connection.execute(
+            """
+            INSERT INTO charters (
+                version_id, parent_version_id, charter_json, source_text,
+                source_sha256, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                version_id,
+                parent_version_id,
+                _dump(charter),
+                source_text,
+                source_hash,
+                _now(),
+            ),
+        )
+        self._connection.execute(
+            """
+            INSERT INTO active_charter (singleton, version_id) VALUES (1, ?)
+            ON CONFLICT(singleton) DO UPDATE SET version_id = excluded.version_id
+            """,
+            (version_id,),
+        )
+        self._connection.commit()
+        return version_id
+
+    def active_charter(self) -> dict[str, Any] | None:
+        row = self._connection.execute(
+            """
+            SELECT c.charter_json FROM charters c
+            JOIN active_charter a ON a.version_id = c.version_id
+            WHERE a.singleton = 1
+            """
+        ).fetchone()
+        return json.loads(row["charter_json"]) if row is not None else None
+
+    def charter_source(self, version_id: str) -> str:
+        row = self._connection.execute(
+            "SELECT source_text FROM charters WHERE version_id = ?", (version_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(f"unknown charter version: {version_id}")
+        return str(row["source_text"])
+
+    def record_preference(
+        self,
+        *,
+        grade: str,
+        source: str,
+        text: str | None,
+        context: dict[str, Any],
+        charter_before: str | None = None,
+        charter_after: str | None = None,
+        patch: dict[str, Any] | None = None,
+        created_at: str | None = None,
+    ) -> str:
+        evidence_id = uuid.uuid4().hex
+        self._connection.execute(
+            """
+            INSERT INTO preference_evidence (
+                id, grade, source, text, context_json, charter_before,
+                charter_after, patch_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                evidence_id,
+                grade,
+                source,
+                text,
+                _dump(context),
+                charter_before,
+                charter_after,
+                _dump(patch) if patch is not None else None,
+                created_at or _now(),
+            ),
+        )
+        self._connection.commit()
+        return evidence_id
+
+    def preferences(self) -> tuple[dict[str, Any], ...]:
+        rows = self._connection.execute(
+            "SELECT * FROM preference_evidence ORDER BY created_at, id"
+        ).fetchall()
+        return tuple(
+            {
+                "id": row["id"],
+                "grade": row["grade"],
+                "source": row["source"],
+                "text": row["text"],
+                "context": json.loads(row["context_json"]),
+                "charter_before": row["charter_before"],
+                "charter_after": row["charter_after"],
+                "patch": (
+                    json.loads(row["patch_json"])
+                    if row["patch_json"] is not None
+                    else None
+                ),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        )
+
+    def preferences_after(
+        self, cursor: int, limit: int
+    ) -> tuple[dict[str, Any], ...]:
+        rows = self._connection.execute(
+            """
+            SELECT rowid AS sequence,* FROM preference_evidence
+            WHERE rowid>? ORDER BY rowid LIMIT ?
+            """,
+            (cursor, limit),
+        ).fetchall()
+        return tuple(
+            {
+                "sequence": int(row["sequence"]),
+                "id": str(row["id"]),
+                "grade": str(row["grade"]),
+                "source": str(row["source"]),
+                "context": json.loads(row["context_json"]),
+                "created_at": str(row["created_at"]),
+            }
+            for row in rows
+        )
+
+
+def _slug(value: str) -> str:
+    lowered = value.casefold().strip()
+    slug = re.sub(r"[^a-z0-9]+", "_", lowered).strip("_")
+    if not slug or not slug[0].isalpha():
+        slug = f"item_{slug}" if slug else "item"
+    return slug[:63]
+
+
+def _dump(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _now() -> str:
+    return datetime.now(UTC).isoformat()

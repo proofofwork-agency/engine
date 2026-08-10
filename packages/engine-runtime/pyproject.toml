@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "engine-runtime"
+version = "0.2.0"
+description = "Plugin-neutral composition root and production CLI for Engine"
+requires-python = ">=3.12"
+dependencies = [
+  "engine-heart>=0.2,<0.3",
+  "engine-sdk>=0.2,<0.3",
+  "jsonschema>=4.23,<5",
+]
+
+[project.scripts]
+engine = "engine_runtime.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

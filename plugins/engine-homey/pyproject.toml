@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "engine-homey"
+version = "0.2.0"
+description = "Local-first Homey whole-house application plugin for Engine"
+requires-python = ">=3.12"
+dependencies = [
+  "engine-sdk>=0.2,<0.3",
+  "jsonschema>=4.23,<5",
+  "python-socketio[client]>=5.11,<6",
+]
+
+[project.scripts]
+engine-homey = "engine_homey.cli:main"
+
+[project.entry-points."engine.plugins"]
+homey = "engine_homey.v2:load_plugin_v2"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.data-files]
+"share/engine/plugins/engine-homey" = ["engine-plugin.toml"]

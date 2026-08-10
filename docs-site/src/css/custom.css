@@ -1,0 +1,147 @@
+:root {
+  --ifm-color-primary: #13795b;
+  --ifm-color-primary-dark: #116d52;
+  --ifm-color-primary-darker: #10674d;
+  --ifm-color-primary-darkest: #0d553f;
+  --ifm-color-primary-light: #158564;
+  --ifm-color-primary-lighter: #168b69;
+  --ifm-color-primary-lightest: #199d76;
+  --ifm-font-family-base: 'Avenir Next', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --ifm-font-family-monospace: 'SFMono-Regular', 'Cascadia Code', Consolas, monospace;
+  --ifm-heading-font-family: 'Avenir Next', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --ifm-heading-font-weight: 600;
+  --ifm-code-font-size: 92%;
+  --ifm-navbar-height: 68px;
+  --ifm-global-radius: 2px;
+  --engine-bg: #f4f7f5;
+  --engine-panel: #ffffff;
+  --engine-text: #111c19;
+  --engine-muted: #51615c;
+  --engine-dim: #73817c;
+  --engine-line: rgba(13, 50, 39, 0.1);
+  --engine-line-strong: rgba(13, 50, 39, 0.2);
+  --engine-accent: #13795b;
+  --engine-accent-soft: #1b755a;
+  --engine-warning: #a85f00;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #66f6c2;
+  --ifm-color-primary-dark: #47f4b6;
+  --ifm-color-primary-darker: #38f3b0;
+  --ifm-color-primary-darkest: #0ce69a;
+  --ifm-color-primary-light: #85f8ce;
+  --ifm-color-primary-lighter: #94f9d4;
+  --ifm-color-primary-lightest: #c2fce8;
+  --ifm-background-color: #071016;
+  --ifm-background-surface-color: #0a151b;
+  --ifm-navbar-background-color: rgba(7, 16, 22, 0.9);
+  --ifm-footer-background-color: #050b0f;
+  --engine-bg: #071016;
+  --engine-panel: #0a151b;
+  --engine-text: #edf7f2;
+  --engine-muted: #99aaa3;
+  --engine-dim: #687a73;
+  --engine-line: rgba(141, 181, 165, 0.1);
+  --engine-line-strong: rgba(141, 181, 165, 0.22);
+  --engine-accent: #66f6c2;
+  --engine-accent-soft: #73cfae;
+  --engine-warning: #ffbe55;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-feature-settings: 'ss01', 'ss02', 'cv01';
+}
+
+.navbar {
+  border-bottom: 1px solid var(--engine-line);
+  box-shadow: none;
+  backdrop-filter: blur(16px);
+}
+
+.navbar__inner {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+}
+
+.navbar__brand {
+  gap: 11px;
+}
+
+.navbar__title {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.83rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+}
+
+.navbar__logo {
+  height: 26px;
+}
+
+.navbar__link {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.73rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.navbar-github-link::after {
+  display: inline-block;
+  width: 0.82rem;
+  height: 0.82rem;
+  margin-left: 0.4rem;
+  background: currentColor;
+  content: '';
+  mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 .7A11.5 11.5 0 0 0 8.36 23.1c.58.1.79-.25.79-.56v-2.22c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.17.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.28-5.27-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.16 1.18A10.98 10.98 0 0 1 12 6.15c.98 0 1.94.13 2.85.39 2.2-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.83 1.19 3.08 0 4.41-2.71 5.38-5.29 5.67.42.36.79 1.06.79 2.14v3.25c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.footer {
+  border-top: 1px solid var(--engine-line);
+}
+
+.footer__title,
+.footer__link-item,
+.footer__copyright {
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.footer__title {
+  color: var(--engine-accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.footer__link-item,
+.footer__copyright {
+  font-size: 0.75rem;
+}
+
+.theme-doc-sidebar-container {
+  border-right-color: var(--engine-line) !important;
+}
+
+.menu__link {
+  border-radius: 2px;
+}
+
+.pagination-nav__link {
+  border-color: var(--engine-line-strong);
+  border-radius: 2px;
+}
+
+code {
+  border: 1px solid var(--engine-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

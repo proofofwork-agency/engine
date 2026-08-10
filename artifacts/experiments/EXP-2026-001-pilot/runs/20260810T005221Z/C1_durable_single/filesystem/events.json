@@ -1,0 +1,3296 @@
+[
+  {
+    "created_at": "2026-08-10 00:59:35",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 1,
+    "kind": "goal_created",
+    "payload": {
+      "instruction": "Organize the inbox into typed archive directories",
+      "priority": 0,
+      "target_id": "workspace"
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:35",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 2,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:35.014857+00:00",
+      "revision": 1,
+      "state": {
+        "entries": {
+          "inbox": {
+            "kind": "directory"
+          },
+          "inbox/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          },
+          "inbox/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:35",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 3,
+    "kind": "catalog_selection",
+    "payload": {
+      "candidate_universe": [
+        "engine.fs.make-directory/v1",
+        "engine.fs.move-file/v1"
+      ],
+      "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+      "catalog_generation": 1,
+      "limit": 32,
+      "max_score": 0.0,
+      "omitted_count": 0,
+      "retrieval_sufficient": true,
+      "selection_complete": true,
+      "selection_strategy": "lexical",
+      "shortlist": [
+        {
+          "capability_id": "engine.fs.make-directory/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        },
+        {
+          "capability_id": "engine.fs.move-file/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        }
+      ]
+    },
+    "source": "engine.catalog.lexical/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:35",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 4,
+    "kind": "brain_request",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "brain_version": "0.1",
+      "goal_id": "organize-workspace",
+      "id": "28791a09ae3447eab83cb9b0d22678a9",
+      "input_projection": {
+        "capabilities": [
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Create a directory and any missing parents inside this target",
+            "id": "engine.fs.make-directory/v1",
+            "idempotent": true,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "make_directory",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          },
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Move one file to a new relative path inside this target",
+            "id": "engine.fs.move-file/v1",
+            "idempotent": false,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "move_file",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          }
+        ],
+        "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+        "catalog_generation": 1,
+        "cognitive_phase": "needs_specialist",
+        "goal": {
+          "cycle": 0,
+          "id": "organize-workspace",
+          "instruction": "Organize the inbox into typed archive directories",
+          "max_cycles": 30,
+          "priority": 0,
+          "status": "active",
+          "success_spec": {
+            "moves": [
+              {
+                "destination": "archive/text/notes.txt",
+                "source": "inbox/notes.txt"
+              },
+              {
+                "destination": "archive/markdown/design.md",
+                "source": "inbox/design.md"
+              }
+            ]
+          },
+          "target_id": "workspace"
+        },
+        "pending_advice": [],
+        "recent_experience": [
+          {
+            "created_at": "2026-08-10 00:59:35",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 1,
+            "kind": "goal_created",
+            "payload": {
+              "instruction": "Organize the inbox into typed archive directories",
+              "priority": 0,
+              "target_id": "workspace"
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:35",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 2,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:35.014857+00:00",
+              "revision": 1,
+              "state_sha256": "a100949446c86480a45761f94674d7c47a64c5662399c573e7b1cb0201724aae",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:35",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 3,
+            "kind": "catalog_selection",
+            "payload": {
+              "candidate_universe": [
+                "engine.fs.make-directory/v1",
+                "engine.fs.move-file/v1"
+              ],
+              "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+              "catalog_generation": 1,
+              "limit": 32,
+              "max_score": 0.0,
+              "omitted_count": 0,
+              "retrieval_sufficient": true,
+              "selection_complete": true,
+              "selection_strategy": "lexical",
+              "shortlist": [
+                {
+                  "capability_id": "engine.fs.make-directory/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                },
+                {
+                  "capability_id": "engine.fs.move-file/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                }
+              ]
+            },
+            "source": "engine.catalog.lexical/v1"
+          }
+        ],
+        "snapshot": {
+          "observed_at": "2026-08-10T00:59:35.014857+00:00",
+          "revision": 1,
+          "state": {
+            "entries": {
+              "inbox": {
+                "kind": "directory"
+              },
+              "inbox/design.md": {
+                "kind": "file",
+                "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+              },
+              "inbox/notes.txt": {
+                "kind": "file",
+                "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+              }
+            }
+          },
+          "target_id": "workspace"
+        },
+        "specialist_performance": {},
+        "specialist_query": {},
+        "specialists": [],
+        "working_memory": {}
+      },
+      "input_sha256": "0d90e03c0180c623bb7898266ac99bb7bbfb9e5c93f6dbf36633b7b592fe1cef",
+      "parent_request_id": null,
+      "purpose": "select next cognitive operator",
+      "snapshot_revision": 1
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:38",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 5,
+    "kind": "brain_result",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "latency_ms": 3325.6306659895927,
+      "output": {
+        "arguments": {
+          "destination": "archive/text/notes.txt",
+          "source": "inbox/notes.txt"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.move-file/v1",
+        "rationale": "The goal is to organize the inbox into typed archive directories. The first step is to move the 'notes.txt' file to the 'archive/text' directory as specified in the success_spec."
+      },
+      "output_sha256": "75fc98f2e419a7df6aa2a38d67e80daac5b36c26fc7edb524c00956382f80cda",
+      "request_id": "28791a09ae3447eab83cb9b0d22678a9",
+      "status": "succeeded",
+      "usage": {
+        "input_bytes": 3955,
+        "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+        "provider": "openai-compatible",
+        "provider_projection_sha256": "5c974ef882897ef10384c4644868bed497cb0982d16a194f7cea4ec09f61acd2",
+        "timings": {
+          "cache_n": 354,
+          "predicted_ms": 2270.283,
+          "predicted_n": 101,
+          "predicted_per_second": 44.4878457883885,
+          "predicted_per_token_ms": 22.478049504950494,
+          "prompt_ms": 934.501,
+          "prompt_n": 571,
+          "prompt_per_second": 611.0212830162836,
+          "prompt_per_token_ms": 1.6366042031523642
+        },
+        "usage": {
+          "completion_tokens": 101,
+          "prompt_tokens": 925,
+          "prompt_tokens_details": {
+            "cached_tokens": 354
+          },
+          "total_tokens": 1026
+        }
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:38",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 6,
+    "kind": "executive_decision",
+    "payload": {
+      "brain_request_id": "28791a09ae3447eab83cb9b0d22678a9",
+      "decision": {
+        "arguments": {
+          "destination": "archive/text/notes.txt",
+          "source": "inbox/notes.txt"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.move-file/v1",
+        "rationale": "The goal is to organize the inbox into typed archive directories. The first step is to move the 'notes.txt' file to the 'archive/text' directory as specified in the success_spec."
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:38",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 7,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.move-file/v1",
+      "decision_request_id": "28791a09ae3447eab83cb9b0d22678a9",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "a1b2ccd1b60147c69045be72735a7433",
+      "requested_at": "2026-08-10T00:59:38.342191+00:00",
+      "result": null,
+      "snapshot_revision": 1,
+      "state": "requested",
+      "target_id": "workspace"
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:38",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 8,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:38.342947+00:00",
+      "revision": 1,
+      "state": {
+        "entries": {
+          "inbox": {
+            "kind": "directory"
+          },
+          "inbox/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          },
+          "inbox/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:38",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 9,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.move-file/v1",
+      "decision_request_id": "28791a09ae3447eab83cb9b0d22678a9",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "a1b2ccd1b60147c69045be72735a7433",
+      "requested_at": "2026-08-10T00:59:38.342191+00:00",
+      "result": {
+        "changed": false,
+        "error": "destination parent is missing",
+        "output": {},
+        "partial": false,
+        "succeeded": false
+      },
+      "snapshot_revision": 1,
+      "state": "failed",
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:38",
+    "cycle": 0,
+    "goal_id": "organize-workspace",
+    "id": 10,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "destination": "archive/text/notes.txt",
+          "source": "inbox/notes.txt"
+        },
+        "capability_id": "engine.fs.move-file/v1",
+        "target_id": "workspace"
+      },
+      "invocation_id": "a1b2ccd1b60147c69045be72735a7433",
+      "post_revision": 1,
+      "pre_revision": 1,
+      "result": {
+        "changed": false,
+        "error": "destination parent is missing",
+        "output": {},
+        "partial": false,
+        "succeeded": false
+      }
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:38",
+    "cycle": 1,
+    "goal_id": "organize-workspace",
+    "id": 11,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:38.351414+00:00",
+      "revision": 1,
+      "state": {
+        "entries": {
+          "inbox": {
+            "kind": "directory"
+          },
+          "inbox/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          },
+          "inbox/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:38",
+    "cycle": 1,
+    "goal_id": "organize-workspace",
+    "id": 12,
+    "kind": "catalog_selection",
+    "payload": {
+      "candidate_universe": [
+        "engine.fs.make-directory/v1",
+        "engine.fs.move-file/v1"
+      ],
+      "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+      "catalog_generation": 1,
+      "limit": 32,
+      "max_score": 0.0,
+      "omitted_count": 0,
+      "retrieval_sufficient": true,
+      "selection_complete": true,
+      "selection_strategy": "lexical",
+      "shortlist": [
+        {
+          "capability_id": "engine.fs.make-directory/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        },
+        {
+          "capability_id": "engine.fs.move-file/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        }
+      ]
+    },
+    "source": "engine.catalog.lexical/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:38",
+    "cycle": 1,
+    "goal_id": "organize-workspace",
+    "id": 13,
+    "kind": "brain_request",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "brain_version": "0.1",
+      "goal_id": "organize-workspace",
+      "id": "c1bcbda945994884802ff5f62cf95129",
+      "input_projection": {
+        "capabilities": [
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Create a directory and any missing parents inside this target",
+            "id": "engine.fs.make-directory/v1",
+            "idempotent": true,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "make_directory",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          },
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Move one file to a new relative path inside this target",
+            "id": "engine.fs.move-file/v1",
+            "idempotent": false,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "move_file",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          }
+        ],
+        "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+        "catalog_generation": 1,
+        "cognitive_phase": "needs_specialist",
+        "goal": {
+          "cycle": 1,
+          "id": "organize-workspace",
+          "instruction": "Organize the inbox into typed archive directories",
+          "max_cycles": 30,
+          "priority": 0,
+          "status": "active",
+          "success_spec": {
+            "moves": [
+              {
+                "destination": "archive/text/notes.txt",
+                "source": "inbox/notes.txt"
+              },
+              {
+                "destination": "archive/markdown/design.md",
+                "source": "inbox/design.md"
+              }
+            ]
+          },
+          "target_id": "workspace"
+        },
+        "pending_advice": [],
+        "recent_experience": [
+          {
+            "created_at": "2026-08-10 00:59:35",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 1,
+            "kind": "goal_created",
+            "payload": {
+              "instruction": "Organize the inbox into typed archive directories",
+              "priority": 0,
+              "target_id": "workspace"
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:35",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 2,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:35.014857+00:00",
+              "revision": 1,
+              "state_sha256": "a100949446c86480a45761f94674d7c47a64c5662399c573e7b1cb0201724aae",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:35",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 3,
+            "kind": "catalog_selection",
+            "payload": {
+              "candidate_universe": [
+                "engine.fs.make-directory/v1",
+                "engine.fs.move-file/v1"
+              ],
+              "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+              "catalog_generation": 1,
+              "limit": 32,
+              "max_score": 0.0,
+              "omitted_count": 0,
+              "retrieval_sufficient": true,
+              "selection_complete": true,
+              "selection_strategy": "lexical",
+              "shortlist": [
+                {
+                  "capability_id": "engine.fs.make-directory/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                },
+                {
+                  "capability_id": "engine.fs.move-file/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                }
+              ]
+            },
+            "source": "engine.catalog.lexical/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:35",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 4,
+            "kind": "brain_request",
+            "payload": {
+              "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+              "brain_version": "0.1",
+              "goal_id": "organize-workspace",
+              "id": "28791a09ae3447eab83cb9b0d22678a9",
+              "input_sha256": "0d90e03c0180c623bb7898266ac99bb7bbfb9e5c93f6dbf36633b7b592fe1cef",
+              "parent_request_id": null,
+              "purpose": "select next cognitive operator",
+              "snapshot_revision": 1
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 5,
+            "kind": "brain_result",
+            "payload": {
+              "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+              "latency_ms": 3325.6306659895927,
+              "output_sha256": "75fc98f2e419a7df6aa2a38d67e80daac5b36c26fc7edb524c00956382f80cda",
+              "request_id": "28791a09ae3447eab83cb9b0d22678a9",
+              "status": "succeeded",
+              "usage": {
+                "input_bytes": 3955,
+                "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+                "provider": "openai-compatible",
+                "provider_projection_sha256": "5c974ef882897ef10384c4644868bed497cb0982d16a194f7cea4ec09f61acd2",
+                "timings": {
+                  "cache_n": 354,
+                  "predicted_ms": 2270.283,
+                  "predicted_n": 101,
+                  "predicted_per_second": 44.4878457883885,
+                  "predicted_per_token_ms": 22.478049504950494,
+                  "prompt_ms": 934.501,
+                  "prompt_n": 571,
+                  "prompt_per_second": 611.0212830162836,
+                  "prompt_per_token_ms": 1.6366042031523642
+                },
+                "usage": {
+                  "completion_tokens": 101,
+                  "prompt_tokens": 925,
+                  "prompt_tokens_details": {
+                    "cached_tokens": 354
+                  },
+                  "total_tokens": 1026
+                }
+              }
+            },
+            "source": "engine.model.qwen3-4b-durable-single/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 6,
+            "kind": "executive_decision",
+            "payload": {
+              "brain_request_id": "28791a09ae3447eab83cb9b0d22678a9",
+              "decision": {
+                "arguments": {
+                  "destination": "archive/text/notes.txt",
+                  "source": "inbox/notes.txt"
+                },
+                "based_on": [],
+                "kind": "use_tool",
+                "name": "engine.fs.move-file/v1",
+                "rationale": "The goal is to organize the inbox into typed archive directories. The first step is to move the 'notes.txt' file to the 'archive/text' directory as specified in the success_spec."
+              }
+            },
+            "source": "engine.model.qwen3-4b-durable-single/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 7,
+            "kind": "invocation",
+            "payload": {
+              "based_on": [],
+              "capability_id": "engine.fs.move-file/v1",
+              "decision_request_id": "28791a09ae3447eab83cb9b0d22678a9",
+              "external_handle": null,
+              "goal_id": "organize-workspace",
+              "id": "a1b2ccd1b60147c69045be72735a7433",
+              "requested_at": "2026-08-10T00:59:38.342191+00:00",
+              "result": null,
+              "snapshot_revision": 1,
+              "state": "requested",
+              "target_id": "workspace"
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 8,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:38.342947+00:00",
+              "revision": 1,
+              "state_sha256": "a100949446c86480a45761f94674d7c47a64c5662399c573e7b1cb0201724aae",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 9,
+            "kind": "invocation",
+            "payload": {
+              "based_on": [],
+              "capability_id": "engine.fs.move-file/v1",
+              "decision_request_id": "28791a09ae3447eab83cb9b0d22678a9",
+              "external_handle": null,
+              "goal_id": "organize-workspace",
+              "id": "a1b2ccd1b60147c69045be72735a7433",
+              "requested_at": "2026-08-10T00:59:38.342191+00:00",
+              "result": {
+                "changed": false,
+                "error": "destination parent is missing",
+                "partial": false,
+                "succeeded": false
+              },
+              "snapshot_revision": 1,
+              "state": "failed",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 10,
+            "kind": "tool_result",
+            "payload": {
+              "call": {
+                "arguments": {
+                  "destination": "archive/text/notes.txt",
+                  "source": "inbox/notes.txt"
+                },
+                "capability_id": "engine.fs.move-file/v1",
+                "target_id": "workspace"
+              },
+              "invocation_id": "a1b2ccd1b60147c69045be72735a7433",
+              "post_revision": 1,
+              "pre_revision": 1,
+              "result": {
+                "changed": false,
+                "error": "destination parent is missing",
+                "output": {},
+                "partial": false,
+                "succeeded": false
+              }
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 11,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:38.351414+00:00",
+              "revision": 1,
+              "state_sha256": "a100949446c86480a45761f94674d7c47a64c5662399c573e7b1cb0201724aae",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 12,
+            "kind": "catalog_selection",
+            "payload": {
+              "candidate_universe": [
+                "engine.fs.make-directory/v1",
+                "engine.fs.move-file/v1"
+              ],
+              "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+              "catalog_generation": 1,
+              "limit": 32,
+              "max_score": 0.0,
+              "omitted_count": 0,
+              "retrieval_sufficient": true,
+              "selection_complete": true,
+              "selection_strategy": "lexical",
+              "shortlist": [
+                {
+                  "capability_id": "engine.fs.make-directory/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                },
+                {
+                  "capability_id": "engine.fs.move-file/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                }
+              ]
+            },
+            "source": "engine.catalog.lexical/v1"
+          }
+        ],
+        "snapshot": {
+          "observed_at": "2026-08-10T00:59:38.351414+00:00",
+          "revision": 1,
+          "state": {
+            "entries": {
+              "inbox": {
+                "kind": "directory"
+              },
+              "inbox/design.md": {
+                "kind": "file",
+                "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+              },
+              "inbox/notes.txt": {
+                "kind": "file",
+                "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+              }
+            }
+          },
+          "target_id": "workspace"
+        },
+        "specialist_performance": {},
+        "specialist_query": {},
+        "specialists": [],
+        "working_memory": {}
+      },
+      "input_sha256": "a2f774b712bf9fd4ef3bc1c0507cc30a1156dbe1ae8ebd96504bf9cac0cda686",
+      "parent_request_id": null,
+      "purpose": "select next cognitive operator",
+      "snapshot_revision": 1
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:41",
+    "cycle": 1,
+    "goal_id": "organize-workspace",
+    "id": 14,
+    "kind": "brain_result",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "latency_ms": 3085.958790994482,
+      "output": {
+        "arguments": {
+          "path": "archive/text"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.make-directory/v1",
+        "rationale": "The move-file action failed because the destination parent directory is missing. To resolve this, we need to create the directory 'archive/text' before moving the file 'inbox/notes.txt' to 'archive/te"
+      },
+      "output_sha256": "310c4ec94c4d370833e9e92e0f64d0bf396ef9462f467ae3de3a546840e3f584",
+      "request_id": "c1bcbda945994884802ff5f62cf95129",
+      "status": "succeeded",
+      "usage": {
+        "input_bytes": 4511,
+        "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+        "provider": "openai-compatible",
+        "provider_projection_sha256": "48207903671c9f8a526404e306b0176c684596b60e4b5a2c78e52a512e6abcec",
+        "timings": {
+          "cache_n": 611,
+          "predicted_ms": 2298.94,
+          "predicted_n": 98,
+          "predicted_per_second": 42.62834175750563,
+          "predicted_per_token_ms": 23.458571428571428,
+          "prompt_ms": 779.252,
+          "prompt_n": 470,
+          "prompt_per_second": 603.1425007571364,
+          "prompt_per_token_ms": 1.6579829787234042
+        },
+        "usage": {
+          "completion_tokens": 98,
+          "prompt_tokens": 1081,
+          "prompt_tokens_details": {
+            "cached_tokens": 611
+          },
+          "total_tokens": 1179
+        }
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:41",
+    "cycle": 1,
+    "goal_id": "organize-workspace",
+    "id": 15,
+    "kind": "executive_decision",
+    "payload": {
+      "brain_request_id": "c1bcbda945994884802ff5f62cf95129",
+      "decision": {
+        "arguments": {
+          "path": "archive/text"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.make-directory/v1",
+        "rationale": "The move-file action failed because the destination parent directory is missing. To resolve this, we need to create the directory 'archive/text' before moving the file 'inbox/notes.txt' to 'archive/te"
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:41",
+    "cycle": 1,
+    "goal_id": "organize-workspace",
+    "id": 16,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.make-directory/v1",
+      "decision_request_id": "c1bcbda945994884802ff5f62cf95129",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "6abc96ec8b5744dea89c96ffa8df39be",
+      "requested_at": "2026-08-10T00:59:41.439264+00:00",
+      "result": null,
+      "snapshot_revision": 1,
+      "state": "requested",
+      "target_id": "workspace"
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:41",
+    "cycle": 1,
+    "goal_id": "organize-workspace",
+    "id": 17,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:41.440494+00:00",
+      "revision": 2,
+      "state": {
+        "entries": {
+          "archive": {
+            "kind": "directory"
+          },
+          "archive/text": {
+            "kind": "directory"
+          },
+          "inbox": {
+            "kind": "directory"
+          },
+          "inbox/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          },
+          "inbox/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:41",
+    "cycle": 1,
+    "goal_id": "organize-workspace",
+    "id": 18,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.make-directory/v1",
+      "decision_request_id": "c1bcbda945994884802ff5f62cf95129",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "6abc96ec8b5744dea89c96ffa8df39be",
+      "requested_at": "2026-08-10T00:59:41.439264+00:00",
+      "result": {
+        "changed": true,
+        "error": null,
+        "output": {
+          "path": "archive/text"
+        },
+        "partial": false,
+        "succeeded": true
+      },
+      "snapshot_revision": 1,
+      "state": "succeeded",
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:41",
+    "cycle": 1,
+    "goal_id": "organize-workspace",
+    "id": 19,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "path": "archive/text"
+        },
+        "capability_id": "engine.fs.make-directory/v1",
+        "target_id": "workspace"
+      },
+      "invocation_id": "6abc96ec8b5744dea89c96ffa8df39be",
+      "post_revision": 2,
+      "pre_revision": 1,
+      "result": {
+        "changed": true,
+        "error": null,
+        "output": {
+          "path": "archive/text"
+        },
+        "partial": false,
+        "succeeded": true
+      }
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:41",
+    "cycle": 2,
+    "goal_id": "organize-workspace",
+    "id": 20,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:41.449334+00:00",
+      "revision": 2,
+      "state": {
+        "entries": {
+          "archive": {
+            "kind": "directory"
+          },
+          "archive/text": {
+            "kind": "directory"
+          },
+          "inbox": {
+            "kind": "directory"
+          },
+          "inbox/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          },
+          "inbox/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:41",
+    "cycle": 2,
+    "goal_id": "organize-workspace",
+    "id": 21,
+    "kind": "catalog_selection",
+    "payload": {
+      "candidate_universe": [
+        "engine.fs.make-directory/v1",
+        "engine.fs.move-file/v1"
+      ],
+      "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+      "catalog_generation": 1,
+      "limit": 32,
+      "max_score": 0.0,
+      "omitted_count": 0,
+      "retrieval_sufficient": true,
+      "selection_complete": true,
+      "selection_strategy": "lexical",
+      "shortlist": [
+        {
+          "capability_id": "engine.fs.make-directory/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        },
+        {
+          "capability_id": "engine.fs.move-file/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        }
+      ]
+    },
+    "source": "engine.catalog.lexical/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:41",
+    "cycle": 2,
+    "goal_id": "organize-workspace",
+    "id": 22,
+    "kind": "brain_request",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "brain_version": "0.1",
+      "goal_id": "organize-workspace",
+      "id": "34acca5c87be4b37829bd00e5c78a49e",
+      "input_projection": {
+        "capabilities": [
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Create a directory and any missing parents inside this target",
+            "id": "engine.fs.make-directory/v1",
+            "idempotent": true,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "make_directory",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          },
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Move one file to a new relative path inside this target",
+            "id": "engine.fs.move-file/v1",
+            "idempotent": false,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "move_file",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          }
+        ],
+        "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+        "catalog_generation": 1,
+        "cognitive_phase": "needs_specialist",
+        "goal": {
+          "cycle": 2,
+          "id": "organize-workspace",
+          "instruction": "Organize the inbox into typed archive directories",
+          "max_cycles": 30,
+          "priority": 0,
+          "status": "active",
+          "success_spec": {
+            "moves": [
+              {
+                "destination": "archive/text/notes.txt",
+                "source": "inbox/notes.txt"
+              },
+              {
+                "destination": "archive/markdown/design.md",
+                "source": "inbox/design.md"
+              }
+            ]
+          },
+          "target_id": "workspace"
+        },
+        "pending_advice": [],
+        "recent_experience": [
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 0,
+            "goal_id": "organize-workspace",
+            "id": 10,
+            "kind": "tool_result",
+            "payload": {
+              "call": {
+                "arguments": {
+                  "destination": "archive/text/notes.txt",
+                  "source": "inbox/notes.txt"
+                },
+                "capability_id": "engine.fs.move-file/v1",
+                "target_id": "workspace"
+              },
+              "invocation_id": "a1b2ccd1b60147c69045be72735a7433",
+              "post_revision": 1,
+              "pre_revision": 1,
+              "result": {
+                "changed": false,
+                "error": "destination parent is missing",
+                "output": {},
+                "partial": false,
+                "succeeded": false
+              }
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 11,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:38.351414+00:00",
+              "revision": 1,
+              "state_sha256": "a100949446c86480a45761f94674d7c47a64c5662399c573e7b1cb0201724aae",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 12,
+            "kind": "catalog_selection",
+            "payload": {
+              "candidate_universe": [
+                "engine.fs.make-directory/v1",
+                "engine.fs.move-file/v1"
+              ],
+              "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+              "catalog_generation": 1,
+              "limit": 32,
+              "max_score": 0.0,
+              "omitted_count": 0,
+              "retrieval_sufficient": true,
+              "selection_complete": true,
+              "selection_strategy": "lexical",
+              "shortlist": [
+                {
+                  "capability_id": "engine.fs.make-directory/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                },
+                {
+                  "capability_id": "engine.fs.move-file/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                }
+              ]
+            },
+            "source": "engine.catalog.lexical/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:38",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 13,
+            "kind": "brain_request",
+            "payload": {
+              "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+              "brain_version": "0.1",
+              "goal_id": "organize-workspace",
+              "id": "c1bcbda945994884802ff5f62cf95129",
+              "input_sha256": "a2f774b712bf9fd4ef3bc1c0507cc30a1156dbe1ae8ebd96504bf9cac0cda686",
+              "parent_request_id": null,
+              "purpose": "select next cognitive operator",
+              "snapshot_revision": 1
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 14,
+            "kind": "brain_result",
+            "payload": {
+              "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+              "latency_ms": 3085.958790994482,
+              "output_sha256": "310c4ec94c4d370833e9e92e0f64d0bf396ef9462f467ae3de3a546840e3f584",
+              "request_id": "c1bcbda945994884802ff5f62cf95129",
+              "status": "succeeded",
+              "usage": {
+                "input_bytes": 4511,
+                "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+                "provider": "openai-compatible",
+                "provider_projection_sha256": "48207903671c9f8a526404e306b0176c684596b60e4b5a2c78e52a512e6abcec",
+                "timings": {
+                  "cache_n": 611,
+                  "predicted_ms": 2298.94,
+                  "predicted_n": 98,
+                  "predicted_per_second": 42.62834175750563,
+                  "predicted_per_token_ms": 23.458571428571428,
+                  "prompt_ms": 779.252,
+                  "prompt_n": 470,
+                  "prompt_per_second": 603.1425007571364,
+                  "prompt_per_token_ms": 1.6579829787234042
+                },
+                "usage": {
+                  "completion_tokens": 98,
+                  "prompt_tokens": 1081,
+                  "prompt_tokens_details": {
+                    "cached_tokens": 611
+                  },
+                  "total_tokens": 1179
+                }
+              }
+            },
+            "source": "engine.model.qwen3-4b-durable-single/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 15,
+            "kind": "executive_decision",
+            "payload": {
+              "brain_request_id": "c1bcbda945994884802ff5f62cf95129",
+              "decision": {
+                "arguments": {
+                  "path": "archive/text"
+                },
+                "based_on": [],
+                "kind": "use_tool",
+                "name": "engine.fs.make-directory/v1",
+                "rationale": "The move-file action failed because the destination parent directory is missing. To resolve this, we need to create the directory 'archive/text' before moving the file 'inbox/notes.txt' to 'archive/te"
+              }
+            },
+            "source": "engine.model.qwen3-4b-durable-single/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 16,
+            "kind": "invocation",
+            "payload": {
+              "based_on": [],
+              "capability_id": "engine.fs.make-directory/v1",
+              "decision_request_id": "c1bcbda945994884802ff5f62cf95129",
+              "external_handle": null,
+              "goal_id": "organize-workspace",
+              "id": "6abc96ec8b5744dea89c96ffa8df39be",
+              "requested_at": "2026-08-10T00:59:41.439264+00:00",
+              "result": null,
+              "snapshot_revision": 1,
+              "state": "requested",
+              "target_id": "workspace"
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 17,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:41.440494+00:00",
+              "revision": 2,
+              "state_sha256": "1903392d324b79ac9aab3eb8cd7db076e176ce8a52b4a1c22761e693c9ca1208",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 18,
+            "kind": "invocation",
+            "payload": {
+              "based_on": [],
+              "capability_id": "engine.fs.make-directory/v1",
+              "decision_request_id": "c1bcbda945994884802ff5f62cf95129",
+              "external_handle": null,
+              "goal_id": "organize-workspace",
+              "id": "6abc96ec8b5744dea89c96ffa8df39be",
+              "requested_at": "2026-08-10T00:59:41.439264+00:00",
+              "result": {
+                "changed": true,
+                "error": null,
+                "partial": false,
+                "succeeded": true
+              },
+              "snapshot_revision": 1,
+              "state": "succeeded",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 19,
+            "kind": "tool_result",
+            "payload": {
+              "call": {
+                "arguments": {
+                  "path": "archive/text"
+                },
+                "capability_id": "engine.fs.make-directory/v1",
+                "target_id": "workspace"
+              },
+              "invocation_id": "6abc96ec8b5744dea89c96ffa8df39be",
+              "post_revision": 2,
+              "pre_revision": 1,
+              "result": {
+                "changed": true,
+                "error": null,
+                "output": {
+                  "path": "archive/text"
+                },
+                "partial": false,
+                "succeeded": true
+              }
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 20,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:41.449334+00:00",
+              "revision": 2,
+              "state_sha256": "1903392d324b79ac9aab3eb8cd7db076e176ce8a52b4a1c22761e693c9ca1208",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 21,
+            "kind": "catalog_selection",
+            "payload": {
+              "candidate_universe": [
+                "engine.fs.make-directory/v1",
+                "engine.fs.move-file/v1"
+              ],
+              "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+              "catalog_generation": 1,
+              "limit": 32,
+              "max_score": 0.0,
+              "omitted_count": 0,
+              "retrieval_sufficient": true,
+              "selection_complete": true,
+              "selection_strategy": "lexical",
+              "shortlist": [
+                {
+                  "capability_id": "engine.fs.make-directory/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                },
+                {
+                  "capability_id": "engine.fs.move-file/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                }
+              ]
+            },
+            "source": "engine.catalog.lexical/v1"
+          }
+        ],
+        "snapshot": {
+          "observed_at": "2026-08-10T00:59:41.449334+00:00",
+          "revision": 2,
+          "state": {
+            "entries": {
+              "archive": {
+                "kind": "directory"
+              },
+              "archive/text": {
+                "kind": "directory"
+              },
+              "inbox": {
+                "kind": "directory"
+              },
+              "inbox/design.md": {
+                "kind": "file",
+                "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+              },
+              "inbox/notes.txt": {
+                "kind": "file",
+                "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+              }
+            }
+          },
+          "target_id": "workspace"
+        },
+        "specialist_performance": {},
+        "specialist_query": {},
+        "specialists": [],
+        "working_memory": {}
+      },
+      "input_sha256": "8ac64bbb24d5c13a855a7424904dd6ba6804572a12b769468ac6cb5eb0429c9b",
+      "parent_request_id": null,
+      "purpose": "select next cognitive operator",
+      "snapshot_revision": 2
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:44",
+    "cycle": 2,
+    "goal_id": "organize-workspace",
+    "id": 23,
+    "kind": "brain_result",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "latency_ms": 3298.4811670030467,
+      "output": {
+        "arguments": {
+          "path": "archive/markdown"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.make-directory/v1",
+        "rationale": "The current snapshot shows that the 'archive/text' directory was successfully created, but the 'archive/markdown' directory is missing. To complete the task of organizing the inbox into typed archive "
+      },
+      "output_sha256": "a2c32e1d266b5ac34f845e6263f22809b7d1b14156d9179a501b2c2ff10061ec",
+      "request_id": "34acca5c87be4b37829bd00e5c78a49e",
+      "status": "succeeded",
+      "usage": {
+        "input_bytes": 5098,
+        "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+        "provider": "openai-compatible",
+        "provider_projection_sha256": "5dfe0b013293fb61d741dcf9801b069ad40f9edf4f0775e6d27f157dee5c8da6",
+        "timings": {
+          "cache_n": 611,
+          "predicted_ms": 2242.478,
+          "predicted_n": 94,
+          "predicted_per_second": 41.91791402189899,
+          "predicted_per_token_ms": 23.856148936170214,
+          "prompt_ms": 1047.843,
+          "prompt_n": 623,
+          "prompt_per_second": 594.5547185981105,
+          "prompt_per_token_ms": 1.6819309791332264
+        },
+        "usage": {
+          "completion_tokens": 94,
+          "prompt_tokens": 1234,
+          "prompt_tokens_details": {
+            "cached_tokens": 611
+          },
+          "total_tokens": 1328
+        }
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:44",
+    "cycle": 2,
+    "goal_id": "organize-workspace",
+    "id": 24,
+    "kind": "executive_decision",
+    "payload": {
+      "brain_request_id": "34acca5c87be4b37829bd00e5c78a49e",
+      "decision": {
+        "arguments": {
+          "path": "archive/markdown"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.make-directory/v1",
+        "rationale": "The current snapshot shows that the 'archive/text' directory was successfully created, but the 'archive/markdown' directory is missing. To complete the task of organizing the inbox into typed archive "
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:44",
+    "cycle": 2,
+    "goal_id": "organize-workspace",
+    "id": 25,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.make-directory/v1",
+      "decision_request_id": "34acca5c87be4b37829bd00e5c78a49e",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "24a60752129e4a9e95a3e1525f9a3d35",
+      "requested_at": "2026-08-10T00:59:44.749430+00:00",
+      "result": null,
+      "snapshot_revision": 2,
+      "state": "requested",
+      "target_id": "workspace"
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:44",
+    "cycle": 2,
+    "goal_id": "organize-workspace",
+    "id": 26,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:44.750725+00:00",
+      "revision": 3,
+      "state": {
+        "entries": {
+          "archive": {
+            "kind": "directory"
+          },
+          "archive/markdown": {
+            "kind": "directory"
+          },
+          "archive/text": {
+            "kind": "directory"
+          },
+          "inbox": {
+            "kind": "directory"
+          },
+          "inbox/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          },
+          "inbox/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:44",
+    "cycle": 2,
+    "goal_id": "organize-workspace",
+    "id": 27,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.make-directory/v1",
+      "decision_request_id": "34acca5c87be4b37829bd00e5c78a49e",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "24a60752129e4a9e95a3e1525f9a3d35",
+      "requested_at": "2026-08-10T00:59:44.749430+00:00",
+      "result": {
+        "changed": true,
+        "error": null,
+        "output": {
+          "path": "archive/markdown"
+        },
+        "partial": false,
+        "succeeded": true
+      },
+      "snapshot_revision": 2,
+      "state": "succeeded",
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:44",
+    "cycle": 2,
+    "goal_id": "organize-workspace",
+    "id": 28,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "path": "archive/markdown"
+        },
+        "capability_id": "engine.fs.make-directory/v1",
+        "target_id": "workspace"
+      },
+      "invocation_id": "24a60752129e4a9e95a3e1525f9a3d35",
+      "post_revision": 3,
+      "pre_revision": 2,
+      "result": {
+        "changed": true,
+        "error": null,
+        "output": {
+          "path": "archive/markdown"
+        },
+        "partial": false,
+        "succeeded": true
+      }
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:44",
+    "cycle": 3,
+    "goal_id": "organize-workspace",
+    "id": 29,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:44.759901+00:00",
+      "revision": 3,
+      "state": {
+        "entries": {
+          "archive": {
+            "kind": "directory"
+          },
+          "archive/markdown": {
+            "kind": "directory"
+          },
+          "archive/text": {
+            "kind": "directory"
+          },
+          "inbox": {
+            "kind": "directory"
+          },
+          "inbox/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          },
+          "inbox/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:44",
+    "cycle": 3,
+    "goal_id": "organize-workspace",
+    "id": 30,
+    "kind": "catalog_selection",
+    "payload": {
+      "candidate_universe": [
+        "engine.fs.make-directory/v1",
+        "engine.fs.move-file/v1"
+      ],
+      "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+      "catalog_generation": 1,
+      "limit": 32,
+      "max_score": 0.0,
+      "omitted_count": 0,
+      "retrieval_sufficient": true,
+      "selection_complete": true,
+      "selection_strategy": "lexical",
+      "shortlist": [
+        {
+          "capability_id": "engine.fs.make-directory/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        },
+        {
+          "capability_id": "engine.fs.move-file/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        }
+      ]
+    },
+    "source": "engine.catalog.lexical/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:44",
+    "cycle": 3,
+    "goal_id": "organize-workspace",
+    "id": 31,
+    "kind": "brain_request",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "brain_version": "0.1",
+      "goal_id": "organize-workspace",
+      "id": "e66caca9ec7d46b0bc6dc412ab518308",
+      "input_projection": {
+        "capabilities": [
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Create a directory and any missing parents inside this target",
+            "id": "engine.fs.make-directory/v1",
+            "idempotent": true,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "make_directory",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          },
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Move one file to a new relative path inside this target",
+            "id": "engine.fs.move-file/v1",
+            "idempotent": false,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "move_file",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          }
+        ],
+        "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+        "catalog_generation": 1,
+        "cognitive_phase": "needs_specialist",
+        "goal": {
+          "cycle": 3,
+          "id": "organize-workspace",
+          "instruction": "Organize the inbox into typed archive directories",
+          "max_cycles": 30,
+          "priority": 0,
+          "status": "active",
+          "success_spec": {
+            "moves": [
+              {
+                "destination": "archive/text/notes.txt",
+                "source": "inbox/notes.txt"
+              },
+              {
+                "destination": "archive/markdown/design.md",
+                "source": "inbox/design.md"
+              }
+            ]
+          },
+          "target_id": "workspace"
+        },
+        "pending_advice": [],
+        "recent_experience": [
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 1,
+            "goal_id": "organize-workspace",
+            "id": 19,
+            "kind": "tool_result",
+            "payload": {
+              "call": {
+                "arguments": {
+                  "path": "archive/text"
+                },
+                "capability_id": "engine.fs.make-directory/v1",
+                "target_id": "workspace"
+              },
+              "invocation_id": "6abc96ec8b5744dea89c96ffa8df39be",
+              "post_revision": 2,
+              "pre_revision": 1,
+              "result": {
+                "changed": true,
+                "error": null,
+                "output": {
+                  "path": "archive/text"
+                },
+                "partial": false,
+                "succeeded": true
+              }
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 20,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:41.449334+00:00",
+              "revision": 2,
+              "state_sha256": "1903392d324b79ac9aab3eb8cd7db076e176ce8a52b4a1c22761e693c9ca1208",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 21,
+            "kind": "catalog_selection",
+            "payload": {
+              "candidate_universe": [
+                "engine.fs.make-directory/v1",
+                "engine.fs.move-file/v1"
+              ],
+              "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+              "catalog_generation": 1,
+              "limit": 32,
+              "max_score": 0.0,
+              "omitted_count": 0,
+              "retrieval_sufficient": true,
+              "selection_complete": true,
+              "selection_strategy": "lexical",
+              "shortlist": [
+                {
+                  "capability_id": "engine.fs.make-directory/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                },
+                {
+                  "capability_id": "engine.fs.move-file/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                }
+              ]
+            },
+            "source": "engine.catalog.lexical/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:41",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 22,
+            "kind": "brain_request",
+            "payload": {
+              "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+              "brain_version": "0.1",
+              "goal_id": "organize-workspace",
+              "id": "34acca5c87be4b37829bd00e5c78a49e",
+              "input_sha256": "8ac64bbb24d5c13a855a7424904dd6ba6804572a12b769468ac6cb5eb0429c9b",
+              "parent_request_id": null,
+              "purpose": "select next cognitive operator",
+              "snapshot_revision": 2
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 23,
+            "kind": "brain_result",
+            "payload": {
+              "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+              "latency_ms": 3298.4811670030467,
+              "output_sha256": "a2c32e1d266b5ac34f845e6263f22809b7d1b14156d9179a501b2c2ff10061ec",
+              "request_id": "34acca5c87be4b37829bd00e5c78a49e",
+              "status": "succeeded",
+              "usage": {
+                "input_bytes": 5098,
+                "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+                "provider": "openai-compatible",
+                "provider_projection_sha256": "5dfe0b013293fb61d741dcf9801b069ad40f9edf4f0775e6d27f157dee5c8da6",
+                "timings": {
+                  "cache_n": 611,
+                  "predicted_ms": 2242.478,
+                  "predicted_n": 94,
+                  "predicted_per_second": 41.91791402189899,
+                  "predicted_per_token_ms": 23.856148936170214,
+                  "prompt_ms": 1047.843,
+                  "prompt_n": 623,
+                  "prompt_per_second": 594.5547185981105,
+                  "prompt_per_token_ms": 1.6819309791332264
+                },
+                "usage": {
+                  "completion_tokens": 94,
+                  "prompt_tokens": 1234,
+                  "prompt_tokens_details": {
+                    "cached_tokens": 611
+                  },
+                  "total_tokens": 1328
+                }
+              }
+            },
+            "source": "engine.model.qwen3-4b-durable-single/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 24,
+            "kind": "executive_decision",
+            "payload": {
+              "brain_request_id": "34acca5c87be4b37829bd00e5c78a49e",
+              "decision": {
+                "arguments": {
+                  "path": "archive/markdown"
+                },
+                "based_on": [],
+                "kind": "use_tool",
+                "name": "engine.fs.make-directory/v1",
+                "rationale": "The current snapshot shows that the 'archive/text' directory was successfully created, but the 'archive/markdown' directory is missing. To complete the task of organizing the inbox into typed archive "
+              }
+            },
+            "source": "engine.model.qwen3-4b-durable-single/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 25,
+            "kind": "invocation",
+            "payload": {
+              "based_on": [],
+              "capability_id": "engine.fs.make-directory/v1",
+              "decision_request_id": "34acca5c87be4b37829bd00e5c78a49e",
+              "external_handle": null,
+              "goal_id": "organize-workspace",
+              "id": "24a60752129e4a9e95a3e1525f9a3d35",
+              "requested_at": "2026-08-10T00:59:44.749430+00:00",
+              "result": null,
+              "snapshot_revision": 2,
+              "state": "requested",
+              "target_id": "workspace"
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 26,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:44.750725+00:00",
+              "revision": 3,
+              "state_sha256": "1f0e224f39bb6645cae36b6c58ef4a5295a70030c3f8592ae58d7568174a4dbe",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 27,
+            "kind": "invocation",
+            "payload": {
+              "based_on": [],
+              "capability_id": "engine.fs.make-directory/v1",
+              "decision_request_id": "34acca5c87be4b37829bd00e5c78a49e",
+              "external_handle": null,
+              "goal_id": "organize-workspace",
+              "id": "24a60752129e4a9e95a3e1525f9a3d35",
+              "requested_at": "2026-08-10T00:59:44.749430+00:00",
+              "result": {
+                "changed": true,
+                "error": null,
+                "partial": false,
+                "succeeded": true
+              },
+              "snapshot_revision": 2,
+              "state": "succeeded",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 28,
+            "kind": "tool_result",
+            "payload": {
+              "call": {
+                "arguments": {
+                  "path": "archive/markdown"
+                },
+                "capability_id": "engine.fs.make-directory/v1",
+                "target_id": "workspace"
+              },
+              "invocation_id": "24a60752129e4a9e95a3e1525f9a3d35",
+              "post_revision": 3,
+              "pre_revision": 2,
+              "result": {
+                "changed": true,
+                "error": null,
+                "output": {
+                  "path": "archive/markdown"
+                },
+                "partial": false,
+                "succeeded": true
+              }
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 29,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:44.759901+00:00",
+              "revision": 3,
+              "state_sha256": "1f0e224f39bb6645cae36b6c58ef4a5295a70030c3f8592ae58d7568174a4dbe",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 30,
+            "kind": "catalog_selection",
+            "payload": {
+              "candidate_universe": [
+                "engine.fs.make-directory/v1",
+                "engine.fs.move-file/v1"
+              ],
+              "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+              "catalog_generation": 1,
+              "limit": 32,
+              "max_score": 0.0,
+              "omitted_count": 0,
+              "retrieval_sufficient": true,
+              "selection_complete": true,
+              "selection_strategy": "lexical",
+              "shortlist": [
+                {
+                  "capability_id": "engine.fs.make-directory/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                },
+                {
+                  "capability_id": "engine.fs.move-file/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                }
+              ]
+            },
+            "source": "engine.catalog.lexical/v1"
+          }
+        ],
+        "snapshot": {
+          "observed_at": "2026-08-10T00:59:44.759901+00:00",
+          "revision": 3,
+          "state": {
+            "entries": {
+              "archive": {
+                "kind": "directory"
+              },
+              "archive/markdown": {
+                "kind": "directory"
+              },
+              "archive/text": {
+                "kind": "directory"
+              },
+              "inbox": {
+                "kind": "directory"
+              },
+              "inbox/design.md": {
+                "kind": "file",
+                "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+              },
+              "inbox/notes.txt": {
+                "kind": "file",
+                "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+              }
+            }
+          },
+          "target_id": "workspace"
+        },
+        "specialist_performance": {},
+        "specialist_query": {},
+        "specialists": [],
+        "working_memory": {}
+      },
+      "input_sha256": "172d52ffb5b218d0bdf613e4bff338ac7db34f1a5cdc513f7fa26362e87bb25b",
+      "parent_request_id": null,
+      "purpose": "select next cognitive operator",
+      "snapshot_revision": 3
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:48",
+    "cycle": 3,
+    "goal_id": "organize-workspace",
+    "id": 32,
+    "kind": "brain_result",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "latency_ms": 3731.3482080062386,
+      "output": {
+        "arguments": {
+          "destination": "archive/text/notes.txt",
+          "source": "inbox/notes.txt"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.move-file/v1",
+        "rationale": "The current snapshot shows that the 'inbox/notes.txt' file exists, and the 'archive/text/' directory has been created. The next step is to move the 'inbox/notes.txt' file to the 'archive/text/notes.tx"
+      },
+      "output_sha256": "f3aad26b0c20409d287bbc950284f717b471150545f793523da48c1add6443d9",
+      "request_id": "e66caca9ec7d46b0bc6dc412ab518308",
+      "status": "succeeded",
+      "usage": {
+        "input_bytes": 5103,
+        "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+        "provider": "openai-compatible",
+        "provider_projection_sha256": "69143d33185c05105ea31dd97ae31fab3f3b10378886cf3a2da646bab0666683",
+        "timings": {
+          "cache_n": 611,
+          "predicted_ms": 2654.925,
+          "predicted_n": 113,
+          "predicted_per_second": 42.56240760096801,
+          "predicted_per_token_ms": 23.49491150442478,
+          "prompt_ms": 1049.85,
+          "prompt_n": 626,
+          "prompt_per_second": 596.2756584273944,
+          "prompt_per_token_ms": 1.6770766773162937
+        },
+        "usage": {
+          "completion_tokens": 113,
+          "prompt_tokens": 1237,
+          "prompt_tokens_details": {
+            "cached_tokens": 611
+          },
+          "total_tokens": 1350
+        }
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:48",
+    "cycle": 3,
+    "goal_id": "organize-workspace",
+    "id": 33,
+    "kind": "executive_decision",
+    "payload": {
+      "brain_request_id": "e66caca9ec7d46b0bc6dc412ab518308",
+      "decision": {
+        "arguments": {
+          "destination": "archive/text/notes.txt",
+          "source": "inbox/notes.txt"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.move-file/v1",
+        "rationale": "The current snapshot shows that the 'inbox/notes.txt' file exists, and the 'archive/text/' directory has been created. The next step is to move the 'inbox/notes.txt' file to the 'archive/text/notes.tx"
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:48",
+    "cycle": 3,
+    "goal_id": "organize-workspace",
+    "id": 34,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.move-file/v1",
+      "decision_request_id": "e66caca9ec7d46b0bc6dc412ab518308",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "f5b44faed6db485c9dd6b96a3480b8fd",
+      "requested_at": "2026-08-10T00:59:48.493048+00:00",
+      "result": null,
+      "snapshot_revision": 3,
+      "state": "requested",
+      "target_id": "workspace"
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:48",
+    "cycle": 3,
+    "goal_id": "organize-workspace",
+    "id": 35,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:48.494603+00:00",
+      "revision": 4,
+      "state": {
+        "entries": {
+          "archive": {
+            "kind": "directory"
+          },
+          "archive/markdown": {
+            "kind": "directory"
+          },
+          "archive/text": {
+            "kind": "directory"
+          },
+          "archive/text/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          },
+          "inbox": {
+            "kind": "directory"
+          },
+          "inbox/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:48",
+    "cycle": 3,
+    "goal_id": "organize-workspace",
+    "id": 36,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.move-file/v1",
+      "decision_request_id": "e66caca9ec7d46b0bc6dc412ab518308",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "f5b44faed6db485c9dd6b96a3480b8fd",
+      "requested_at": "2026-08-10T00:59:48.493048+00:00",
+      "result": {
+        "changed": true,
+        "error": null,
+        "output": {
+          "destination": "archive/text/notes.txt",
+          "source": "inbox/notes.txt"
+        },
+        "partial": false,
+        "succeeded": true
+      },
+      "snapshot_revision": 3,
+      "state": "succeeded",
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:48",
+    "cycle": 3,
+    "goal_id": "organize-workspace",
+    "id": 37,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "destination": "archive/text/notes.txt",
+          "source": "inbox/notes.txt"
+        },
+        "capability_id": "engine.fs.move-file/v1",
+        "target_id": "workspace"
+      },
+      "invocation_id": "f5b44faed6db485c9dd6b96a3480b8fd",
+      "post_revision": 4,
+      "pre_revision": 3,
+      "result": {
+        "changed": true,
+        "error": null,
+        "output": {
+          "destination": "archive/text/notes.txt",
+          "source": "inbox/notes.txt"
+        },
+        "partial": false,
+        "succeeded": true
+      }
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:48",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 38,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:48.503758+00:00",
+      "revision": 4,
+      "state": {
+        "entries": {
+          "archive": {
+            "kind": "directory"
+          },
+          "archive/markdown": {
+            "kind": "directory"
+          },
+          "archive/text": {
+            "kind": "directory"
+          },
+          "archive/text/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          },
+          "inbox": {
+            "kind": "directory"
+          },
+          "inbox/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:48",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 39,
+    "kind": "catalog_selection",
+    "payload": {
+      "candidate_universe": [
+        "engine.fs.make-directory/v1",
+        "engine.fs.move-file/v1"
+      ],
+      "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+      "catalog_generation": 1,
+      "limit": 32,
+      "max_score": 0.0,
+      "omitted_count": 0,
+      "retrieval_sufficient": true,
+      "selection_complete": true,
+      "selection_strategy": "lexical",
+      "shortlist": [
+        {
+          "capability_id": "engine.fs.make-directory/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        },
+        {
+          "capability_id": "engine.fs.move-file/v1",
+          "reason": "fallback",
+          "score": 0.0,
+          "target_id": "workspace"
+        }
+      ]
+    },
+    "source": "engine.catalog.lexical/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:48",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 40,
+    "kind": "brain_request",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "brain_version": "0.1",
+      "goal_id": "organize-workspace",
+      "id": "2f560ac34f044392b15a64fc91c772b9",
+      "input_projection": {
+        "capabilities": [
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Create a directory and any missing parents inside this target",
+            "id": "engine.fs.make-directory/v1",
+            "idempotent": true,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "make_directory",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          },
+          {
+            "affordance": "action",
+            "default_timeout_ms": 30000,
+            "description": "Move one file to a new relative path inside this target",
+            "id": "engine.fs.move-file/v1",
+            "idempotent": false,
+            "input_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "invocation_mode": "immediate",
+            "local_name": "move_file",
+            "output_schema": {
+              "additionalProperties": false,
+              "properties": {
+                "destination": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "type": "object"
+            },
+            "version": "1.0.0"
+          }
+        ],
+        "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+        "catalog_generation": 1,
+        "cognitive_phase": "needs_specialist",
+        "goal": {
+          "cycle": 4,
+          "id": "organize-workspace",
+          "instruction": "Organize the inbox into typed archive directories",
+          "max_cycles": 30,
+          "priority": 0,
+          "status": "active",
+          "success_spec": {
+            "moves": [
+              {
+                "destination": "archive/text/notes.txt",
+                "source": "inbox/notes.txt"
+              },
+              {
+                "destination": "archive/markdown/design.md",
+                "source": "inbox/design.md"
+              }
+            ]
+          },
+          "target_id": "workspace"
+        },
+        "pending_advice": [],
+        "recent_experience": [
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 2,
+            "goal_id": "organize-workspace",
+            "id": 28,
+            "kind": "tool_result",
+            "payload": {
+              "call": {
+                "arguments": {
+                  "path": "archive/markdown"
+                },
+                "capability_id": "engine.fs.make-directory/v1",
+                "target_id": "workspace"
+              },
+              "invocation_id": "24a60752129e4a9e95a3e1525f9a3d35",
+              "post_revision": 3,
+              "pre_revision": 2,
+              "result": {
+                "changed": true,
+                "error": null,
+                "output": {
+                  "path": "archive/markdown"
+                },
+                "partial": false,
+                "succeeded": true
+              }
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 29,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:44.759901+00:00",
+              "revision": 3,
+              "state_sha256": "1f0e224f39bb6645cae36b6c58ef4a5295a70030c3f8592ae58d7568174a4dbe",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 30,
+            "kind": "catalog_selection",
+            "payload": {
+              "candidate_universe": [
+                "engine.fs.make-directory/v1",
+                "engine.fs.move-file/v1"
+              ],
+              "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+              "catalog_generation": 1,
+              "limit": 32,
+              "max_score": 0.0,
+              "omitted_count": 0,
+              "retrieval_sufficient": true,
+              "selection_complete": true,
+              "selection_strategy": "lexical",
+              "shortlist": [
+                {
+                  "capability_id": "engine.fs.make-directory/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                },
+                {
+                  "capability_id": "engine.fs.move-file/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                }
+              ]
+            },
+            "source": "engine.catalog.lexical/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:44",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 31,
+            "kind": "brain_request",
+            "payload": {
+              "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+              "brain_version": "0.1",
+              "goal_id": "organize-workspace",
+              "id": "e66caca9ec7d46b0bc6dc412ab518308",
+              "input_sha256": "172d52ffb5b218d0bdf613e4bff338ac7db34f1a5cdc513f7fa26362e87bb25b",
+              "parent_request_id": null,
+              "purpose": "select next cognitive operator",
+              "snapshot_revision": 3
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:48",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 32,
+            "kind": "brain_result",
+            "payload": {
+              "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+              "latency_ms": 3731.3482080062386,
+              "output_sha256": "f3aad26b0c20409d287bbc950284f717b471150545f793523da48c1add6443d9",
+              "request_id": "e66caca9ec7d46b0bc6dc412ab518308",
+              "status": "succeeded",
+              "usage": {
+                "input_bytes": 5103,
+                "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+                "provider": "openai-compatible",
+                "provider_projection_sha256": "69143d33185c05105ea31dd97ae31fab3f3b10378886cf3a2da646bab0666683",
+                "timings": {
+                  "cache_n": 611,
+                  "predicted_ms": 2654.925,
+                  "predicted_n": 113,
+                  "predicted_per_second": 42.56240760096801,
+                  "predicted_per_token_ms": 23.49491150442478,
+                  "prompt_ms": 1049.85,
+                  "prompt_n": 626,
+                  "prompt_per_second": 596.2756584273944,
+                  "prompt_per_token_ms": 1.6770766773162937
+                },
+                "usage": {
+                  "completion_tokens": 113,
+                  "prompt_tokens": 1237,
+                  "prompt_tokens_details": {
+                    "cached_tokens": 611
+                  },
+                  "total_tokens": 1350
+                }
+              }
+            },
+            "source": "engine.model.qwen3-4b-durable-single/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:48",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 33,
+            "kind": "executive_decision",
+            "payload": {
+              "brain_request_id": "e66caca9ec7d46b0bc6dc412ab518308",
+              "decision": {
+                "arguments": {
+                  "destination": "archive/text/notes.txt",
+                  "source": "inbox/notes.txt"
+                },
+                "based_on": [],
+                "kind": "use_tool",
+                "name": "engine.fs.move-file/v1",
+                "rationale": "The current snapshot shows that the 'inbox/notes.txt' file exists, and the 'archive/text/' directory has been created. The next step is to move the 'inbox/notes.txt' file to the 'archive/text/notes.tx"
+              }
+            },
+            "source": "engine.model.qwen3-4b-durable-single/v1"
+          },
+          {
+            "created_at": "2026-08-10 00:59:48",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 34,
+            "kind": "invocation",
+            "payload": {
+              "based_on": [],
+              "capability_id": "engine.fs.move-file/v1",
+              "decision_request_id": "e66caca9ec7d46b0bc6dc412ab518308",
+              "external_handle": null,
+              "goal_id": "organize-workspace",
+              "id": "f5b44faed6db485c9dd6b96a3480b8fd",
+              "requested_at": "2026-08-10T00:59:48.493048+00:00",
+              "result": null,
+              "snapshot_revision": 3,
+              "state": "requested",
+              "target_id": "workspace"
+            },
+            "source": "heart"
+          },
+          {
+            "created_at": "2026-08-10 00:59:48",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 35,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:48.494603+00:00",
+              "revision": 4,
+              "state_sha256": "ad2afdabf3b7f3219944adb5cc1eb2ba96cdf908916005d3f8114d9bd29b315d",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:48",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 36,
+            "kind": "invocation",
+            "payload": {
+              "based_on": [],
+              "capability_id": "engine.fs.move-file/v1",
+              "decision_request_id": "e66caca9ec7d46b0bc6dc412ab518308",
+              "external_handle": null,
+              "goal_id": "organize-workspace",
+              "id": "f5b44faed6db485c9dd6b96a3480b8fd",
+              "requested_at": "2026-08-10T00:59:48.493048+00:00",
+              "result": {
+                "changed": true,
+                "error": null,
+                "partial": false,
+                "succeeded": true
+              },
+              "snapshot_revision": 3,
+              "state": "succeeded",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:48",
+            "cycle": 3,
+            "goal_id": "organize-workspace",
+            "id": 37,
+            "kind": "tool_result",
+            "payload": {
+              "call": {
+                "arguments": {
+                  "destination": "archive/text/notes.txt",
+                  "source": "inbox/notes.txt"
+                },
+                "capability_id": "engine.fs.move-file/v1",
+                "target_id": "workspace"
+              },
+              "invocation_id": "f5b44faed6db485c9dd6b96a3480b8fd",
+              "post_revision": 4,
+              "pre_revision": 3,
+              "result": {
+                "changed": true,
+                "error": null,
+                "output": {
+                  "destination": "archive/text/notes.txt",
+                  "source": "inbox/notes.txt"
+                },
+                "partial": false,
+                "succeeded": true
+              }
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:48",
+            "cycle": 4,
+            "goal_id": "organize-workspace",
+            "id": 38,
+            "kind": "observation",
+            "payload": {
+              "observed_at": "2026-08-10T00:59:48.503758+00:00",
+              "revision": 4,
+              "state_sha256": "ad2afdabf3b7f3219944adb5cc1eb2ba96cdf908916005d3f8114d9bd29b315d",
+              "target_id": "workspace"
+            },
+            "source": "workspace"
+          },
+          {
+            "created_at": "2026-08-10 00:59:48",
+            "cycle": 4,
+            "goal_id": "organize-workspace",
+            "id": 39,
+            "kind": "catalog_selection",
+            "payload": {
+              "candidate_universe": [
+                "engine.fs.make-directory/v1",
+                "engine.fs.move-file/v1"
+              ],
+              "catalog_fingerprint": "b64916fcb404eb9f1ea84513a98482d466af4854fa46ce644deb1adb73d4c018",
+              "catalog_generation": 1,
+              "limit": 32,
+              "max_score": 0.0,
+              "omitted_count": 0,
+              "retrieval_sufficient": true,
+              "selection_complete": true,
+              "selection_strategy": "lexical",
+              "shortlist": [
+                {
+                  "capability_id": "engine.fs.make-directory/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                },
+                {
+                  "capability_id": "engine.fs.move-file/v1",
+                  "reason": "fallback",
+                  "score": 0.0
+                }
+              ]
+            },
+            "source": "engine.catalog.lexical/v1"
+          }
+        ],
+        "snapshot": {
+          "observed_at": "2026-08-10T00:59:48.503758+00:00",
+          "revision": 4,
+          "state": {
+            "entries": {
+              "archive": {
+                "kind": "directory"
+              },
+              "archive/markdown": {
+                "kind": "directory"
+              },
+              "archive/text": {
+                "kind": "directory"
+              },
+              "archive/text/notes.txt": {
+                "kind": "file",
+                "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+              },
+              "inbox": {
+                "kind": "directory"
+              },
+              "inbox/design.md": {
+                "kind": "file",
+                "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+              }
+            }
+          },
+          "target_id": "workspace"
+        },
+        "specialist_performance": {},
+        "specialist_query": {},
+        "specialists": [],
+        "working_memory": {}
+      },
+      "input_sha256": "338f4f02a938782d2b2b081498bd485518051437bfdf6aaca68d261419e4ee76",
+      "parent_request_id": null,
+      "purpose": "select next cognitive operator",
+      "snapshot_revision": 4
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:52",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 41,
+    "kind": "brain_result",
+    "payload": {
+      "brain_id": "engine.model.qwen3-4b-durable-single/v1",
+      "latency_ms": 3812.434666993795,
+      "output": {
+        "arguments": {
+          "destination": "archive/markdown/design.md",
+          "source": "inbox/design.md"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.move-file/v1",
+        "rationale": "The goal is to organize the inbox into typed archive directories. The current state shows that 'inbox/design.md' is present, and 'archive/markdown/design.md' is the target. Moving 'inbox/design.md' to"
+      },
+      "output_sha256": "4c0ffe0cde005be7d20a01b9bde4aeb5e048c95a152b09e74bd865abdfa56682",
+      "request_id": "2f560ac34f044392b15a64fc91c772b9",
+      "status": "succeeded",
+      "usage": {
+        "input_bytes": 5201,
+        "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+        "provider": "openai-compatible",
+        "provider_projection_sha256": "abb67a7b53bef67d1030c486ba7ef74e94bfaf69845b1810c457ff05d9555855",
+        "timings": {
+          "cache_n": 611,
+          "predicted_ms": 2678.865,
+          "predicted_n": 113,
+          "predicted_per_second": 42.18204351469746,
+          "predicted_per_token_ms": 23.706769911504423,
+          "prompt_ms": 1103.975,
+          "prompt_n": 651,
+          "prompt_per_second": 589.6872664688965,
+          "prompt_per_token_ms": 1.6958141321044546
+        },
+        "usage": {
+          "completion_tokens": 113,
+          "prompt_tokens": 1262,
+          "prompt_tokens_details": {
+            "cached_tokens": 611
+          },
+          "total_tokens": 1375
+        }
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:52",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 42,
+    "kind": "executive_decision",
+    "payload": {
+      "brain_request_id": "2f560ac34f044392b15a64fc91c772b9",
+      "decision": {
+        "arguments": {
+          "destination": "archive/markdown/design.md",
+          "source": "inbox/design.md"
+        },
+        "based_on": [],
+        "kind": "use_tool",
+        "name": "engine.fs.move-file/v1",
+        "rationale": "The goal is to organize the inbox into typed archive directories. The current state shows that 'inbox/design.md' is present, and 'archive/markdown/design.md' is the target. Moving 'inbox/design.md' to"
+      }
+    },
+    "source": "engine.model.qwen3-4b-durable-single/v1"
+  },
+  {
+    "created_at": "2026-08-10 00:59:52",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 43,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.move-file/v1",
+      "decision_request_id": "2f560ac34f044392b15a64fc91c772b9",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "77eb0b84beab41c6860a8f2819c65fda",
+      "requested_at": "2026-08-10T00:59:52.317869+00:00",
+      "result": null,
+      "snapshot_revision": 4,
+      "state": "requested",
+      "target_id": "workspace"
+    },
+    "source": "heart"
+  },
+  {
+    "created_at": "2026-08-10 00:59:52",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 44,
+    "kind": "observation",
+    "payload": {
+      "observed_at": "2026-08-10T00:59:52.319319+00:00",
+      "revision": 5,
+      "state": {
+        "entries": {
+          "archive": {
+            "kind": "directory"
+          },
+          "archive/markdown": {
+            "kind": "directory"
+          },
+          "archive/markdown/design.md": {
+            "kind": "file",
+            "sha256": "a77de8a6daa1129516b14c8ca1e233a51a8414b202eac7c8acfbb9b485046ad4"
+          },
+          "archive/text": {
+            "kind": "directory"
+          },
+          "archive/text/notes.txt": {
+            "kind": "file",
+            "sha256": "ab5aa97074c454a0632057e704220d9a6678fbf773a0a5806fc09b8173b07309"
+          },
+          "inbox": {
+            "kind": "directory"
+          }
+        }
+      },
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:52",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 45,
+    "kind": "invocation",
+    "payload": {
+      "based_on": [],
+      "capability_id": "engine.fs.move-file/v1",
+      "decision_request_id": "2f560ac34f044392b15a64fc91c772b9",
+      "external_handle": null,
+      "goal_id": "organize-workspace",
+      "id": "77eb0b84beab41c6860a8f2819c65fda",
+      "requested_at": "2026-08-10T00:59:52.317869+00:00",
+      "result": {
+        "changed": true,
+        "error": null,
+        "output": {
+          "destination": "archive/markdown/design.md",
+          "source": "inbox/design.md"
+        },
+        "partial": false,
+        "succeeded": true
+      },
+      "snapshot_revision": 4,
+      "state": "succeeded",
+      "target_id": "workspace"
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:52",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 46,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "destination": "archive/markdown/design.md",
+          "source": "inbox/design.md"
+        },
+        "capability_id": "engine.fs.move-file/v1",
+        "target_id": "workspace"
+      },
+      "invocation_id": "77eb0b84beab41c6860a8f2819c65fda",
+      "post_revision": 5,
+      "pre_revision": 4,
+      "result": {
+        "changed": true,
+        "error": null,
+        "output": {
+          "destination": "archive/markdown/design.md",
+          "source": "inbox/design.md"
+        },
+        "partial": false,
+        "succeeded": true
+      }
+    },
+    "source": "workspace"
+  },
+  {
+    "created_at": "2026-08-10 00:59:52",
+    "cycle": 4,
+    "goal_id": "organize-workspace",
+    "id": 47,
+    "kind": "goal_completed",
+    "payload": {
+      "reason": "post-state oracle satisfied",
+      "revision": 5
+    },
+    "source": "heart"
+  }
+]

@@ -1,0 +1,43 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Runtime state and local coordination
+.engine/
+.contextrelay/
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.sqlite3-journal
+
+# Secrets and machine-local configuration
+.env
+.env.*
+!.env.example
+/homey.toml
+plugins/engine-homey/homey.*.toml
+!plugins/engine-homey/examples/homey.toml
+*.pem
+*.key
+
+# Docusaurus
+docs-site/node_modules/
+docs-site/build/
+docs-site/.docusaurus/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Live/private target captures are never publication inputs
+artifacts/experiments/**/live-*.json

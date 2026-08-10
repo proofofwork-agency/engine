@@ -1,0 +1,93 @@
+[
+  {
+    "created_at": "2026-08-10 00:59:52",
+    "id": 1,
+    "kind": "catalog_changed",
+    "payload": {
+      "catalog": {
+        "generation": 1,
+        "plugins": [
+          {
+            "contract_version": "engine.plugin/v1",
+            "description": "Pilot engine.spatial-grid",
+            "id": "engine.spatial-grid",
+            "version": "0.1.0"
+          }
+        ],
+        "specialists": [],
+        "targets": [
+          {
+            "capabilities": [
+              {
+                "affordance": "action",
+                "default_timeout_ms": 30000,
+                "description": "Pick up a named item at the current position",
+                "id": "engine.spatial.pick-up/v1",
+                "idempotent": false,
+                "input_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "item"
+                  ],
+                  "type": "object"
+                },
+                "invocation_mode": "immediate",
+                "local_name": "pick_up",
+                "output_schema": {
+                  "type": "object"
+                },
+                "version": "1.0.0"
+              },
+              {
+                "affordance": "action",
+                "default_timeout_ms": 30000,
+                "description": "Move one cell in a cardinal direction",
+                "id": "engine.spatial.step/v1",
+                "idempotent": false,
+                "input_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "direction": {
+                      "enum": [
+                        "north",
+                        "east",
+                        "south",
+                        "west"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "direction"
+                  ],
+                  "type": "object"
+                },
+                "invocation_mode": "immediate",
+                "local_name": "move",
+                "output_schema": {
+                  "type": "object"
+                },
+                "version": "1.0.0"
+              }
+            ],
+            "manifest": {
+              "adapter_version": "0.1",
+              "contract_version": "engine.target/v1",
+              "description": "Discrete spatial simulator target",
+              "id": "rover-sim",
+              "plugin_id": "engine.spatial-grid"
+            }
+          }
+        ]
+      },
+      "fingerprint": "eb2127afa9d02cc0eca75e982280a5026958eefe6702fdd79b78d62d4507fe30",
+      "previous_fingerprint": null
+    }
+  }
+]

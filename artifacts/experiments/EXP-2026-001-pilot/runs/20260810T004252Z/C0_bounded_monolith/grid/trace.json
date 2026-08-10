@@ -1,0 +1,282 @@
+[
+  {
+    "caller_wall_ms": 689.9695000029169,
+    "cycle": 0,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "4b2d02ac60194db2a960731127d3ed60",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 658.681290995446,
+    "cycle": 1,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "4a4a3ba7cdb84e7f90d1a0ca83d83245",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 655.5775419983547,
+    "cycle": 2,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "66879932725b4ccc9ec7276a2151cfc5",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 654.8479170014616,
+    "cycle": 3,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "3886c94dcdf546339524c43d088a8f16",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 656.1417909979355,
+    "cycle": 4,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "ae777cb8e4ee41cdad6c0c7c477abc2f",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 655.9185410005739,
+    "cycle": 5,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "438dc4eb19784aa2974ac9735f90b751",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 654.3831250019139,
+    "cycle": 6,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "9cb6ee384e9f442fab997ee80c061b3e",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 654.5834999997169,
+    "cycle": 7,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "655bb53bc675453f93281948b21c3c02",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 655.8227089990396,
+    "cycle": 8,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "6584e52e6174463a8e6a8150ae1f6d7d",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 658.7652089947369,
+    "cycle": 9,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "a04c671983f14fdcb2269064e5fd23e4",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 659.1872080025496,
+    "cycle": 10,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "cd5df561899d4d08b51996e6d4949329",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 662.9926250025164,
+    "cycle": 11,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "423a2ed7e08046b0ba4f1019bef613e3",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 654.8217079980532,
+    "cycle": 12,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "1d4f1ea2820c4b0aa77576494160bc3c",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 667.3024579940829,
+    "cycle": 13,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "99a3e6f219484b6e82a35be7c728ea09",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 656.4510000025621,
+    "cycle": 14,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "201fd401be84486c809a06f3f1b5bcb0",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 655.311750000692,
+    "cycle": 15,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "240fc0e43cea49bb9d0960e9b34b5380",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 661.8122500076424,
+    "cycle": 16,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "b994648325a242368be466596756406c",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 652.6500829932047,
+    "cycle": 17,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "9ab12630239943ed8b038935ea5bc018",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 680.4127919895109,
+    "cycle": 18,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "fd4b2b23419d48cf9ee0350d207da312",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 662.2935839986894,
+    "cycle": 19,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "1ca472a704044d61b56be23cf4bcaa3d",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 699.0114590007579,
+    "cycle": 20,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "00a361558d624df480d16e583a72823c",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 660.7466249988647,
+    "cycle": 21,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "06024cb7aeeb423da8f1472459cf80ed",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 652.8380419913447,
+    "cycle": 22,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "1dd7d8cb924e4822b4025ae745d1e96a",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 652.037666994147,
+    "cycle": 23,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "80c8509ec49c4b43ad6aa31901bb8510",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 656.6543330118293,
+    "cycle": 24,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "1a219033efec438884071d1913cbc844",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 652.4882919911761,
+    "cycle": 25,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "ddd7926829034fe19765f6dffa5ab060",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 661.0433749883668,
+    "cycle": 26,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "80d4890e3f9b4a1bb163c7c5f393cea6",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 649.6351669920841,
+    "cycle": 27,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "452d8ad091d04b9090631324a9c62860",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 653.9837090094807,
+    "cycle": 28,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "c9cb1f0a499341bba40072e321243f35",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 655.0405000016326,
+    "cycle": 29,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "95ffbf178f0947abb9f549a1d69f71b7",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 652.9493749985704,
+    "cycle": 30,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "56135adc65a6442ca4e36b41faba5444",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 652.0152919983957,
+    "cycle": 31,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "8fbf375e16194140b52b67e941bd5ebd",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 652.0962089998648,
+    "cycle": 32,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "ea2ddd46e4a845d79e75a06786db0822",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 656.1787079990609,
+    "cycle": 33,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "35dffd36e538477ba9e8892cea61b9ac",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 659.6803749998799,
+    "cycle": 34,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "7ac15c8068fe4132bf7afb83b19215e0",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 653.8127500098199,
+    "cycle": 35,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "122c852f4f674cfe9673319e61b3bc6c",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 651.6753340110881,
+    "cycle": 36,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "9ee5c84bc63d451f9ad408bf73cca9e4",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 658.0812080064788,
+    "cycle": 37,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "868ace8562294a2ab7d3511412f77b79",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 659.7789170045871,
+    "cycle": 38,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "cc47df1d6aea4400816adde9124c80ad",
+    "kind": "model_error"
+  },
+  {
+    "caller_wall_ms": 666.968249992351,
+    "cycle": 39,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "4bbdbc6a4f7d44e396dbc0c99e29b3e2",
+    "kind": "model_error"
+  }
+]

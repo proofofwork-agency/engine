@@ -1,0 +1,1356 @@
+from __future__ import annotations
+
+import json
+import sqlite3
+from dataclasses import replace
+from pathlib import Path
+from typing import Any, Mapping
+
+from engine_sdk import (
+    ActionRequestV1,
+    AutonomyProfileV1,
+    AuthorizationV1,
+    BehaviorBatchV1,
+    BehaviorSignalV1,
+    ConditionV1,
+    DesiredEffectV1,
+    EffectDeltaV1,
+    EntityV1,
+    EvidenceGrade,
+    ExecutionReceiptV2,
+    GoalModeV2,
+    GoalSpecV2,
+    LearningCandidateV1,
+    ObservationV1,
+    PolicyDecisionV1,
+    PreferenceEvidenceV1,
+    ProposedActionV1,
+    RelationHypothesisV1,
+    RelationV1,
+    RoutineCandidateStatus,
+    RoutineCandidateV1,
+    RoutineShadowEventV1,
+    RoutineSpecV1,
+    RoutineStatus,
+    StandingMandateV1,
+    TargetObservationV2,
+    WorldSnapshotV2,
+    artifact_sha256,
+    canonical_json,
+)
+
+SCHEMA_VERSION = 4
+
+
+class WorldStore:
+    """Durable v2 world/goal/lifecycle ledger, separate from plugin stores."""
+
+    def __init__(self, path: str | Path):
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.connection = sqlite3.connect(self.path)
+        self.connection.row_factory = sqlite3.Row
+        self.connection.execute("PRAGMA journal_mode=WAL")
+        self.connection.execute("PRAGMA foreign_keys=ON")
+        self._create_schema()
+        self._migrate_v1_goals()
+
+    def close(self) -> None:
+        try:
+            self.connection.close()
+        except sqlite3.ProgrammingError:
+            pass
+
+    def _create_schema(self) -> None:
+        self.connection.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS schema_versions (
+                component TEXT PRIMARY KEY,
+                version INTEGER NOT NULL,
+                applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS goal_specs_v2 (
+                id TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                body_json TEXT NOT NULL,
+                status TEXT NOT NULL,
+                current INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id, version)
+            );
+            CREATE TABLE IF NOT EXISTS mandates_v1 (
+                id TEXT PRIMARY KEY,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS target_observations_v2 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                target_id TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                body_json TEXT NOT NULL,
+                artifact_sha256 TEXT NOT NULL,
+                observed_at TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(target_id, revision)
+            );
+            CREATE TABLE IF NOT EXISTS world_snapshots_v2 (
+                revision INTEGER PRIMARY KEY,
+                snapshot_id TEXT NOT NULL UNIQUE,
+                body_json TEXT NOT NULL,
+                artifact_sha256 TEXT NOT NULL,
+                observed_at TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS proposed_actions_v1 (
+                id TEXT PRIMARY KEY, goal_id TEXT NOT NULL, body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS action_requests_v1 (
+                id TEXT PRIMARY KEY, proposal_id TEXT NOT NULL, body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS policy_decisions_v1 (
+                id TEXT PRIMARY KEY, request_id TEXT NOT NULL, body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS authorizations_v1 (
+                id TEXT PRIMARY KEY, request_id TEXT NOT NULL, body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS execution_receipts_v2 (
+                id TEXT PRIMARY KEY, request_id TEXT NOT NULL, body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS effect_deltas_v1 (
+                id TEXT PRIMARY KEY, request_id TEXT NOT NULL, body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS relation_hypotheses_v1 (
+                id TEXT PRIMARY KEY, body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS scheduled_wakes_v2 (
+                id TEXT PRIMARY KEY, goal_id TEXT, target_id TEXT,
+                wake_at TEXT NOT NULL, reason TEXT NOT NULL, payload_json TEXT NOT NULL,
+                handled INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS learning_evidence_v1 (
+                id TEXT PRIMARY KEY, goal_id TEXT NOT NULL, body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS learning_candidates_v1 (
+                id TEXT PRIMARY KEY, goal_id TEXT NOT NULL, body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS plugin_experience_cursors_v1 (
+                provider_id TEXT PRIMARY KEY,
+                plugin_id TEXT NOT NULL,
+                cursor TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS behavior_signals_v1 (
+                id TEXT PRIMARY KEY,
+                provider_id TEXT NOT NULL,
+                plugin_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                capability_family TEXT NOT NULL,
+                preference_id TEXT NOT NULL,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS behavior_signal_links_v1 (
+                signal_id TEXT NOT NULL,
+                goal_id TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(signal_id, goal_id),
+                FOREIGN KEY(signal_id) REFERENCES behavior_signals_v1(id)
+            );
+            CREATE TABLE IF NOT EXISTS plan_cache_v2 (
+                cache_key TEXT PRIMARY KEY, goal_id TEXT NOT NULL,
+                plugin_id TEXT NOT NULL, capability_family TEXT NOT NULL,
+                manifest_fingerprint TEXT NOT NULL, mandate_id TEXT NOT NULL,
+                proposal_template_json TEXT NOT NULL, outcomes_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS world_events_v2 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                goal_id TEXT, kind TEXT NOT NULL, source TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS brain_calls_v2 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                goal_id TEXT NOT NULL, brain_id TEXT NOT NULL, purpose TEXT NOT NULL,
+                snapshot_id TEXT NOT NULL, projection_sha256 TEXT NOT NULL,
+                output_sha256 TEXT, latency_ms REAL, usage_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS routine_specs_v1 (
+                id TEXT PRIMARY KEY,
+                goal_id TEXT NOT NULL UNIQUE,
+                template_id TEXT NOT NULL,
+                plugin_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS routine_candidates_v1 (
+                id TEXT PRIMARY KEY,
+                template_id TEXT NOT NULL,
+                plugin_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS routine_shadow_events_v1 (
+                id TEXT PRIMARY KEY,
+                candidate_id TEXT NOT NULL,
+                opportunity_key TEXT NOT NULL,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(candidate_id, opportunity_key),
+                FOREIGN KEY(candidate_id) REFERENCES routine_candidates_v1(id)
+            );
+            CREATE TABLE IF NOT EXISTS autonomy_profiles_v1 (
+                id TEXT PRIMARY KEY,
+                plugin_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS routine_occurrences_v1 (
+                routine_id TEXT NOT NULL,
+                occurrence_key TEXT NOT NULL,
+                observed_at TEXT NOT NULL,
+                result_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(routine_id, occurrence_key),
+                FOREIGN KEY(routine_id) REFERENCES routine_specs_v1(id)
+            );
+            CREATE TABLE IF NOT EXISTS routine_actions_v1 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                routine_id TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                request_id TEXT,
+                acted_at TEXT NOT NULL,
+                result_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(routine_id) REFERENCES routine_specs_v1(id)
+            );
+            """
+        )
+        self.connection.execute(
+            """
+            INSERT INTO schema_versions(component, version) VALUES('engine.world', ?)
+            ON CONFLICT(component) DO UPDATE SET version=excluded.version,
+                applied_at=CURRENT_TIMESTAMP
+            """,
+            (SCHEMA_VERSION,),
+        )
+        self.connection.commit()
+
+    def create_goal(self, goal: GoalSpecV2) -> None:
+        if self.has_goal(goal.id):
+            raise ValueError(f"goal already exists: {goal.id}")
+        self._insert_goal(goal)
+        self.append_event(goal.id, "goal_created", "heart.v2", goal.to_dict())
+
+    def has_goal(self, goal_id: str) -> bool:
+        return self.connection.execute(
+            "SELECT 1 FROM goal_specs_v2 WHERE id=? AND current=1", (goal_id,)
+        ).fetchone() is not None
+
+    def get_goal(self, goal_id: str) -> GoalSpecV2:
+        row = self.connection.execute(
+            "SELECT body_json FROM goal_specs_v2 WHERE id=? AND current=1",
+            (goal_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(goal_id)
+        return GoalSpecV2.from_dict(json.loads(row["body_json"]))
+
+    def save_goal_version(self, goal: GoalSpecV2) -> None:
+        current = self.get_goal(goal.id)
+        if goal.version != current.version + 1:
+            raise ValueError("goal version must advance exactly once")
+        self.connection.execute(
+            "UPDATE goal_specs_v2 SET current=0 WHERE id=?", (goal.id,)
+        )
+        self.connection.execute("DELETE FROM plan_cache_v2 WHERE goal_id=?", (goal.id,))
+        self._insert_goal(goal, commit=False)
+        self.connection.commit()
+        self.append_event(goal.id, "goal_versioned", "heart.v2", {
+            "previous_version": current.version,
+            "version": goal.version,
+        })
+
+    def set_goal_status(self, goal_id: str, status: str) -> GoalSpecV2:
+        goal = replace(self.get_goal(goal_id), status=status)
+        self.connection.execute(
+            "UPDATE goal_specs_v2 SET body_json=?, status=? WHERE id=? AND current=1",
+            (canonical_json(goal), status, goal_id),
+        )
+        self.connection.commit()
+        return goal
+
+    def live_goals(self) -> tuple[GoalSpecV2, ...]:
+        rows = self.connection.execute(
+            """
+            SELECT body_json FROM goal_specs_v2
+            WHERE current=1 AND status IN
+                ('active','monitoring','waiting','uncertain','degraded')
+            ORDER BY json_extract(body_json, '$.priority') DESC, created_at ASC
+            """
+        ).fetchall()
+        return tuple(GoalSpecV2.from_dict(json.loads(row["body_json"])) for row in rows)
+
+    def save_mandate(self, mandate: StandingMandateV1) -> None:
+        self.connection.execute(
+            "INSERT OR REPLACE INTO mandates_v1(id, body_json) VALUES(?,?)",
+            (mandate.id, canonical_json(mandate)),
+        )
+        self.connection.commit()
+
+    def get_mandate(self, mandate_id: str) -> StandingMandateV1:
+        row = self.connection.execute(
+            "SELECT body_json FROM mandates_v1 WHERE id=?", (mandate_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(mandate_id)
+        return StandingMandateV1.from_dict(json.loads(row["body_json"]))
+
+    def mandates(self) -> tuple[StandingMandateV1, ...]:
+        rows = self.connection.execute(
+            "SELECT body_json FROM mandates_v1 ORDER BY created_at,id"
+        ).fetchall()
+        return tuple(
+            StandingMandateV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def save_routine(self, routine: RoutineSpecV1) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO routine_specs_v1(
+                id,goal_id,template_id,plugin_id,target_id,body_json
+            ) VALUES(?,?,?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET
+                goal_id=excluded.goal_id,
+                template_id=excluded.template_id,
+                plugin_id=excluded.plugin_id,
+                target_id=excluded.target_id,
+                body_json=excluded.body_json,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                routine.id, routine.goal_id, routine.template_id,
+                routine.plugin_id, routine.target_id, canonical_json(routine),
+            ),
+        )
+        self.connection.commit()
+
+    def get_routine(self, routine_id: str) -> RoutineSpecV1:
+        row = self.connection.execute(
+            "SELECT body_json FROM routine_specs_v1 WHERE id=?", (routine_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(routine_id)
+        return RoutineSpecV1.from_dict(json.loads(row["body_json"]))
+
+    def routine_for_goal(self, goal_id: str) -> RoutineSpecV1 | None:
+        row = self.connection.execute(
+            "SELECT body_json FROM routine_specs_v1 WHERE goal_id=?", (goal_id,)
+        ).fetchone()
+        return RoutineSpecV1.from_dict(json.loads(row["body_json"])) if row else None
+
+    def routines(
+        self, *, statuses: tuple[str, ...] | None = None
+    ) -> tuple[RoutineSpecV1, ...]:
+        parameters: tuple[str, ...] = ()
+        where = ""
+        if statuses:
+            marks = ",".join("?" for _ in statuses)
+            where = f" WHERE json_extract(body_json, '$.status') IN ({marks})"
+            parameters = statuses
+        rows = self.connection.execute(
+            "SELECT body_json FROM routine_specs_v1" + where + " ORDER BY created_at,id",
+            parameters,
+        ).fetchall()
+        return tuple(
+            RoutineSpecV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def save_routine_candidate(self, candidate: RoutineCandidateV1) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO routine_candidates_v1(
+                id,template_id,plugin_id,target_id,body_json
+            ) VALUES(?,?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET
+                body_json=excluded.body_json,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                candidate.id, candidate.template_id, candidate.plugin_id,
+                candidate.target_id, canonical_json(candidate),
+            ),
+        )
+        self.connection.commit()
+
+    def get_routine_candidate(self, candidate_id: str) -> RoutineCandidateV1:
+        row = self.connection.execute(
+            "SELECT body_json FROM routine_candidates_v1 WHERE id=?", (candidate_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(candidate_id)
+        return RoutineCandidateV1.from_dict(json.loads(row["body_json"]))
+
+    def routine_candidates(
+        self,
+        *,
+        statuses: tuple[str, ...] | None = None,
+        template_id: str | None = None,
+    ) -> tuple[RoutineCandidateV1, ...]:
+        clauses: list[str] = []
+        parameters: list[str] = []
+        if statuses:
+            marks = ",".join("?" for _ in statuses)
+            clauses.append(f"json_extract(body_json, '$.status') IN ({marks})")
+            parameters.extend(statuses)
+        if template_id is not None:
+            clauses.append("template_id=?")
+            parameters.append(template_id)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        rows = self.connection.execute(
+            "SELECT body_json FROM routine_candidates_v1" + where + " ORDER BY created_at,id",
+            tuple(parameters),
+        ).fetchall()
+        return tuple(
+            RoutineCandidateV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def save_shadow_event(self, event: RoutineShadowEventV1) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO routine_shadow_events_v1(
+                id,candidate_id,opportunity_key,body_json
+            ) VALUES(?,?,?,?)
+            ON CONFLICT(candidate_id,opportunity_key) DO UPDATE SET
+                body_json=excluded.body_json,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (event.id, event.candidate_id, event.opportunity_key, canonical_json(event)),
+        )
+        self.connection.commit()
+
+    def shadow_events(self, candidate_id: str) -> tuple[RoutineShadowEventV1, ...]:
+        rows = self.connection.execute(
+            """
+            SELECT body_json FROM routine_shadow_events_v1
+            WHERE candidate_id=? ORDER BY created_at,id
+            """,
+            (candidate_id,),
+        ).fetchall()
+        return tuple(
+            RoutineShadowEventV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def save_autonomy_profile(self, profile: AutonomyProfileV1) -> None:
+        existing_row = self.connection.execute(
+            "SELECT body_json FROM autonomy_profiles_v1 WHERE id=?",
+            (profile.id,),
+        ).fetchone()
+        if existing_row is not None:
+            existing = AutonomyProfileV1.from_dict(
+                json.loads(existing_row["body_json"])
+            )
+            if existing != profile:
+                raise ValueError(
+                    "autonomy profiles are immutable; disable and enroll a new profile"
+                )
+            return
+        active = self.active_autonomy_profile(profile.plugin_id, profile.target_id)
+        if profile.enabled and active is not None:
+            raise ValueError(
+                "an active autonomy profile already exists for this plugin/target"
+            )
+        self.connection.execute(
+            """
+            INSERT INTO autonomy_profiles_v1(id,plugin_id,target_id,body_json)
+            VALUES(?,?,?,?)
+            """,
+            (profile.id, profile.plugin_id, profile.target_id, canonical_json(profile)),
+        )
+        self.connection.commit()
+
+    def autonomy_profiles(self, *, enabled_only: bool = False) -> tuple[AutonomyProfileV1, ...]:
+        where = " WHERE json_extract(body_json, '$.enabled') = 1" if enabled_only else ""
+        rows = self.connection.execute(
+            "SELECT body_json FROM autonomy_profiles_v1" + where + " ORDER BY created_at,id"
+        ).fetchall()
+        return tuple(
+            AutonomyProfileV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def active_autonomy_profile(
+        self, plugin_id: str, target_id: str
+    ) -> AutonomyProfileV1 | None:
+        row = self.connection.execute(
+            """
+            SELECT body_json FROM autonomy_profiles_v1
+            WHERE plugin_id=? AND target_id=?
+              AND json_extract(body_json, '$.enabled') = 1
+            ORDER BY updated_at DESC LIMIT 1
+            """,
+            (plugin_id, target_id),
+        ).fetchone()
+        return AutonomyProfileV1.from_dict(json.loads(row["body_json"])) if row else None
+
+    def disable_autonomy_profile(self, profile_id: str, *, revoked_at: str) -> AutonomyProfileV1:
+        profile = next(
+            (item for item in self.autonomy_profiles() if item.id == profile_id),
+            None,
+        )
+        if profile is None:
+            raise KeyError(profile_id)
+        disabled = replace(
+            profile, enabled=False, revoked_at=revoked_at
+        )
+        with self.connection:
+            self.connection.execute(
+                "UPDATE autonomy_profiles_v1 SET body_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (canonical_json(disabled), profile.id),
+            )
+            routines = self.routines()
+            for routine in routines:
+                if routine.profile_id != profile.id:
+                    continue
+                suspended = replace(
+                    routine,
+                    status=RoutineStatus.SUSPENDED,
+                    status_reason="autonomy profile was disabled",
+                )
+                self.connection.execute(
+                    "UPDATE routine_specs_v1 SET body_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                    (canonical_json(suspended), routine.id),
+                )
+                goal = self.get_goal(routine.goal_id)
+                if goal.mandate_id is None:
+                    continue
+                try:
+                    mandate = self.get_mandate(goal.mandate_id)
+                except KeyError:
+                    continue
+                self.connection.execute(
+                    "UPDATE mandates_v1 SET body_json=? WHERE id=?",
+                    (canonical_json(replace(mandate, revoked=True)), mandate.id),
+                )
+            self.connection.execute(
+                "INSERT INTO world_events_v2(goal_id,kind,source,payload_json) VALUES(NULL,?,?,?)",
+                (
+                    "autonomy_profile_disabled",
+                    "engine.routines/v1",
+                    canonical_json({"profile_id": profile.id}),
+                ),
+            )
+        return disabled
+
+    def activate_routine(
+        self,
+        candidate: RoutineCandidateV1,
+        routine: RoutineSpecV1,
+        goal: GoalSpecV2,
+        mandate: StandingMandateV1,
+    ) -> None:
+        """Atomically install the exact routine, goal and submandate."""
+        if routine.goal_id != goal.id or goal.mandate_id != mandate.id:
+            raise ValueError("routine activation identities do not match")
+        if self.has_goal(goal.id):
+            raise ValueError(f"goal already exists: {goal.id}")
+        with self.connection:
+            self.connection.execute(
+                "INSERT OR REPLACE INTO mandates_v1(id,body_json) VALUES(?,?)",
+                (mandate.id, canonical_json(mandate)),
+            )
+            self._insert_goal(goal, commit=False)
+            self.connection.execute(
+                """
+                INSERT INTO routine_specs_v1(
+                    id,goal_id,template_id,plugin_id,target_id,body_json
+                ) VALUES(?,?,?,?,?,?)
+                """,
+                (
+                    routine.id, routine.goal_id, routine.template_id,
+                    routine.plugin_id, routine.target_id, canonical_json(routine),
+                ),
+            )
+            self.connection.execute(
+                """
+                UPDATE routine_candidates_v1 SET body_json=?,updated_at=CURRENT_TIMESTAMP
+                WHERE id=?
+                """,
+                (canonical_json(candidate), candidate.id),
+            )
+            self.connection.execute(
+                """
+                INSERT INTO world_events_v2(goal_id,kind,source,payload_json)
+                VALUES(?,?,?,?)
+                """,
+                (
+                    goal.id, "routine_activated", "engine.routines/v1",
+                    canonical_json({
+                        "routine_id": routine.id,
+                        "candidate_id": candidate.id,
+                        "mandate_id": mandate.id,
+                    }),
+                ),
+            )
+
+    def rollback_active_routine(
+        self,
+        routine: RoutineSpecV1,
+        candidate: RoutineCandidateV1 | None,
+        mandate: StandingMandateV1 | None,
+        *,
+        reason: str,
+    ) -> None:
+        rolled = replace(routine, status=RoutineStatus.ROLLED_BACK, status_reason=reason)
+        with self.connection:
+            self.connection.execute(
+                "UPDATE routine_specs_v1 SET body_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (canonical_json(rolled), routine.id),
+            )
+            goal = self.get_goal(routine.goal_id)
+            stopped = replace(goal, status="abandoned")
+            self.connection.execute(
+                "UPDATE goal_specs_v2 SET body_json=?,status='abandoned' WHERE id=? AND current=1",
+                (canonical_json(stopped), goal.id),
+            )
+            self.connection.execute("DELETE FROM plan_cache_v2 WHERE goal_id=?", (goal.id,))
+            if mandate is not None:
+                self.connection.execute(
+                    "UPDATE mandates_v1 SET body_json=? WHERE id=?",
+                    (canonical_json(replace(mandate, revoked=True)), mandate.id),
+                )
+            if candidate is not None:
+                self.connection.execute(
+                    "UPDATE routine_candidates_v1 SET body_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                    (
+                        canonical_json(replace(candidate, status=RoutineCandidateStatus.ROLLED_BACK)),
+                        candidate.id,
+                    ),
+                )
+            self.connection.execute(
+                "INSERT INTO world_events_v2(goal_id,kind,source,payload_json) VALUES(?,?,?,?)",
+                (goal.id, "routine_rolled_back", "engine.routines/v1", canonical_json({"routine_id": routine.id, "reason": reason})),
+            )
+
+    def occurrence_exists(self, routine_id: str, occurrence_key: str) -> bool:
+        return self.connection.execute(
+            "SELECT 1 FROM routine_occurrences_v1 WHERE routine_id=? AND occurrence_key=?",
+            (routine_id, occurrence_key),
+        ).fetchone() is not None
+
+    def record_occurrence(
+        self, routine_id: str, occurrence_key: str, observed_at: str,
+        result: Mapping[str, Any],
+    ) -> bool:
+        cursor = self.connection.execute(
+            """
+            INSERT OR IGNORE INTO routine_occurrences_v1(
+                routine_id,occurrence_key,observed_at,result_json
+            ) VALUES(?,?,?,?)
+            """,
+            (routine_id, occurrence_key, observed_at, canonical_json(result)),
+        )
+        self.connection.commit()
+        return cursor.rowcount == 1
+
+    def record_routine_action(
+        self, routine_id: str, entity_id: str, request_id: str | None,
+        acted_at: str, result: Mapping[str, Any],
+    ) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO routine_actions_v1(
+                routine_id,entity_id,request_id,acted_at,result_json
+            ) VALUES(?,?,?,?,?)
+            """,
+            (routine_id, entity_id, request_id, acted_at, canonical_json(result)),
+        )
+        self.connection.commit()
+
+    def routine_action_count(
+        self, *, since: str, entity_id: str | None = None
+    ) -> int:
+        if entity_id is None:
+            row = self.connection.execute(
+                "SELECT COUNT(*) AS value FROM routine_actions_v1 WHERE acted_at>=?",
+                (since,),
+            ).fetchone()
+        else:
+            row = self.connection.execute(
+                """
+                SELECT COUNT(*) AS value FROM routine_actions_v1
+                WHERE acted_at>=? AND entity_id=?
+                """,
+                (since, entity_id),
+            ).fetchone()
+        return int(row["value"])
+
+    def save_target_observation(self, observation: TargetObservationV2) -> bool:
+        body = canonical_json(observation)
+        digest = artifact_sha256(observation)
+        existing = self.connection.execute(
+            "SELECT artifact_sha256 FROM target_observations_v2 WHERE target_id=? AND revision=?",
+            (observation.target_id, observation.revision),
+        ).fetchone()
+        if existing is not None:
+            if existing["artifact_sha256"] != digest:
+                raise ValueError("same target revision cannot describe different state")
+            return False
+        latest = self.connection.execute(
+            "SELECT MAX(revision) AS revision FROM target_observations_v2 WHERE target_id=?",
+            (observation.target_id,),
+        ).fetchone()["revision"]
+        if latest is not None and observation.revision <= int(latest):
+            raise ValueError("target revision must be monotone")
+        self.connection.execute(
+            """
+            INSERT INTO target_observations_v2(
+                target_id, revision, body_json, artifact_sha256, observed_at
+            ) VALUES(?,?,?,?,?)
+            """,
+            (observation.target_id, observation.revision, body, digest, observation.observed_at),
+        )
+        self.connection.commit()
+        return True
+
+    def latest_target_observation(self, target_id: str) -> TargetObservationV2 | None:
+        row = self.connection.execute(
+            """
+            SELECT body_json FROM target_observations_v2
+            WHERE target_id=? ORDER BY revision DESC LIMIT 1
+            """,
+            (target_id,),
+        ).fetchone()
+        return _target_observation(json.loads(row["body_json"])) if row else None
+
+    def save_world_snapshot(self, snapshot: WorldSnapshotV2) -> None:
+        expected = self.next_world_revision()
+        if snapshot.revision != expected:
+            raise ValueError(f"world revision must be {expected}")
+        self.connection.execute(
+            """
+            INSERT INTO world_snapshots_v2(
+                revision, snapshot_id, body_json, artifact_sha256, observed_at
+            ) VALUES(?,?,?,?,?)
+            """,
+            (
+                snapshot.revision, snapshot.id, canonical_json(snapshot),
+                snapshot.sha256, snapshot.observed_at,
+            ),
+        )
+        self.connection.commit()
+
+    def next_world_revision(self) -> int:
+        row = self.connection.execute(
+            "SELECT COALESCE(MAX(revision), 0) AS revision FROM world_snapshots_v2"
+        ).fetchone()
+        return int(row["revision"]) + 1
+
+    def latest_world_snapshot(self) -> WorldSnapshotV2 | None:
+        row = self.connection.execute(
+            "SELECT body_json FROM world_snapshots_v2 ORDER BY revision DESC LIMIT 1"
+        ).fetchone()
+        return _world_snapshot(json.loads(row["body_json"])) if row else None
+
+    def world_snapshot(self, snapshot_id: str) -> WorldSnapshotV2:
+        row = self.connection.execute(
+            "SELECT body_json FROM world_snapshots_v2 WHERE snapshot_id=?",
+            (snapshot_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(snapshot_id)
+        return _world_snapshot(json.loads(row["body_json"]))
+
+    def save_proposal(self, value: ProposedActionV1) -> None:
+        self._save_lifecycle("proposed_actions_v1", value.id, value.goal_id, value)
+
+    def save_request(self, value: ActionRequestV1) -> None:
+        self._save_lifecycle("action_requests_v1", value.id, value.proposal_id, value)
+
+    def save_policy_decision(self, value: PolicyDecisionV1) -> None:
+        self._save_lifecycle("policy_decisions_v1", value.id, value.request_id, value)
+
+    def save_authorization(self, value: AuthorizationV1) -> None:
+        self._save_lifecycle("authorizations_v1", value.id, value.request_id, value)
+
+    def save_receipt(self, value: ExecutionReceiptV2) -> None:
+        self._save_lifecycle("execution_receipts_v2", value.id, value.request_id, value)
+
+    def save_effect(self, value: EffectDeltaV1) -> None:
+        self._save_lifecycle("effect_deltas_v1", value.id, value.request_id, value)
+
+    def pending_task(self, goal_id: str) -> dict[str, Any] | None:
+        """Return the latest durable nonterminal task lifecycle for a goal."""
+        row = self.connection.execute(
+            """
+            SELECT
+                proposal.body_json AS proposal_json,
+                request.body_json AS request_json,
+                authorization.body_json AS authorization_json,
+                receipt.body_json AS receipt_json
+            FROM proposed_actions_v1 AS proposal
+            JOIN action_requests_v1 AS request
+              ON request.proposal_id = proposal.id
+            JOIN authorizations_v1 AS authorization
+              ON authorization.request_id = request.id
+            JOIN execution_receipts_v2 AS receipt
+              ON receipt.request_id = request.id
+            WHERE proposal.goal_id = ?
+              AND json_extract(request.body_json, '$.invocation_mode') = 'task'
+              AND json_extract(receipt.body_json, '$.state') IN ('accepted','running')
+              AND receipt.rowid = (
+                  SELECT MAX(latest.rowid)
+                  FROM execution_receipts_v2 AS latest
+                  WHERE latest.request_id = request.id
+              )
+            ORDER BY receipt.rowid DESC
+            LIMIT 1
+            """,
+            (goal_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return {
+            "proposal": ProposedActionV1.from_dict(json.loads(row["proposal_json"])),
+            "request": ActionRequestV1.from_dict(json.loads(row["request_json"])),
+            "authorization": AuthorizationV1.from_dict(
+                json.loads(row["authorization_json"])
+            ),
+            "receipt": ExecutionReceiptV2.from_dict(json.loads(row["receipt_json"])),
+        }
+
+    def lifecycle_counts(self, goal_id: str) -> dict[str, int]:
+        proposal_ids = tuple(
+            row["id"] for row in self.connection.execute(
+                "SELECT id FROM proposed_actions_v1 WHERE goal_id=?", (goal_id,)
+            ).fetchall()
+        )
+        if not proposal_ids:
+            return {name: 0 for name in ("proposals", "requests", "decisions", "authorizations", "receipts", "effects")}
+        placeholders = ",".join("?" for _ in proposal_ids)
+        request_rows = self.connection.execute(
+            f"SELECT id FROM action_requests_v1 WHERE proposal_id IN ({placeholders})",
+            proposal_ids,
+        ).fetchall()
+        request_ids = tuple(row["id"] for row in request_rows)
+        def count(table: str, column: str, values: tuple[str, ...]) -> int:
+            if not values:
+                return 0
+            marks = ",".join("?" for _ in values)
+            return int(self.connection.execute(
+                f"SELECT COUNT(*) AS value FROM {table} WHERE {column} IN ({marks})", values
+            ).fetchone()["value"])
+        return {
+            "proposals": len(proposal_ids),
+            "requests": len(request_ids),
+            "decisions": count("policy_decisions_v1", "request_id", request_ids),
+            "authorizations": count("authorizations_v1", "request_id", request_ids),
+            "receipts": count("execution_receipts_v2", "request_id", request_ids),
+            "effects": count("effect_deltas_v1", "request_id", request_ids),
+        }
+
+    def proposals(self, goal_id: str) -> tuple[ProposedActionV1, ...]:
+        rows = self.connection.execute(
+            "SELECT body_json FROM proposed_actions_v1 WHERE goal_id=? ORDER BY rowid",
+            (goal_id,),
+        ).fetchall()
+        return tuple(
+            ProposedActionV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def save_hypothesis(self, value: RelationHypothesisV1) -> None:
+        self.connection.execute(
+            "INSERT INTO relation_hypotheses_v1(id, body_json) VALUES(?,?)",
+            (value.id, canonical_json(value)),
+        )
+        self.connection.commit()
+
+    def schedule_wake(
+        self, wake_id: str, wake_at: str, reason: str, *,
+        goal_id: str | None = None, target_id: str | None = None,
+        payload: Mapping[str, Any] | None = None,
+    ) -> None:
+        self.connection.execute(
+            """
+            INSERT OR REPLACE INTO scheduled_wakes_v2(
+                id, goal_id, target_id, wake_at, reason, payload_json, handled
+            ) VALUES(?,?,?,?,?,?,0)
+            """,
+            (wake_id, goal_id, target_id, wake_at, reason, canonical_json(payload or {})),
+        )
+        self.connection.commit()
+
+    def due_wakes(self, now: str) -> tuple[dict[str, Any], ...]:
+        rows = self.connection.execute(
+            """
+            SELECT id,goal_id,target_id,wake_at,reason,payload_json
+            FROM scheduled_wakes_v2
+            WHERE handled=0 AND wake_at<=?
+            ORDER BY wake_at,id
+            """,
+            (now,),
+        ).fetchall()
+        return tuple(
+            {
+                "id": str(row["id"]),
+                "goal_id": row["goal_id"],
+                "target_id": row["target_id"],
+                "wake_at": str(row["wake_at"]),
+                "reason": str(row["reason"]),
+                "payload": json.loads(row["payload_json"]),
+            }
+            for row in rows
+        )
+
+    def mark_wakes_handled(self, wake_ids: tuple[str, ...]) -> None:
+        if not wake_ids:
+            return
+        marks = ",".join("?" for _ in wake_ids)
+        self.connection.execute(
+            f"UPDATE scheduled_wakes_v2 SET handled=1 WHERE id IN ({marks})",
+            wake_ids,
+        )
+        self.connection.commit()
+
+    def next_wake_at(self) -> str | None:
+        row = self.connection.execute(
+            "SELECT MIN(wake_at) AS wake_at FROM scheduled_wakes_v2 WHERE handled=0"
+        ).fetchone()
+        return str(row["wake_at"]) if row and row["wake_at"] is not None else None
+
+    def append_event(
+        self, goal_id: str | None, kind: str, source: str, payload: Mapping[str, Any]
+    ) -> None:
+        self.connection.execute(
+            "INSERT INTO world_events_v2(goal_id, kind, source, payload_json) VALUES(?,?,?,?)",
+            (goal_id, kind, source, canonical_json(payload)),
+        )
+        self.connection.commit()
+
+    def events(self, goal_id: str | None = None) -> tuple[dict[str, Any], ...]:
+        if goal_id is None:
+            rows = self.connection.execute("SELECT * FROM world_events_v2 ORDER BY id").fetchall()
+        else:
+            rows = self.connection.execute(
+                "SELECT * FROM world_events_v2 WHERE goal_id=? ORDER BY id", (goal_id,)
+            ).fetchall()
+        return tuple({
+            "id": row["id"], "goal_id": row["goal_id"], "kind": row["kind"],
+            "source": row["source"], "payload": json.loads(row["payload_json"]),
+            "created_at": row["created_at"],
+        } for row in rows)
+
+    def record_brain_call(
+        self, goal_id: str, brain_id: str, purpose: str, snapshot_id: str,
+        projection_sha256: str, *, output: Any = None, latency_ms: float | None = None,
+        usage: Mapping[str, Any] | None = None,
+    ) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO brain_calls_v2(
+                goal_id, brain_id, purpose, snapshot_id, projection_sha256,
+                output_sha256, latency_ms, usage_json
+            ) VALUES(?,?,?,?,?,?,?,?)
+            """,
+            (
+                goal_id, brain_id, purpose, snapshot_id, projection_sha256,
+                artifact_sha256(output) if output is not None else None,
+                latency_ms, canonical_json(usage or {}),
+            ),
+        )
+        self.connection.commit()
+
+    def brain_call_count(self, goal_id: str | None = None) -> int:
+        if goal_id is None:
+            row = self.connection.execute("SELECT COUNT(*) AS value FROM brain_calls_v2").fetchone()
+        else:
+            row = self.connection.execute(
+                "SELECT COUNT(*) AS value FROM brain_calls_v2 WHERE goal_id=?", (goal_id,)
+            ).fetchone()
+        return int(row["value"])
+
+    def save_preference_evidence(self, evidence: PreferenceEvidenceV1) -> None:
+        self.connection.execute(
+            "INSERT OR IGNORE INTO learning_evidence_v1(id, goal_id, body_json) VALUES(?,?,?)",
+            (evidence.id, evidence.goal_id, canonical_json(evidence)),
+        )
+        self.connection.commit()
+
+    def preference_evidence(self, goal_id: str) -> tuple[PreferenceEvidenceV1, ...]:
+        rows = self.connection.execute(
+            "SELECT body_json FROM learning_evidence_v1 WHERE goal_id=? ORDER BY created_at,id",
+            (goal_id,),
+        ).fetchall()
+        return tuple(_preference_evidence(json.loads(row["body_json"])) for row in rows)
+
+    def save_learning_candidate(self, candidate: LearningCandidateV1) -> None:
+        self.connection.execute(
+            "INSERT OR REPLACE INTO learning_candidates_v1(id, goal_id, body_json) VALUES(?,?,?)",
+            (candidate.id, candidate.goal_id, canonical_json(candidate)),
+        )
+        self.connection.commit()
+
+    def learning_candidates(
+        self,
+        *,
+        goal_id: str | None = None,
+        statuses: tuple[str, ...] | None = None,
+    ) -> tuple[LearningCandidateV1, ...]:
+        clauses: list[str] = []
+        parameters: list[str] = []
+        if goal_id is not None:
+            clauses.append("goal_id=?")
+            parameters.append(goal_id)
+        if statuses:
+            marks = ",".join("?" for _ in statuses)
+            clauses.append(f"json_extract(body_json, '$.status') IN ({marks})")
+            parameters.extend(statuses)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        rows = self.connection.execute(
+            "SELECT body_json FROM learning_candidates_v1"
+            + where
+            + " ORDER BY created_at,id",
+            tuple(parameters),
+        ).fetchall()
+        return tuple(
+            LearningCandidateV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def get_learning_candidate(self, candidate_id: str) -> LearningCandidateV1:
+        row = self.connection.execute(
+            "SELECT body_json FROM learning_candidates_v1 WHERE id=?", (candidate_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(candidate_id)
+        return LearningCandidateV1.from_dict(json.loads(row["body_json"]))
+
+    def plugin_cursor(self, provider_id: str) -> str | None:
+        row = self.connection.execute(
+            "SELECT cursor FROM plugin_experience_cursors_v1 WHERE provider_id=?",
+            (provider_id,),
+        ).fetchone()
+        return str(row["cursor"]) if row is not None else None
+
+    def save_behavior_batch(
+        self,
+        provider_id: str,
+        plugin_id: str,
+        batch: BehaviorBatchV1,
+    ) -> tuple[BehaviorSignalV1, ...]:
+        """Atomically persist new signals and advance the opaque provider cursor."""
+        inserted: list[BehaviorSignalV1] = []
+        with self.connection:
+            for signal in batch.signals:
+                cursor = self.connection.execute(
+                    """
+                    INSERT OR IGNORE INTO behavior_signals_v1(
+                        id,provider_id,plugin_id,target_id,entity_id,
+                        capability_family,preference_id,body_json
+                    ) VALUES(?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        signal.id,
+                        provider_id,
+                        plugin_id,
+                        signal.target_id,
+                        signal.entity_id,
+                        signal.capability_family,
+                        signal.preference_id,
+                        canonical_json(signal),
+                    ),
+                )
+                if cursor.rowcount == 1:
+                    inserted.append(signal)
+            self.connection.execute(
+                """
+                INSERT INTO plugin_experience_cursors_v1(provider_id,plugin_id,cursor)
+                VALUES(?,?,?)
+                ON CONFLICT(provider_id) DO UPDATE SET
+                    plugin_id=excluded.plugin_id,
+                    cursor=excluded.cursor,
+                    updated_at=CURRENT_TIMESTAMP
+                """,
+                (provider_id, plugin_id, batch.cursor),
+            )
+        return tuple(inserted)
+
+    def link_behavior_signal(
+        self,
+        signal_id: str,
+        *,
+        goal_id: str | None,
+        status: str,
+        reason: str,
+    ) -> None:
+        self.connection.execute(
+            """
+            INSERT OR REPLACE INTO behavior_signal_links_v1(
+                signal_id,goal_id,status,reason
+            ) VALUES(?,?,?,?)
+            """,
+            (signal_id, goal_id or "", status, reason),
+        )
+        self.connection.commit()
+
+    def behavior_signal_count(self) -> int:
+        return int(
+            self.connection.execute(
+                "SELECT COUNT(*) AS value FROM behavior_signals_v1"
+            ).fetchone()["value"]
+        )
+
+    def behavior_signals(
+        self, *, routine_template_id: str | None = None
+    ) -> tuple[BehaviorSignalV1, ...]:
+        if routine_template_id is None:
+            rows = self.connection.execute(
+                "SELECT body_json FROM behavior_signals_v1 ORDER BY created_at,id"
+            ).fetchall()
+        else:
+            rows = self.connection.execute(
+                """
+                SELECT body_json FROM behavior_signals_v1
+                WHERE json_extract(body_json, '$.routine_template_id')=?
+                ORDER BY created_at,id
+                """,
+                (routine_template_id,),
+            ).fetchall()
+        return tuple(
+            BehaviorSignalV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def behavior_signal_links(self, signal_id: str) -> tuple[dict[str, str], ...]:
+        rows = self.connection.execute(
+            """
+            SELECT goal_id,status,reason FROM behavior_signal_links_v1
+            WHERE signal_id=? ORDER BY goal_id
+            """,
+            (signal_id,),
+        ).fetchall()
+        return tuple(
+            {
+                "goal_id": str(row["goal_id"]),
+                "status": str(row["status"]),
+                "reason": str(row["reason"]),
+            }
+            for row in rows
+        )
+
+    def invalidate_plans(self, goal_id: str) -> None:
+        self.connection.execute("DELETE FROM plan_cache_v2 WHERE goal_id=?", (goal_id,))
+        self.connection.commit()
+
+    def plan_count(self, goal_id: str | None = None) -> int:
+        if goal_id is None:
+            row = self.connection.execute(
+                "SELECT COUNT(*) AS value FROM plan_cache_v2"
+            ).fetchone()
+        else:
+            row = self.connection.execute(
+                "SELECT COUNT(*) AS value FROM plan_cache_v2 WHERE goal_id=?",
+                (goal_id,),
+            ).fetchone()
+        return int(row["value"])
+
+    def save_plan(
+        self, cache_key: str, goal_id: str, plugin_id: str, capability_family: str,
+        manifest_fingerprint: str, mandate_id: str,
+        proposal_template: Mapping[str, Any], outcome: Mapping[str, Any],
+    ) -> None:
+        row = self.connection.execute(
+            "SELECT outcomes_json FROM plan_cache_v2 WHERE cache_key=?", (cache_key,)
+        ).fetchone()
+        outcomes = json.loads(row["outcomes_json"]) if row else []
+        outcomes.append(dict(outcome))
+        self.connection.execute(
+            """
+            INSERT INTO plan_cache_v2(
+                cache_key, goal_id, plugin_id, capability_family,
+                manifest_fingerprint, mandate_id, proposal_template_json, outcomes_json
+            ) VALUES(?,?,?,?,?,?,?,?)
+            ON CONFLICT(cache_key) DO UPDATE SET
+                proposal_template_json=excluded.proposal_template_json,
+                outcomes_json=excluded.outcomes_json, updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                cache_key, goal_id, plugin_id, capability_family,
+                manifest_fingerprint, mandate_id, canonical_json(proposal_template),
+                canonical_json(outcomes),
+            ),
+        )
+        self.connection.commit()
+
+    def load_plan(
+        self, cache_key: str, manifest_fingerprint: str, mandate_id: str
+    ) -> dict[str, Any] | None:
+        row = self.connection.execute(
+            """
+            SELECT proposal_template_json, outcomes_json FROM plan_cache_v2
+            WHERE cache_key=? AND manifest_fingerprint=? AND mandate_id=?
+            """,
+            (cache_key, manifest_fingerprint, mandate_id),
+        ).fetchone()
+        if row is None:
+            return None
+        outcomes = json.loads(row["outcomes_json"])
+        if not outcomes or outcomes[-1].get("achieved") is not True:
+            return None
+        return json.loads(row["proposal_template_json"])
+
+    def _insert_goal(self, goal: GoalSpecV2, *, commit: bool = True) -> None:
+        self.connection.execute(
+            "INSERT INTO goal_specs_v2(id, version, body_json, status, current) VALUES(?,?,?,?,1)",
+            (goal.id, goal.version, canonical_json(goal), goal.status),
+        )
+        if commit:
+            self.connection.commit()
+
+    def _save_lifecycle(self, table: str, item_id: str, parent_id: str, value: Any) -> None:
+        parent_column = {
+            "proposed_actions_v1": "goal_id",
+            "action_requests_v1": "proposal_id",
+            "policy_decisions_v1": "request_id",
+            "authorizations_v1": "request_id",
+            "execution_receipts_v2": "request_id",
+            "effect_deltas_v1": "request_id",
+        }[table]
+        self.connection.execute(
+            f"INSERT INTO {table}(id, {parent_column}, body_json) VALUES(?,?,?)",
+            (item_id, parent_id, canonical_json(value)),
+        )
+        self.connection.commit()
+
+    def _migrate_v1_goals(self) -> None:
+        exists = self.connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='goals'"
+        ).fetchone()
+        if not exists:
+            return
+        rows = self.connection.execute("SELECT * FROM goals ORDER BY created_at,id").fetchall()
+        for row in rows:
+            if self.has_goal(str(row["id"])):
+                continue
+            target_id = str(row["target_id"])
+            effect = DesiredEffectV1(
+                id=f"legacy:{row['id']}:success",
+                capability_family="engine.v1.observe-only",
+                entity_selector={"target_ids": [target_id]},
+                condition=ConditionV1("exists", path="world:entity_count"),
+                parameters={"legacy_success_spec": json.loads(row["success_spec_json"])},
+                description="Imported v1 success contract; observe-only until translated",
+            )
+            goal = GoalSpecV2(
+                id=str(row["id"]), source_intent=str(row["instruction"]),
+                mode=GoalModeV2(str(row["mode"])),
+                entity_scope={"target_ids": [target_id]}, desired_effects=(effect,),
+                budgets={"max_cycles": int(row["max_cycles"])}, mandate_id=None,
+                status="imported_observe_only", priority=int(row["priority"]),
+            )
+            self._insert_goal(goal)
+            self.append_event(goal.id, "v1_goal_migrated", "migration", {
+                "target_selector": goal.entity_scope,
+                "mutation": "observe_only",
+            })
+
+
+def _target_observation(value: Mapping[str, Any]) -> TargetObservationV2:
+    return TargetObservationV2(
+        target_id=str(value["target_id"]), revision=int(value["revision"]),
+        observed_at=str(value["observed_at"]),
+        entities=tuple(_entity(item) for item in value.get("entities", ())),
+        relations=tuple(_relation(item) for item in value.get("relations", ())),
+        observations=tuple(_observation(item) for item in value.get("observations", ())),
+        coverage=dict(value.get("coverage", {})), source=str(value["source"]),
+        available=value.get("available"),
+        errors=tuple(str(item) for item in value.get("errors", ())),
+    )
+
+
+def _world_snapshot(value: Mapping[str, Any]) -> WorldSnapshotV2:
+    return WorldSnapshotV2(
+        id=str(value["id"]), revision=int(value["revision"]),
+        observed_at=str(value["observed_at"]),
+        target_revisions=dict(value.get("target_revisions", {})),
+        entities=tuple(_entity(item) for item in value.get("entities", ())),
+        relations=tuple(_relation(item) for item in value.get("relations", ())),
+        observations=tuple(_observation(item) for item in value.get("observations", ())),
+        coverage=dict(value.get("coverage", {})),
+    )
+
+
+def _entity(value: Mapping[str, Any]) -> EntityV1:
+    return EntityV1(
+        id=str(value["id"]), target_id=str(value["target_id"]),
+        entity_type=str(value["entity_type"]), source=str(value["source"]),
+        name=str(value["name"]) if value.get("name") is not None else None,
+        attributes=dict(value.get("attributes", {})),
+        artifact_identity=(str(value["artifact_identity"]) if value.get("artifact_identity") is not None else None),
+    )
+
+
+def _relation(value: Mapping[str, Any]) -> RelationV1:
+    return RelationV1(
+        id=str(value["id"]), relation_type=str(value["relation_type"]),
+        source_entity_id=str(value["source_entity_id"]),
+        target_entity_id=str(value["target_entity_id"]), source=str(value["source"]),
+        observed_at=str(value["observed_at"]),
+        evidence_grade=EvidenceGrade(str(value["evidence_grade"])),
+        confidence=float(value["confidence"]) if value.get("confidence") is not None else None,
+        attributes=dict(value.get("attributes", {})),
+    )
+
+
+def _observation(value: Mapping[str, Any]) -> ObservationV1:
+    return ObservationV1(
+        id=str(value["id"]), entity_id=str(value["entity_id"]),
+        property=str(value["property"]), value=value.get("value"),
+        source=str(value["source"]), observed_at=str(value["observed_at"]),
+        evidence_grade=EvidenceGrade(str(value["evidence_grade"])),
+        unit=str(value["unit"]) if value.get("unit") is not None else None,
+        quality=float(value["quality"]) if value.get("quality") is not None else None,
+        coverage=str(value.get("coverage", "point")),
+        artifact_identity=(str(value["artifact_identity"]) if value.get("artifact_identity") is not None else None),
+    )
+
+
+def _preference_evidence(value: Mapping[str, Any]) -> PreferenceEvidenceV1:
+    return PreferenceEvidenceV1(
+        id=str(value["id"]), goal_id=str(value["goal_id"]),
+        grade=EvidenceGrade(str(value["grade"])), source=str(value["source"]),
+        field_path=str(value["field_path"]), old_value=value.get("old_value"),
+        new_value=value.get("new_value"), context=dict(value.get("context", {})),
+        observed_at=str(value["observed_at"]),
+        explicit_conflict=bool(value.get("explicit_conflict", False)),
+        signal_id=(str(value["signal_id"]) if value.get("signal_id") is not None else None),
+        plugin_id=(str(value["plugin_id"]) if value.get("plugin_id") is not None else None),
+        target_id=(str(value["target_id"]) if value.get("target_id") is not None else None),
+        entity_id=(str(value["entity_id"]) if value.get("entity_id") is not None else None),
+        capability_family=(
+            str(value["capability_family"])
+            if value.get("capability_family") is not None else None
+        ),
+        preference_id=(
+            str(value["preference_id"])
+            if value.get("preference_id") is not None else None
+        ),
+    )

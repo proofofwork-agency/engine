@@ -1,0 +1,5 @@
+include README.md
+include DEPLOYMENT.md
+recursive-include examples *.toml *.txt
+recursive-include tests *.py
+include engine-plugin.toml

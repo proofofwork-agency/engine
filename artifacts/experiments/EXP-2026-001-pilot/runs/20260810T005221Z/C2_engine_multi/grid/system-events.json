@@ -1,0 +1,106 @@
+[
+  {
+    "created_at": "2026-08-10 01:02:40",
+    "id": 1,
+    "kind": "catalog_changed",
+    "payload": {
+      "catalog": {
+        "generation": 1,
+        "plugins": [
+          {
+            "contract_version": "engine.plugin/v1",
+            "description": "Pilot engine.spatial-grid",
+            "id": "engine.spatial-grid",
+            "version": "0.1.0"
+          }
+        ],
+        "specialists": [
+          {
+            "contract_version": "engine.brain/v1",
+            "description": "Plans navigation and item pickup in discrete spatial worlds",
+            "id": "engine.spatial-grid.grid-navigation-brain/v1",
+            "name": "grid-navigation-brain",
+            "plugin_id": "engine.spatial-grid",
+            "supported_capabilities": [
+              "engine.spatial.step/v1",
+              "engine.spatial.pick-up/v1"
+            ],
+            "version": "0.1"
+          }
+        ],
+        "targets": [
+          {
+            "capabilities": [
+              {
+                "affordance": "action",
+                "default_timeout_ms": 30000,
+                "description": "Pick up a named item at the current position",
+                "id": "engine.spatial.pick-up/v1",
+                "idempotent": false,
+                "input_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "item"
+                  ],
+                  "type": "object"
+                },
+                "invocation_mode": "immediate",
+                "local_name": "pick_up",
+                "output_schema": {
+                  "type": "object"
+                },
+                "version": "1.0.0"
+              },
+              {
+                "affordance": "action",
+                "default_timeout_ms": 30000,
+                "description": "Move one cell in a cardinal direction",
+                "id": "engine.spatial.step/v1",
+                "idempotent": false,
+                "input_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "direction": {
+                      "enum": [
+                        "north",
+                        "east",
+                        "south",
+                        "west"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "direction"
+                  ],
+                  "type": "object"
+                },
+                "invocation_mode": "immediate",
+                "local_name": "move",
+                "output_schema": {
+                  "type": "object"
+                },
+                "version": "1.0.0"
+              }
+            ],
+            "manifest": {
+              "adapter_version": "0.1",
+              "contract_version": "engine.target/v1",
+              "description": "Discrete spatial simulator target",
+              "id": "rover-sim",
+              "plugin_id": "engine.spatial-grid"
+            }
+          }
+        ]
+      },
+      "fingerprint": "e951c343683c02e42abab850e647e50a491b5496074f4571135b6d3f79934401",
+      "previous_fingerprint": null
+    }
+  }
+]

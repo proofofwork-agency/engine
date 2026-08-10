@@ -1,0 +1,14 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#071016"/>
+  <g opacity="0.17" stroke="#66F6C2">
+    <path d="M0 90.5H1200M0 180.5H1200M0 270.5H1200M0 360.5H1200M0 450.5H1200M0 540.5H1200"/>
+    <path d="M90.5 0V630M180.5 0V630M270.5 0V630M360.5 0V630M450.5 0V630M540.5 0V630M630.5 0V630M720.5 0V630M810.5 0V630M900.5 0V630M990.5 0V630M1080.5 0V630"/>
+  </g>
+  <rect x="84" y="82" width="1032" height="466" fill="#071016" stroke="#24463B" stroke-width="2"/>
+  <rect x="121" y="119" width="56" height="56" rx="3" fill="#071016" stroke="#66F6C2" stroke-width="2"/>
+  <path d="M135 132H163V139H143V143H160V150H143V153H163V160H135V132Z" fill="#66F6C2"/>
+  <text x="199" y="157" fill="#EDF7F2" font-family="monospace" font-size="28" font-weight="700" letter-spacing="7">ENGINE</text>
+  <text x="121" y="310" fill="#EDF7F2" font-family="Arial, sans-serif" font-size="66" font-weight="600">Van intentie naar actie.</text>
+  <text x="121" y="386" fill="#66F6C2" font-family="Arial, sans-serif" font-size="66" font-weight="500">Met bewijs en grenzen.</text>
+  <text x="121" y="478" fill="#99AAA3" font-family="monospace" font-size="21" letter-spacing="2">LOCAL-FIRST · TYPED · AUDITABLE · PROVIDER-NEUTRAL</text>
+</svg>

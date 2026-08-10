@@ -1,0 +1,24 @@
+{
+  "environment": {
+    "filesystem": "BOUNDED_REAL_TARGET (temporary sandbox)",
+    "grid": "SIMULATION"
+  },
+  "command": "uv run python -m engine.demo",
+  "result": "PASS",
+  "filesystem": {
+    "status": "completed",
+    "cycles": 7,
+    "oracle": true,
+    "world_mutations": 4
+  },
+  "grid": {
+    "status_before_restart": "active",
+    "status": "completed",
+    "cycles": 17,
+    "oracle": true,
+    "partial_failures": 1,
+    "observed_effect": "hidden obstacle [1,0] persisted as known_blocked and caused replanning",
+    "final_position": [3, 2],
+    "final_inventory": ["key"]
+  }
+}

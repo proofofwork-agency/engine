@@ -1,0 +1,76 @@
+{
+  "baseline_contracts": {
+    "M0": "favorable external harness: fresh target snapshot and GoalSpec each turn, provider transcript plus recent in-memory outcomes",
+    "M1": "Engine Heart plus same executive model, no specialists",
+    "M2": "same Heart/model plus deterministic task-solving specialists; M2-M1 mixes added competence and orchestration"
+  },
+  "claim_scope": "Instrumentation and directional comparison only; one consumed run per hand-built fixture. No statistical or architectural-superiority claim.",
+  "condition_order": [
+    "M0_monolith_session",
+    "M1_durable_single",
+    "M2_engine_multi"
+  ],
+  "condition_order_warning": "fixed order; latency comparisons are confounded",
+  "conditions": {
+    "M0_monolith_session": {
+      "filesystem": {
+        "capability_or_execution_errors": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 0,
+        "condition_wall_ms": 36618.017,
+        "decisions_by_kind": {},
+        "executive_attempts": 30,
+        "executive_decisions": 0,
+        "executive_failed": 30,
+        "executive_succeeded": 0,
+        "final_cycle_index": 30,
+        "final_snapshot_sha256": "84f04085f41eff1321a838e46c0d73c474abe1e252d416241b32e380ad3e02b7",
+        "initial_snapshot_sha256": "84f04085f41eff1321a838e46c0d73c474abe1e252d416241b32e380ad3e02b7",
+        "invocation_states": {},
+        "model_caller_wall_latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0
+        },
+        "oracle": false,
+        "prompt_tokens_known": 0,
+        "provider_input_bytes": {
+          "max": 0,
+          "p50": 0,
+          "p95": 0
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0
+        },
+        "restart_boundary": null,
+        "restart_contract": null,
+        "returned_models": [],
+        "semantic_decision_rejections": 0,
+        "specialist_calls": 0,
+        "status": "budget_exhausted",
+        "tool_dispatches": 0,
+        "tool_invocation_attempts": 0,
+        "usage_coverage": {
+          "attempts": 30,
+          "records": 0
+        }
+      }
+    }
+  },
+  "decision_schema_family_sha256": "0fb14ef79ac627c9be49213f628cb0640bae3b708cd6b1b2176b4625bde6ac5a",
+  "model_artifact_sha256": "ab27b9bfa375a178d6cba48f3ad892b94b7739659dcc7aae8058ce0ffed6b328",
+  "model_requested": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+  "prompt_sha256": "3b9ebd0bb8148b250dff40ff113c006c8f6ea605bc54a36af9f30f4018ecb128",
+  "provider_config": {
+    "base_url": "http://127.0.0.1:18080/v1",
+    "max_input_bytes": 64000,
+    "max_output_tokens": 640,
+    "session_history": "M0 only",
+    "temperature": 0.0
+  },
+  "restart_after_terminal_tool_invocations": 1,
+  "source_sha256": "47d6c572e5a123f1a19d256fcdd227627c6b4aa1ed8f2cb6796e864fa31dde51",
+  "status": "exploratory_pilot_running"
+}

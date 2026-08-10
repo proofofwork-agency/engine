@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "engine-sdk"
+version = "0.2.0"
+description = "Dependency-light public contracts and plugin tooling for Engine"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+engine-plugin = "engine_sdk.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

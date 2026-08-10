@@ -1,0 +1,31 @@
+{
+  "status": "exploratory_consumed",
+  "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+  "condition": "Engine Heart + general LLM + deterministic specialists + typed cognitive phases",
+  "filesystem": {
+    "status": "completed",
+    "oracle": true,
+    "metrics": {
+      "executive_model_calls": 8,
+      "specialist_calls": 4,
+      "tool_calls": 4,
+      "prompt_tokens": 11327,
+      "completion_tokens": 1258,
+      "partial_invocations": 0
+    }
+  },
+  "grid": {
+    "status_before_restart": "active",
+    "status": "completed",
+    "oracle": true,
+    "metrics": {
+      "executive_model_calls": 18,
+      "specialist_calls": 9,
+      "tool_calls": 9,
+      "prompt_tokens": 22807,
+      "completion_tokens": 2295,
+      "partial_invocations": 1
+    }
+  },
+  "interpretation": "Both oracles passed. Heart exposed needs_specialist/advice_ready phases and phase-specific schemas; the model still chose each operator and Heart did not auto-execute advice. Consultation amplification fell from 4.0 to 1.0 on filesystem and from 2.11 to 1.0 on grid. This is an exploratory same-fixture before/after result, not a sealed benchmark."
+}

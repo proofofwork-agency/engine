@@ -1,0 +1,2817 @@
+[
+  {
+    "cycle": 0,
+    "decision": {
+      "arguments": {
+        "item": "key"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.pick-up/v1",
+      "rationale": "The goal is to retrieve the key and arrive at the target position. The key is located at [2,0], so the first step is to pick it up."
+    },
+    "executive_attempt_id": "f215e945d0ae437d9237067ae2a674e5",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 2460.590000002412,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "d74cf330a797468a8e08350b361a57563e42a0f0de30447ee94f00f68decb168",
+      "timings": {
+        "cache_n": 544,
+        "predicted_ms": 2004.657,
+        "predicted_n": 83,
+        "predicted_per_second": 41.40359173664123,
+        "predicted_per_token_ms": 24.152493975903614,
+        "prompt_ms": 324.359,
+        "prompt_n": 181,
+        "prompt_per_second": 558.0236713024766,
+        "prompt_per_token_ms": 1.792038674033149
+      },
+      "usage": {
+        "completion_tokens": 83,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 544
+        },
+        "total_tokens": 808
+      }
+    }
+  },
+  {
+    "cycle": 0,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "item": "key"
+        },
+        "capability_id": "engine.spatial.pick-up/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "f215e945d0ae437d9237067ae2a674e5",
+      "invocation_id": "6fbfe958bc0543de8e0bfbc2e3db5660",
+      "post_revision": 0,
+      "post_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+      "pre_revision": 0,
+      "pre_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+      "result": {
+        "changed": false,
+        "error": "item is not at current position",
+        "output": {},
+        "partial": false,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 1,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "bfe351c69e9648999fca387354d89b76",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 3272.5800839980366,
+      "input_bytes": 3918,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "868f11a6431362a82ad343aa0e3521edfc66e17be8976d28d175a3ea2651e152",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 2520.606,
+        "predicted_n": 99,
+        "predicted_per_second": 39.27626927810217,
+        "predicted_per_token_ms": 25.46066666666667,
+        "prompt_ms": 731.91,
+        "prompt_n": 441,
+        "prompt_per_second": 602.5330983317622,
+        "prompt_per_token_ms": 1.6596598639455782
+      },
+      "usage": {
+        "completion_tokens": 99,
+        "prompt_tokens": 991,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 1090
+      }
+    }
+  },
+  {
+    "cycle": 1,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "bfe351c69e9648999fca387354d89b76",
+      "invocation_id": "028a6242f5d748868cf88a3a89801042",
+      "post_revision": 1,
+      "post_snapshot_sha256": "46ba45218237e045f84ad6896dd96e69969b6cf767629334cd3cea08cca92776",
+      "pre_revision": 0,
+      "pre_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 2,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "342aad5163f64741bdc48e36f1234f4c",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 4237.650249997387,
+      "input_bytes": 7269,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "05e422fa9710957e2d40effad96a41df44181e04794d051c414200bfa706b495",
+      "timings": {
+        "cache_n": 987,
+        "predicted_ms": 2378.249,
+        "predicted_n": 97,
+        "predicted_per_second": 40.786309591636545,
+        "predicted_per_token_ms": 24.51803092783505,
+        "prompt_ms": 1850.939,
+        "prompt_n": 1047,
+        "prompt_per_second": 565.658835866552,
+        "prompt_per_token_ms": 1.767850047755492
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 2034,
+        "prompt_tokens_details": {
+          "cached_tokens": 987
+        },
+        "total_tokens": 2131
+      }
+    }
+  },
+  {
+    "cycle": 2,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "342aad5163f64741bdc48e36f1234f4c",
+      "invocation_id": "1e3deb26c28d4372be5b0d01ac21453b",
+      "post_revision": 2,
+      "post_snapshot_sha256": "7710fb43ee6c1f14982d4bb0b57e2bf87e1d94564fbc927fdfdc46cdc80395c3",
+      "pre_revision": 1,
+      "pre_snapshot_sha256": "46ba45218237e045f84ad6896dd96e69969b6cf767629334cd3cea08cca92776",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 3,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "0af957b723944294b914d25debdf7b9a",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 4906.120166997425,
+      "input_bytes": 11283,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "3e631bc2648855b53f0fd13a0b854173518dc088ea77ef999a1a0a07f4037d23",
+      "timings": {
+        "cache_n": 2030,
+        "predicted_ms": 2350.619,
+        "predicted_n": 97,
+        "predicted_per_second": 41.26572617680704,
+        "predicted_per_token_ms": 24.23318556701031,
+        "prompt_ms": 2543.947,
+        "prompt_n": 1319,
+        "prompt_per_second": 518.4856445515571,
+        "prompt_per_token_ms": 1.9286937073540562
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 3349,
+        "prompt_tokens_details": {
+          "cached_tokens": 2030
+        },
+        "total_tokens": 3446
+      }
+    }
+  },
+  {
+    "cycle": 3,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "0af957b723944294b914d25debdf7b9a",
+      "invocation_id": "1f6c7c68fcb04221bd4938389b42b30e",
+      "post_revision": 3,
+      "post_snapshot_sha256": "163d44911ce046df6e38311e42dba3f03f06152b4208f589ddda31b518c78f88",
+      "pre_revision": 2,
+      "pre_snapshot_sha256": "7710fb43ee6c1f14982d4bb0b57e2bf87e1d94564fbc927fdfdc46cdc80395c3",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 4,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "3fbd60c920b4411688ebd0e3eaeeea35",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 9102.20754200418,
+      "input_bytes": 13285,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "59ce65d6156861bce6d3de9c5dc66471f813695847151efa5208d1274e87534f",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 2418.796,
+        "predicted_n": 97,
+        "predicted_per_second": 40.10259649842318,
+        "predicted_per_token_ms": 24.9360412371134,
+        "prompt_ms": 6612.865,
+        "prompt_n": 3635,
+        "prompt_per_second": 549.6861042830907,
+        "prompt_per_token_ms": 1.819220082530949
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 4185,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 4282
+      }
+    }
+  },
+  {
+    "cycle": 4,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "3fbd60c920b4411688ebd0e3eaeeea35",
+      "invocation_id": "9d4b23da1fcb4fc4ae5b6ee99d0f7b31",
+      "post_revision": 4,
+      "post_snapshot_sha256": "b1da17bacd7260889a5e2cb27215c6dc88e91ccd571591da7bc8278be3d557c4",
+      "pre_revision": 3,
+      "pre_snapshot_sha256": "163d44911ce046df6e38311e42dba3f03f06152b4208f589ddda31b518c78f88",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 5,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "91e33599ab6e45db937b81329cf2d625",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 10962.13612498832,
+      "input_bytes": 15286,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "cd6a09c836942bdff9cde4c5e9dcfa4d0031f9a3982608b4f2463c2087bf2226",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 2544.734,
+        "predicted_n": 97,
+        "predicted_per_second": 38.11793295487858,
+        "predicted_per_token_ms": 26.234371134020616,
+        "prompt_ms": 8347.075,
+        "prompt_n": 4461,
+        "prompt_per_second": 534.4387105662762,
+        "prompt_per_token_ms": 1.8711219457520736
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 5011,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 5108
+      }
+    }
+  },
+  {
+    "cycle": 5,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "91e33599ab6e45db937b81329cf2d625",
+      "invocation_id": "8effdca7048648ca8c34e7face688c0d",
+      "post_revision": 5,
+      "post_snapshot_sha256": "f9124009d4dcb4f654c2cdcbd661b28231fa66c88e35c8ab687e81679d1e28ba",
+      "pre_revision": 4,
+      "pre_snapshot_sha256": "b1da17bacd7260889a5e2cb27215c6dc88e91ccd571591da7bc8278be3d557c4",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 6,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "f30854e7e8cf4a8e8764707208c9b6d9",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 12887.864250005805,
+      "input_bytes": 17287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "cb73ea7e35e487e26a72cda1bda68b3e0a82cc9d5cc944447caf26ddef46418f",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 2611.219,
+        "predicted_n": 97,
+        "predicted_per_second": 37.147401271207045,
+        "predicted_per_token_ms": 26.91978350515464,
+        "prompt_ms": 10166.948,
+        "prompt_n": 5286,
+        "prompt_per_second": 519.9200389340045,
+        "prompt_per_token_ms": 1.9233726825576996
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 5836,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 5933
+      }
+    }
+  },
+  {
+    "cycle": 6,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "f30854e7e8cf4a8e8764707208c9b6d9",
+      "invocation_id": "5b257a04c3d244a2a281cb815c0a97ed",
+      "post_revision": 6,
+      "post_snapshot_sha256": "3d39337ab6c4e027e1d4562b84087c38ba78f99c3b16d2ea6d5ebb40c5ce1724",
+      "pre_revision": 5,
+      "pre_snapshot_sha256": "f9124009d4dcb4f654c2cdcbd661b28231fa66c88e35c8ab687e81679d1e28ba",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 7,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "d7a5d515a9e347f2b91d3b641ccf229d",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 14918.614875001367,
+      "input_bytes": 19288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "60d2eb70f84367af149ca33cb206582cd388078f38fc5ddaa29c2951838b7bb3",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 2668.393,
+        "predicted_n": 97,
+        "predicted_per_second": 36.3514669690709,
+        "predicted_per_token_ms": 27.50920618556701,
+        "prompt_ms": 12102.448,
+        "prompt_n": 6117,
+        "prompt_per_second": 505.43493349444674,
+        "prompt_per_token_ms": 1.9784940330227236
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 6667,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 6764
+      }
+    }
+  },
+  {
+    "cycle": 7,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "d7a5d515a9e347f2b91d3b641ccf229d",
+      "invocation_id": "9642328d969e4e1a8758238e4caf21ce",
+      "post_revision": 7,
+      "post_snapshot_sha256": "eae5e52dd30e79133a4fa710a8f9603a92d2b716420a1feff7bccd2780104e4d",
+      "pre_revision": 6,
+      "pre_snapshot_sha256": "3d39337ab6c4e027e1d4562b84087c38ba78f99c3b16d2ea6d5ebb40c5ce1724",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 8,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "dbb9e2a45bd54fed92b402bfc375bf5c",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17026.432500002556,
+      "input_bytes": 21289,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "7cd4c1d645fad4957fa431549e1f7c1296694fab849ece004d2d0aa9eea911c6",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 2767.018,
+        "predicted_n": 97,
+        "predicted_per_second": 35.0557893009731,
+        "predicted_per_token_ms": 28.5259587628866,
+        "prompt_ms": 14116.372,
+        "prompt_n": 6957,
+        "prompt_per_second": 492.83201094445513,
+        "prompt_per_token_ms": 2.0290889751329595
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7507,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 7604
+      }
+    }
+  },
+  {
+    "cycle": 8,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "dbb9e2a45bd54fed92b402bfc375bf5c",
+      "invocation_id": "e4e466c81d9a498bbfe54536cf08cab3",
+      "post_revision": 8,
+      "post_snapshot_sha256": "f5c512d92facedd173ac4914400fd0588c66c5163977e9c643a34aedaace294d",
+      "pre_revision": 7,
+      "pre_snapshot_sha256": "eae5e52dd30e79133a4fa710a8f9603a92d2b716420a1feff7bccd2780104e4d",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 9,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "4de14f1ee8234cc9a83ac99495a53e04",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18780.55058400787,
+      "input_bytes": 22658,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "f4c70b260afa735618f642484f71caef7054cf0b5a90f68593b483e40e45668b",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 3035.017,
+        "predicted_n": 97,
+        "predicted_per_second": 31.960282265305267,
+        "predicted_per_token_ms": 31.28883505154639,
+        "prompt_ms": 15585.248,
+        "prompt_n": 7529,
+        "prompt_per_second": 483.0850301515895,
+        "prompt_per_token_ms": 2.0700289547084605
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 8079,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 8176
+      }
+    }
+  },
+  {
+    "cycle": 9,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "4de14f1ee8234cc9a83ac99495a53e04",
+      "invocation_id": "bdc4f42597234b17a1926cf52ed379be",
+      "post_revision": 9,
+      "post_snapshot_sha256": "f9902da8357a4d1ee1ac888f28d1f960b8542d68d6656f013b83146d69413760",
+      "pre_revision": 8,
+      "pre_snapshot_sha256": "f5c512d92facedd173ac4914400fd0588c66c5163977e9c643a34aedaace294d",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 222.9571249918081,
+    "cycle": 10,
+    "error": "RuntimeError: decision provider rejected request (400): {\"error\":{\"code\":400,\"message\":\"request (8366 tokens) exceeds the available context size (8192 tokens), try increasing it\",\"type\":\"exceed_context_size_error\",\"n_prompt_tokens\":8366,\"n_ctx\":8192}}",
+    "executive_attempt_id": "b921eb7ce0bc4463a09f13ca542066e3",
+    "kind": "model_error",
+    "usage": {}
+  },
+  {
+    "cycle": 11,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "282b39b7b25840dd8941e6e07e28ccdc",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18644.12995800376,
+      "input_bytes": 22694,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "ab6a6a2138602ab018d78be92f92146cb242cde6e4cba2b6bc3c8e0920ffd04c",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 2986.975,
+        "predicted_n": 97,
+        "predicted_per_second": 32.47432603218976,
+        "predicted_per_token_ms": 30.793556701030926,
+        "prompt_ms": 15644.219,
+        "prompt_n": 7542,
+        "prompt_per_second": 482.0950154175162,
+        "prompt_per_token_ms": 2.074279899230973
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 8092,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 8189
+      }
+    }
+  },
+  {
+    "cycle": 11,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "282b39b7b25840dd8941e6e07e28ccdc",
+      "invocation_id": "98a807f7048742849d6cc2082373e9f2",
+      "post_revision": 10,
+      "post_snapshot_sha256": "fdba3d9ea2a392308e92347ec3726820fd3b47f26ac2f502c4d8e65ad32d7c9a",
+      "pre_revision": 9,
+      "pre_snapshot_sha256": "f9902da8357a4d1ee1ac888f28d1f960b8542d68d6656f013b83146d69413760",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 12,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "ab9d36114bba464fb1d31707796acfe8",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18019.63045798766,
+      "input_bytes": 22065,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "a988101d0e9fcf308b090c73e8fe2158325e011ccecc4610ee458302f88e7538",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 2832.687,
+        "predicted_n": 97,
+        "predicted_per_second": 34.24310557431866,
+        "predicted_per_token_ms": 29.202958762886595,
+        "prompt_ms": 14986.415,
+        "prompt_n": 7282,
+        "prompt_per_second": 485.90673620075245,
+        "prompt_per_token_ms": 2.0580081021697336
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7832,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 7929
+      }
+    }
+  },
+  {
+    "cycle": 12,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "ab9d36114bba464fb1d31707796acfe8",
+      "invocation_id": "c76da8b3442f4150a279e747ccc14547",
+      "post_revision": 11,
+      "post_snapshot_sha256": "45c28b908b3cb335738fee9a6dba88bdcc5d77ab5a3ed86f74968166141ccafd",
+      "pre_revision": 10,
+      "pre_snapshot_sha256": "fdba3d9ea2a392308e92347ec3726820fd3b47f26ac2f502c4d8e65ad32d7c9a",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 13,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "618fdb0f103c46edb5dce104cddc116f",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17512.43970800715,
+      "input_bytes": 21403,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "4e95505c93161cddd72c8083063992d3ce24280e2ab8cea36599a66011206e5d",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 3092.365,
+        "predicted_n": 97,
+        "predicted_per_second": 31.36757788941474,
+        "predicted_per_token_ms": 31.88005154639175,
+        "prompt_ms": 14303.186,
+        "prompt_n": 7018,
+        "prompt_per_second": 490.6599131130645,
+        "prompt_per_token_ms": 2.038071530350527
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7568,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 7665
+      }
+    }
+  },
+  {
+    "cycle": 13,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "618fdb0f103c46edb5dce104cddc116f",
+      "invocation_id": "d2483d3d7fbd429dba12e4944740d795",
+      "post_revision": 12,
+      "post_snapshot_sha256": "0968e852ca782701bac7efa1a04b762328a64015a459a97fb68eda914bd101de",
+      "pre_revision": 11,
+      "pre_snapshot_sha256": "45c28b908b3cb335738fee9a6dba88bdcc5d77ab5a3ed86f74968166141ccafd",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 14,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "07912f32e0424adc8014b8c519041980",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17420.11687500053,
+      "input_bytes": 21409,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "f442a8955ae2834716ca7d7c8b1d47fa75d7a7b952b18ffc252890dac9ff514f",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2825.027,
+        "predicted_n": 97,
+        "predicted_per_second": 34.33595501919097,
+        "predicted_per_token_ms": 29.12398969072165,
+        "prompt_ms": 14386.286,
+        "prompt_n": 7026,
+        "prompt_per_second": 488.3817824836792,
+        "prompt_per_token_ms": 2.0475784230002847
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7577,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7674
+      }
+    }
+  },
+  {
+    "cycle": 14,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "07912f32e0424adc8014b8c519041980",
+      "invocation_id": "9cf162efb23f42a6ae4a59c3444b65b3",
+      "post_revision": 13,
+      "post_snapshot_sha256": "2fe175ad2643853d091993795050024d81c72a98f4aedb44eeff909848fc194e",
+      "pre_revision": 12,
+      "pre_snapshot_sha256": "0968e852ca782701bac7efa1a04b762328a64015a459a97fb68eda914bd101de",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 15,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "12ba79098f6143c59f0da383fd226963",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17312.285708001582,
+      "input_bytes": 21415,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "77c071d9881336cb17912eb410aacf1ef25d8a2b59fc7cbc4cfd0af120640979",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2801.502,
+        "predicted_n": 97,
+        "predicted_per_second": 34.624283687821745,
+        "predicted_per_token_ms": 28.88146391752577,
+        "prompt_ms": 14343.094,
+        "prompt_n": 7021,
+        "prompt_per_second": 489.50386855165283,
+        "prompt_per_token_ms": 2.0428847742486824
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7572,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7669
+      }
+    }
+  },
+  {
+    "cycle": 15,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "12ba79098f6143c59f0da383fd226963",
+      "invocation_id": "4e11487814c84e33af1cfc01349c6eb1",
+      "post_revision": 14,
+      "post_snapshot_sha256": "32f0cb6849e343838889201c0a87857dc15d0a641313699d06a1bc09fd5cb1fc",
+      "pre_revision": 13,
+      "pre_snapshot_sha256": "2fe175ad2643853d091993795050024d81c72a98f4aedb44eeff909848fc194e",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 16,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "3542ef7c3b4741f884625391482b12ad",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17242.144207993988,
+      "input_bytes": 21421,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "a6130e3030781afd74fea98ebea4cf5c5f5bb48468131e08dfe633113a233492",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2808.993,
+        "predicted_n": 97,
+        "predicted_per_second": 34.53194792582253,
+        "predicted_per_token_ms": 28.958690721649482,
+        "prompt_ms": 14309.728,
+        "prompt_n": 7015,
+        "prompt_per_second": 490.2259497874453,
+        "prompt_per_token_ms": 2.0398756949394152
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7566,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7663
+      }
+    }
+  },
+  {
+    "cycle": 16,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "3542ef7c3b4741f884625391482b12ad",
+      "invocation_id": "ce0eb65f9407499bacb3107f11fe5cf0",
+      "post_revision": 15,
+      "post_snapshot_sha256": "1fa68b82d328dde96b30c02d7114558bb76ef02adddde41a48bb53d7d5bf0ed9",
+      "pre_revision": 14,
+      "pre_snapshot_sha256": "32f0cb6849e343838889201c0a87857dc15d0a641313699d06a1bc09fd5cb1fc",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 17,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "866022da7e474c8c91a5e9e32d98c501",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17276.335292001022,
+      "input_bytes": 21427,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "e7a43c47d5e7fedce7b955409b7a214a7baa488209c79d3c90e3535d6027f748",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2850.642,
+        "predicted_n": 97,
+        "predicted_per_second": 34.02742259462956,
+        "predicted_per_token_ms": 29.388061855670102,
+        "prompt_ms": 14304.307,
+        "prompt_n": 7016,
+        "prompt_per_second": 490.48164304639147,
+        "prompt_per_token_ms": 2.038812286202965
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7567,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7664
+      }
+    }
+  },
+  {
+    "cycle": 17,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "866022da7e474c8c91a5e9e32d98c501",
+      "invocation_id": "8ed85d8e38854a038ddff75794462e0c",
+      "post_revision": 16,
+      "post_snapshot_sha256": "43f40f6835bf897e6eba4ed4d9229ec71eee26c559b73da059b4d6a6e9c352de",
+      "pre_revision": 15,
+      "pre_snapshot_sha256": "1fa68b82d328dde96b30c02d7114558bb76ef02adddde41a48bb53d7d5bf0ed9",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 18,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "b63c12d74bfd486da17648c0cd2f7aaa",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17332.317124994006,
+      "input_bytes": 21433,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "554aee521ea64b09dd695c2ac5d0af549687b556b8d8157b8a797fa06836882b",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2881.312,
+        "predicted_n": 97,
+        "predicted_per_second": 33.665219177930055,
+        "predicted_per_token_ms": 29.70424742268041,
+        "prompt_ms": 14302.86,
+        "prompt_n": 7020,
+        "prompt_per_second": 490.8109287233462,
+        "prompt_per_token_ms": 2.0374444444444446
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7571,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7668
+      }
+    }
+  },
+  {
+    "cycle": 18,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "b63c12d74bfd486da17648c0cd2f7aaa",
+      "invocation_id": "d0e668d46ab04fbe874ba63f80c712df",
+      "post_revision": 17,
+      "post_snapshot_sha256": "0a037c5113156db479476100fca22570cdf9cdaf98a5f8448bbab61a008fe04b",
+      "pre_revision": 16,
+      "pre_snapshot_sha256": "43f40f6835bf897e6eba4ed4d9229ec71eee26c559b73da059b4d6a6e9c352de",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 19,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "4b203705185d4176b189376b68cedff2",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18109.546291991137,
+      "input_bytes": 22106,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "cebc7efa6d9a6fb13701a7bdd3e075b5a7c902fd6a5d62b9e6c8139688e760ea",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2908.445,
+        "predicted_n": 97,
+        "predicted_per_second": 33.351154998633284,
+        "predicted_per_token_ms": 29.98396907216495,
+        "prompt_ms": 15046.432,
+        "prompt_n": 7297,
+        "prompt_per_second": 484.9654722129472,
+        "prompt_per_token_ms": 2.0620024667671646
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7848,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7945
+      }
+    }
+  },
+  {
+    "cycle": 19,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "4b203705185d4176b189376b68cedff2",
+      "invocation_id": "25200c5591e241ed8d1fa0ddccf04972",
+      "post_revision": 18,
+      "post_snapshot_sha256": "d69bfafc18e916f5b6e5d4c5ee6c637a7133aecf7eacae73709005a60a2f3132",
+      "pre_revision": 17,
+      "pre_snapshot_sha256": "0a037c5113156db479476100fca22570cdf9cdaf98a5f8448bbab61a008fe04b",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 18246.16129200149,
+    "cycle": 20,
+    "error": "RuntimeError: decision provider returned invalid JSON (finish_reason=length): '{\\n  \"kind\": \"use_tool\",\\n  \"name\": \"engine.spatial.step/v1\",\\n  \"arguments\": {\\n    \"direction\": \"east\"\\n  },\\n  \"rationale\": \"The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the'",
+    "executive_attempt_id": "0e13c373485d489db714a3e49a59da62",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 18246.16129200149,
+      "input_bytes": 22778,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "5812cca5b686f0262b829e74b9efcced85c936aef047f19361a0b97efed496c0",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2430.354,
+        "predicted_n": 81,
+        "predicted_per_second": 33.3284780735646,
+        "predicted_per_token_ms": 30.004370370370367,
+        "prompt_ms": 15660.643,
+        "prompt_n": 7560,
+        "prompt_per_second": 482.73879942222044,
+        "prompt_per_token_ms": 2.0715136243386243
+      },
+      "usage": {
+        "completion_tokens": 81,
+        "prompt_tokens": 8111,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 8192
+      }
+    }
+  },
+  {
+    "cycle": 21,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "4284349128f043c6bba7ac7a09974f4d",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 8012.671042000875,
+      "input_bytes": 22109,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "d5315ed02011037e664ad6f7d9842d4a56931f0a8607dc3c5e3200eb925c17a7",
+      "timings": {
+        "cache_n": 5716,
+        "predicted_ms": 2883.891,
+        "predicted_n": 97,
+        "predicted_per_second": 33.63511311627242,
+        "predicted_per_token_ms": 29.730835051546393,
+        "prompt_ms": 5113.47,
+        "prompt_n": 2120,
+        "prompt_per_second": 414.59126581362557,
+        "prompt_per_token_ms": 2.4120141509433966
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7836,
+        "prompt_tokens_details": {
+          "cached_tokens": 5716
+        },
+        "total_tokens": 7933
+      }
+    }
+  },
+  {
+    "cycle": 21,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "4284349128f043c6bba7ac7a09974f4d",
+      "invocation_id": "9018b487fe214d04a9038b4752ac5f25",
+      "post_revision": 19,
+      "post_snapshot_sha256": "dccd980de9caf2490275962a0b19dd9a6d3357f40bca8cc62d2e1162c54ea382",
+      "pre_revision": 18,
+      "pre_snapshot_sha256": "d69bfafc18e916f5b6e5d4c5ee6c637a7133aecf7eacae73709005a60a2f3132",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 22,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "325fa5bfb7d6447ab89741050aa0ccef",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18541.479292005533,
+      "input_bytes": 22110,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "42e92309f2e38d2e4c41505b314069357897489e81fd48548a5c28f6023298bb",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 3186.102,
+        "predicted_n": 97,
+        "predicted_per_second": 30.444725247339857,
+        "predicted_per_token_ms": 32.84641237113402,
+        "prompt_ms": 15158.654,
+        "prompt_n": 7284,
+        "prompt_per_second": 480.5175974067354,
+        "prompt_per_token_ms": 2.081089236683141
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7835,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7932
+      }
+    }
+  },
+  {
+    "cycle": 22,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "325fa5bfb7d6447ab89741050aa0ccef",
+      "invocation_id": "e08d7ec14d674171a9e7a3b43d96f4b7",
+      "post_revision": 20,
+      "post_snapshot_sha256": "05fb640ff50e2a9de57d585789e490beb32c55cc93ea11b0792566acb0f49a20",
+      "pre_revision": 19,
+      "pre_snapshot_sha256": "dccd980de9caf2490275962a0b19dd9a6d3357f40bca8cc62d2e1162c54ea382",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 23,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "fc431fd10d4e48b29ad3ef1b3dff10cd",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18683.041000011144,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "02fd33e71e8744c058cf11224692308b6cc401a27723452f494d7ca3b54806e0",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 3810.053,
+        "predicted_n": 97,
+        "predicted_per_second": 25.458963431742287,
+        "predicted_per_token_ms": 39.27889690721649,
+        "prompt_ms": 14741.224,
+        "prompt_n": 7008,
+        "prompt_per_second": 475.4014999025861,
+        "prompt_per_token_ms": 2.1034851598173514
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7558,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 7655
+      }
+    }
+  },
+  {
+    "cycle": 23,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "fc431fd10d4e48b29ad3ef1b3dff10cd",
+      "invocation_id": "39ce6ee292b24ad0a33fb733d07c52ac",
+      "post_revision": 21,
+      "post_snapshot_sha256": "92a6d65d5a73b0db4cd5671144292228dbd371c20a36886d9fdccffb2d31badd",
+      "pre_revision": 20,
+      "pre_snapshot_sha256": "05fb640ff50e2a9de57d585789e490beb32c55cc93ea11b0792566acb0f49a20",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 24,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "a7175fb7e9174bb3b54520ada8b7b372",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18206.05708299263,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "ee33e66c1ef597cfcd42ff7e8f960cd9a296023935137068511259fb62607e88",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2888.312,
+        "predicted_n": 97,
+        "predicted_per_second": 33.583629469392505,
+        "predicted_per_token_ms": 29.77641237113402,
+        "prompt_ms": 15164.634,
+        "prompt_n": 7003,
+        "prompt_per_second": 461.7981548384221,
+        "prompt_per_token_ms": 2.1654482364700844
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7554,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7651
+      }
+    }
+  },
+  {
+    "cycle": 24,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "a7175fb7e9174bb3b54520ada8b7b372",
+      "invocation_id": "874b1232799944bb8a8023de9d26478b",
+      "post_revision": 22,
+      "post_snapshot_sha256": "fddd7bbe4bebc3be58757d1062605e5a5b897d7443e620543e6bee8b1808cfde",
+      "pre_revision": 21,
+      "pre_snapshot_sha256": "92a6d65d5a73b0db4cd5671144292228dbd371c20a36886d9fdccffb2d31badd",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 25,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "4f9519539aea45229274e806142485cc",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17311.83045801299,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "d342a4a7287253c5022eefb7907bcb6790fd08f2899a637b3c7c804c68886f54",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2925.818,
+        "predicted_n": 97,
+        "predicted_per_second": 33.15312162273935,
+        "predicted_per_token_ms": 30.163072164948456,
+        "prompt_ms": 14223.434,
+        "prompt_n": 6988,
+        "prompt_per_second": 491.30188954369254,
+        "prompt_per_token_ms": 2.035408414424728
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7539,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7636
+      }
+    }
+  },
+  {
+    "cycle": 25,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "4f9519539aea45229274e806142485cc",
+      "invocation_id": "78aff46fdaba4e21aea4b5d90aba4135",
+      "post_revision": 23,
+      "post_snapshot_sha256": "ce79e0475fbcf50b2fd3eba141eaf85b92d78d922f620e7ddb7f547975f1a8cb",
+      "pre_revision": 22,
+      "pre_snapshot_sha256": "fddd7bbe4bebc3be58757d1062605e5a5b897d7443e620543e6bee8b1808cfde",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 26,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "26ecdc35cc034572b5b7d01cd2579ca1",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17146.43804100342,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "c9e8d265b79f58161a7da8eebbc0311a35e8376f66d259536d6660591aef638d",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2848.479,
+        "predicted_n": 97,
+        "predicted_per_second": 34.053261407228206,
+        "predicted_per_token_ms": 29.365762886597935,
+        "prompt_ms": 14155.833,
+        "prompt_n": 6968,
+        "prompt_per_second": 492.2352503028257,
+        "prompt_per_token_ms": 2.031548938002296
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7519,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7616
+      }
+    }
+  },
+  {
+    "cycle": 26,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "26ecdc35cc034572b5b7d01cd2579ca1",
+      "invocation_id": "127a07de0c6a429299c4a83b56babb15",
+      "post_revision": 24,
+      "post_snapshot_sha256": "6565d936dd1672229eacb530ced0175bb7553d66f3b35d412aadd6aac14e494e",
+      "pre_revision": 23,
+      "pre_snapshot_sha256": "ce79e0475fbcf50b2fd3eba141eaf85b92d78d922f620e7ddb7f547975f1a8cb",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 27,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "41ee96ed96f74e32b24fb169a4876a14",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17357.623250005418,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "ce2c5183f7b7ad9bb2c03afbdd12400513739bf88e90a0b2cee1fd8c8c952640",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 3053.158,
+        "predicted_n": 97,
+        "predicted_per_second": 31.77038332113831,
+        "predicted_per_token_ms": 31.47585567010309,
+        "prompt_ms": 14166.496,
+        "prompt_n": 6961,
+        "prompt_per_second": 491.370625453182,
+        "prompt_per_token_ms": 2.0351236891251254
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7512,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7609
+      }
+    }
+  },
+  {
+    "cycle": 27,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "41ee96ed96f74e32b24fb169a4876a14",
+      "invocation_id": "50d53619ac0b445d9666de81f1acb878",
+      "post_revision": 25,
+      "post_snapshot_sha256": "0b7fb9ca7b49fcc26e1b9d1d86efb389f052b50fd95a7ee07c502449db15cda3",
+      "pre_revision": 24,
+      "pre_snapshot_sha256": "6565d936dd1672229eacb530ced0175bb7553d66f3b35d412aadd6aac14e494e",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 28,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "1ff0929851284ea6a8b70b9fbe66dc1b",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17264.190125002642,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "0db9d6aecbf390186ccc5fcdfb5d656f61322a428612f9ff5eb9cb60c5c37973",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2874.985,
+        "predicted_n": 97,
+        "predicted_per_second": 33.739306465946775,
+        "predicted_per_token_ms": 29.639020618556703,
+        "prompt_ms": 14215.735,
+        "prompt_n": 6953,
+        "prompt_per_second": 489.1059097542265,
+        "prompt_per_token_ms": 2.044546958147562
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7504,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7601
+      }
+    }
+  },
+  {
+    "cycle": 28,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "1ff0929851284ea6a8b70b9fbe66dc1b",
+      "invocation_id": "d43f4d548f39478ead70c280f0b85578",
+      "post_revision": 26,
+      "post_snapshot_sha256": "82ea909a4f847a98ae41b111d3f2f01c5c3a8458c5ee5d2648bd80cd0af49a05",
+      "pre_revision": 25,
+      "pre_snapshot_sha256": "0b7fb9ca7b49fcc26e1b9d1d86efb389f052b50fd95a7ee07c502449db15cda3",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 29,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "7be6feda355249b7a47173221778d616",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18000.58808400354,
+      "input_bytes": 22111,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "407143039fd193247651ff1dda15a02eb47dd0a4ae825a317d62f96e83a82c5c",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2965.221,
+        "predicted_n": 97,
+        "predicted_per_second": 32.71257015918881,
+        "predicted_per_token_ms": 30.569288659793813,
+        "prompt_ms": 14897.798,
+        "prompt_n": 7233,
+        "prompt_per_second": 485.5079925234588,
+        "prompt_per_token_ms": 2.0596983271118487
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7784,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7881
+      }
+    }
+  },
+  {
+    "cycle": 29,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "7be6feda355249b7a47173221778d616",
+      "invocation_id": "0d5ca04ec7804e20a60c3a1474ba6565",
+      "post_revision": 27,
+      "post_snapshot_sha256": "5ab75ec6626e7e55249c5e5c19b8b9dfa552c21acdb0991157836a37cf251cf6",
+      "pre_revision": 26,
+      "pre_snapshot_sha256": "82ea909a4f847a98ae41b111d3f2f01c5c3a8458c5ee5d2648bd80cd0af49a05",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 30,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "f3e4ecded76540b3a155bd3d3e21ab9d",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18672.378916002344,
+      "input_bytes": 22780,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "7225a5a3428dfb37314446e9ab6ccc9421715b54adce7a68b31b1a295b1c76c0",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2958.643,
+        "predicted_n": 97,
+        "predicted_per_second": 32.785300558397886,
+        "predicted_per_token_ms": 30.501474226804124,
+        "prompt_ms": 15576.025,
+        "prompt_n": 7512,
+        "prompt_per_second": 482.279657358023,
+        "prompt_per_token_ms": 2.0734857561235356
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 8063,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 8160
+      }
+    }
+  },
+  {
+    "cycle": 30,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "f3e4ecded76540b3a155bd3d3e21ab9d",
+      "invocation_id": "af62bc5142dc410ca520a98f09b9e6be",
+      "post_revision": 28,
+      "post_snapshot_sha256": "8c41037004e9f711d4abfa9b23e0083a85f621b8b7b4c2cf9496f557302d5278",
+      "pre_revision": 27,
+      "pre_snapshot_sha256": "5ab75ec6626e7e55249c5e5c19b8b9dfa552c21acdb0991157836a37cf251cf6",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 132.12549999298062,
+    "cycle": 31,
+    "error": "RuntimeError: decision provider rejected request (400): {\"error\":{\"code\":400,\"message\":\"request (8348 tokens) exceeds the available context size (8192 tokens), try increasing it\",\"type\":\"exceed_context_size_error\",\"n_prompt_tokens\":8348,\"n_ctx\":8192}}",
+    "executive_attempt_id": "90ed1ba4811d4b3083d79abb808e6be7",
+    "kind": "model_error",
+    "usage": {}
+  },
+  {
+    "cycle": 32,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "732d820e0c5f45668700a32541fbc0dd",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18592.573250003625,
+      "input_bytes": 22780,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "26e245c81fa15ac049b9b946324cc1c464c654d16d4225411f17010026339db2",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2990.694,
+        "predicted_n": 97,
+        "predicted_per_second": 32.43394342584029,
+        "predicted_per_token_ms": 30.831896907216496,
+        "prompt_ms": 15589.8,
+        "prompt_n": 7525,
+        "prompt_per_second": 482.6873981705987,
+        "prompt_per_token_ms": 2.071734219269103
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 8076,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 8173
+      }
+    }
+  },
+  {
+    "cycle": 32,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "732d820e0c5f45668700a32541fbc0dd",
+      "invocation_id": "8585626de21b43fda07c1d10356e51b1",
+      "post_revision": 29,
+      "post_snapshot_sha256": "7100734818793e2eb7c779d5572ead26c8e7a24d8cab6d00dbdb89ff56399b8d",
+      "pre_revision": 28,
+      "pre_snapshot_sha256": "8c41037004e9f711d4abfa9b23e0083a85f621b8b7b4c2cf9496f557302d5278",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 33,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "56dc74a03ea84cc58f309a5cad390cae",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 18095.357459009392,
+      "input_bytes": 22111,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "1775a14e49efa299fc32df5b516bc4d28621269b0658f4281b819df8d6dae40e",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 3015.09,
+        "predicted_n": 97,
+        "predicted_per_second": 32.17151063484008,
+        "predicted_per_token_ms": 31.083402061855672,
+        "prompt_ms": 14940.162,
+        "prompt_n": 7270,
+        "prompt_per_second": 486.60784267265643,
+        "prompt_per_token_ms": 2.055042916093535
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7820,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 7917
+      }
+    }
+  },
+  {
+    "cycle": 33,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "56dc74a03ea84cc58f309a5cad390cae",
+      "invocation_id": "077c980c31414f8cbe4eee2e5772bfa8",
+      "post_revision": 30,
+      "post_snapshot_sha256": "034e0b2c9df246f4fa327530ce6a440343379d222f87ce77c6f09b3a609e8cb7",
+      "pre_revision": 29,
+      "pre_snapshot_sha256": "7100734818793e2eb7c779d5572ead26c8e7a24d8cab6d00dbdb89ff56399b8d",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 34,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "1de093e528324f9aad92821e8c926549",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17373.02279099822,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "9507e9e0f8bcc0729882a0f0b7906c92477604955d01b389c6ae87414e0218eb",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2840.112,
+        "predicted_n": 97,
+        "predicted_per_second": 34.15358267561279,
+        "predicted_per_token_ms": 29.279505154639175,
+        "prompt_ms": 14302.594,
+        "prompt_n": 7020,
+        "prompt_per_second": 490.8200568372423,
+        "prompt_per_token_ms": 2.037406552706553
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7571,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7668
+      }
+    }
+  },
+  {
+    "cycle": 34,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "1de093e528324f9aad92821e8c926549",
+      "invocation_id": "a067af48566f439191c5655c0a14b9e2",
+      "post_revision": 31,
+      "post_snapshot_sha256": "201edfccfb965c14723ad93d5acf00b0409de3d87cc0b7ee205262968ca1b2c5",
+      "pre_revision": 30,
+      "pre_snapshot_sha256": "034e0b2c9df246f4fa327530ce6a440343379d222f87ce77c6f09b3a609e8cb7",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 35,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "7201925e56294c73a6c06a3fb2171660",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17352.34524999396,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "60d1f7abd20875b4951e22b2837fa7f700aca7ac4c1d23b35977015c4e5c5d0f",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2843.364,
+        "predicted_n": 97,
+        "predicted_per_second": 34.114520687467376,
+        "predicted_per_token_ms": 29.31303092783505,
+        "prompt_ms": 14367.673,
+        "prompt_n": 7046,
+        "prompt_per_second": 490.40648405625603,
+        "prompt_per_token_ms": 2.039124751632132
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7597,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7694
+      }
+    }
+  },
+  {
+    "cycle": 35,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "7201925e56294c73a6c06a3fb2171660",
+      "invocation_id": "47067ed03cba40f0a204cb125f511f04",
+      "post_revision": 32,
+      "post_snapshot_sha256": "05927168399da70043558d839b6ea642750d3f07fc3ab9fe25edd9f21a758347",
+      "pre_revision": 31,
+      "pre_snapshot_sha256": "201edfccfb965c14723ad93d5acf00b0409de3d87cc0b7ee205262968ca1b2c5",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 36,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "6ba9b122467f4d6aa39ff7099aff0c9f",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17459.06633300183,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "cee170c7e97833c0920c43c50a0a3d08497e7d1bba2dae253de06f88fde4f0af",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2841.36,
+        "predicted_n": 97,
+        "predicted_per_second": 34.13858152434045,
+        "predicted_per_token_ms": 29.29237113402062,
+        "prompt_ms": 14434.223,
+        "prompt_n": 7064,
+        "prompt_per_second": 489.3924667784335,
+        "prompt_per_token_ms": 2.0433498018120044
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7615,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7712
+      }
+    }
+  },
+  {
+    "cycle": 36,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "6ba9b122467f4d6aa39ff7099aff0c9f",
+      "invocation_id": "216017e7b2874d81ad1ec48b3282688d",
+      "post_revision": 33,
+      "post_snapshot_sha256": "89ee85cfc0e8400f239ad080b1dc3eb4c329739bae9d1f6e8fe77ee2e6b344e9",
+      "pre_revision": 32,
+      "pre_snapshot_sha256": "05927168399da70043558d839b6ea642750d3f07fc3ab9fe25edd9f21a758347",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 37,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "31e57732eee84706878ad8b05e88616b",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17478.578417008976,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "560382dda9b2a8665c244f48b80ae62cada78471cfae1a6c3e3b0df5bf05bad6",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2852.397,
+        "predicted_n": 97,
+        "predicted_per_second": 34.00648647435823,
+        "predicted_per_token_ms": 29.406154639175256,
+        "prompt_ms": 14447.262,
+        "prompt_n": 7074,
+        "prompt_per_second": 489.64295103113653,
+        "prompt_per_token_ms": 2.0423044953350296
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7625,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7722
+      }
+    }
+  },
+  {
+    "cycle": 37,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "31e57732eee84706878ad8b05e88616b",
+      "invocation_id": "7f5b9848290d4941bc4e1b1ef637d338",
+      "post_revision": 34,
+      "post_snapshot_sha256": "39954010fdd56781726dc0c93802f7adf754ebd8c5e3a74c4e71e48db852a92c",
+      "pre_revision": 33,
+      "pre_snapshot_sha256": "89ee85cfc0e8400f239ad080b1dc3eb4c329739bae9d1f6e8fe77ee2e6b344e9",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 38,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "897830b09f6f4d2492beee1bc2f38f69",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17479.918541008374,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "b752bddc71a8bce13eeeff7f6f77d79e46ea5234f3b7a6125e898c9dadb358ab",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2844.566,
+        "predicted_n": 97,
+        "predicted_per_second": 34.10010525331457,
+        "predicted_per_token_ms": 29.32542268041237,
+        "prompt_ms": 14484.749,
+        "prompt_n": 7078,
+        "prompt_per_second": 488.6518917241852,
+        "prompt_per_token_ms": 2.046446595083357
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7629,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7726
+      }
+    }
+  },
+  {
+    "cycle": 38,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "897830b09f6f4d2492beee1bc2f38f69",
+      "invocation_id": "6572336a14554b1e958cc28f67204f66",
+      "post_revision": 35,
+      "post_snapshot_sha256": "908b0bd8c942fa0a46248304ad56eb21539eefabd2c735d2761b49b43d5d1db4",
+      "pre_revision": 34,
+      "pre_snapshot_sha256": "39954010fdd56781726dc0c93802f7adf754ebd8c5e3a74c4e71e48db852a92c",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  },
+  {
+    "cycle": 39,
+    "decision": {
+      "arguments": {
+        "direction": "east"
+      },
+      "based_on": [],
+      "kind": "use_tool",
+      "name": "engine.spatial.step/v1",
+      "rationale": "The key is located at position [2,0], and the rover is currently at [0,0]. To retrieve the key, the rover needs to move towards the key. Moving east will bring the rover closer to the key's position."
+    },
+    "executive_attempt_id": "1e236f7c4ca24f5a9e9fed2648eace20",
+    "kind": "decision",
+    "usage": {
+      "caller_wall_ms": 17481.212500002584,
+      "input_bytes": 21442,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "29bc77fe6a23cc06ec197dada033b1d084988dc0fe19895753906c915fcd73bb",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 2854.052,
+        "predicted_n": 97,
+        "predicted_per_second": 33.98676688441556,
+        "predicted_per_token_ms": 29.423216494845363,
+        "prompt_ms": 14486.912,
+        "prompt_n": 7082,
+        "prompt_per_second": 488.8550437802066,
+        "prompt_per_token_ms": 2.0455961592770406
+      },
+      "usage": {
+        "completion_tokens": 97,
+        "prompt_tokens": 7633,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 7730
+      }
+    }
+  },
+  {
+    "cycle": 39,
+    "kind": "tool_result",
+    "payload": {
+      "call": {
+        "arguments": {
+          "direction": "east"
+        },
+        "capability_id": "engine.spatial.step/v1",
+        "target_id": "rover-sim"
+      },
+      "decision_attempt_id": "1e236f7c4ca24f5a9e9fed2648eace20",
+      "invocation_id": "38b7e7857d224289b410f13820abdcdb",
+      "post_revision": 36,
+      "post_snapshot_sha256": "7762beaca1eda01c316e1d1c56e2b760f0a57e0a2cd0110013007a6deb5f2915",
+      "pre_revision": 35,
+      "pre_snapshot_sha256": "908b0bd8c942fa0a46248304ad56eb21539eefabd2c735d2761b49b43d5d1db4",
+      "result": {
+        "changed": true,
+        "error": "movement blocked",
+        "output": {
+          "attempted": [
+            1,
+            0
+          ],
+          "obstacle_discovered": [
+            1,
+            0
+          ]
+        },
+        "partial": true,
+        "succeeded": false
+      }
+    }
+  }
+]

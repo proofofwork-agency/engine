@@ -1,0 +1,33 @@
+[homey]
+address = "http://192.168.1.100"
+homey_id = "replace-with-homey-id"
+target_id = "home"
+mode = "observe"
+timeout_seconds = 5.0
+poll_interval_seconds = 2.0
+max_snapshot_age_seconds = 30.0
+events = true
+plugin_database = "./homeops.db"
+engine_database = "./engine-homeops.db"
+
+[[zones]]
+id = "replace-with-zone-id"
+alias = "living_room"
+
+# Every Homey device is observed. Only explicitly allowlisted capabilities below
+# may be controlled. `rated_power_w` is a planning bound, not observed telemetry.
+[[devices]]
+id = "replace-with-light-device-id"
+alias = "living_room_main_light"
+zone = "living_room"
+kind = "light"
+control = ["onoff", "dim"]
+rated_power_w = 12.0
+capability_map = { on = "onoff", brightness = "dim" }
+limits = { brightness = [0.0, 0.70] }
+
+[[devices]]
+id = "replace-with-lux-sensor-id"
+alias = "living_room_lux"
+zone = "living_room"
+kind = "sensor"

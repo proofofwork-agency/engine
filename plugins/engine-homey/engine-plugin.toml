@@ -1,0 +1,158 @@
+[plugin]
+id = "engine.homey"
+version = "0.2.0"
+engine_api = ">=2.0,<3"
+contract_version = "engine.plugin/v2"
+description = "Homey whole-world provider and typed domain controllers"
+
+[declarations]
+world_providers = ["homey-world"]
+controllers = ["homey-domain-controller"]
+executors = ["homey-executor"]
+effect_oracles = ["homey-effect-oracle"]
+specialists = ["engine.homey.domain-specialist/v2"]
+experience_providers = ["homey-behavior"]
+routine_compilers = ["homey-routine-compiler"]
+entity_types = ["homey.home", "homey.zone", "homey.device", "homey.camera"]
+relation_types = ["contains", "located_in", "measures", "illuminates"]
+observation_types = ["on", "brightness", "illuminance_lux", "power_w", "presence", "presence.inactive_seconds", "lighting.any_on", "temperature_c", "thermostat_target_c", "cover_position", "camera.detection"]
+
+[needs]
+network = ["local-homey-http", "local-homey-socketio"]
+filesystem = ["plugin-private-sqlite"]
+secrets = ["homey-runtime-credential"]
+privacy = ["camera-signals-local-only"]
+
+[store]
+identity = "engine.homey.store"
+schema_version = 2
+
+[[capability_families]]
+id = "engine.homey.lighting-zone/v2"
+family = "homey.lighting.zone"
+version = "2.0.0"
+description = "Achieve a bounded illuminance effect in one Homey zone"
+control_layer = "semantic"
+invocation_mode = "immediate"
+risk_class = "low"
+privacy_class = "local"
+idempotent = true
+deadline_ms = 10000
+effect_measurements = ["illuminance_lux", "power_w"]
+recovery = "observe_and_reconcile"
+input_schema = {type = "object", required = ["alias", "on", "brightness"], properties = {alias = {type = "string"}, on = {type = "boolean"}, brightness = {type = "number", minimum = 0.01, maximum = 1.0}}, additionalProperties = false}
+effect_schema = {type = "object", required = ["minimum_lux", "maximum_lux", "max_power_w", "brightness_max"], properties = {minimum_lux = {type = "number", minimum = 0}, maximum_lux = {type = "number", minimum = 0}, max_power_w = {type = "number", minimum = 0}, brightness_max = {type = "number", minimum = 0.01, maximum = 1.0}}, additionalProperties = false}
+limits = {brightness = {min = 0.01, max = 1.0}}
+
+[[preferences]]
+id = "engine.homey.preference.lighting-brightness-band/v1"
+capability_family = "homey.lighting.zone"
+unit = "ratio"
+promotion_mode = "shadow_low_risk"
+description = "A zone lighting brightness band quantized to five-percent steps"
+value_schema = {type = "array", minItems = 2, maxItems = 2, items = {type = "number", minimum = 0.0, maximum = 1.0}}
+
+[[capability_families]]
+id = "engine.homey.lighting-zone-state/v1"
+family = "homey.lighting.zone-state"
+version = "1.0.0"
+description = "Set one fresh allowlisted lamp toward a zone on/off effect"
+control_layer = "semantic"
+invocation_mode = "immediate"
+risk_class = "low"
+privacy_class = "local"
+idempotent = true
+deadline_ms = 10000
+effect_measurements = ["lighting.any_on"]
+recovery = "observe_and_repeat_one_lamp"
+input_schema = {type = "object", required = ["alias", "on"], properties = {alias = {type = "string"}, on = {type = "boolean"}}, additionalProperties = false}
+effect_schema = {type = "object", required = ["on"], properties = {on = {type = "boolean"}}, additionalProperties = false}
+
+[[routines]]
+id = "lighting.daily-off/v1"
+capability_family = "homey.lighting.zone-state"
+priority = 70
+shadow_days = 7
+minimum_shadow_opportunities = 3
+minimum_shadow_agreement = 0.8
+trigger_window_seconds = 1800
+description = "Turn one enrolled lighting zone off once around a learned local quarter-hour"
+pattern_schema = {type = "object", required = ["minute_of_day", "on"], properties = {minute_of_day = {type = "integer", minimum = 0, maximum = 1425, multipleOf = 15}, on = {const = false}}, additionalProperties = false}
+guard_schema = {type = "object"}
+goal_schema = {type = "object"}
+
+[[routines]]
+id = "lighting.presence-dark-on/v1"
+capability_family = "homey.lighting.zone"
+priority = 80
+shadow_days = 7
+minimum_shadow_opportunities = 3
+minimum_shadow_agreement = 0.8
+trigger_window_seconds = 1800
+description = "Maintain a bounded lighting band on fresh presence plus darkness"
+pattern_schema = {type = "object", required = ["maximum_lux", "on"], properties = {maximum_lux = {type = "number", minimum = 5, maximum = 100, multipleOf = 5}, on = {const = true}}, additionalProperties = false}
+guard_schema = {type = "object"}
+goal_schema = {type = "object"}
+
+[[routines]]
+id = "lighting.presence-absent-off/v1"
+capability_family = "homey.lighting.zone-state"
+priority = 90
+shadow_days = 7
+minimum_shadow_opportunities = 3
+minimum_shadow_agreement = 0.8
+trigger_window_seconds = 1800
+description = "Turn one enrolled lighting zone off after fresh continuous absence"
+pattern_schema = {type = "object", required = ["minimum_inactive_seconds", "on"], properties = {minimum_inactive_seconds = {type = "integer", minimum = 300, maximum = 86400, multipleOf = 300}, on = {const = false}}, additionalProperties = false}
+guard_schema = {type = "object"}
+goal_schema = {type = "object"}
+
+[[capability_families]]
+id = "engine.homey.switch/v2"
+family = "homey.switch"
+version = "2.0.0"
+description = "Set one enrolled Homey switch"
+control_layer = "semantic"
+invocation_mode = "immediate"
+risk_class = "low"
+privacy_class = "local"
+idempotent = true
+deadline_ms = 10000
+effect_measurements = ["on"]
+recovery = "observe_and_reconcile"
+input_schema = {type = "object", required = ["alias", "on"], properties = {alias = {type = "string"}, on = {type = "boolean"}}, additionalProperties = false}
+effect_schema = {type = "object", required = ["on"], properties = {on = {type = "boolean"}}, additionalProperties = false}
+
+[[capability_families]]
+id = "engine.homey.cover-position/v2"
+family = "homey.cover.position"
+version = "2.0.0"
+description = "Set one enrolled cover position"
+control_layer = "semantic"
+invocation_mode = "immediate"
+risk_class = "low"
+privacy_class = "local"
+idempotent = true
+deadline_ms = 10000
+effect_measurements = ["cover_position"]
+recovery = "observe_and_reconcile"
+input_schema = {type = "object", required = ["alias", "position"], properties = {alias = {type = "string"}, position = {type = "number", minimum = 0.0, maximum = 1.0}}, additionalProperties = false}
+effect_schema = {type = "object", required = ["position"], properties = {position = {type = "number", minimum = 0.0, maximum = 1.0}}, additionalProperties = false}
+limits = {position = {min = 0.0, max = 1.0}}
+
+[[capability_families]]
+id = "engine.homey.climate-target/v2"
+family = "homey.climate.target"
+version = "2.0.0"
+description = "Set one enrolled thermostat target"
+control_layer = "semantic"
+invocation_mode = "immediate"
+risk_class = "medium"
+privacy_class = "local"
+idempotent = true
+deadline_ms = 10000
+effect_measurements = ["thermostat_target_c", "temperature_c"]
+recovery = "observe_and_reconcile"
+input_schema = {type = "object", required = ["alias", "temperature_c"], properties = {alias = {type = "string"}, temperature_c = {type = "number", minimum = 5.0, maximum = 35.0}}, additionalProperties = false}
+effect_schema = {type = "object", required = ["temperature_c"], properties = {temperature_c = {type = "number", minimum = 5.0, maximum = 35.0}}, additionalProperties = false}
+limits = {temperature_c = {min = 5.0, max = 35.0}}

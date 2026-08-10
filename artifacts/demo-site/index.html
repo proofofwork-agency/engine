@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Engine 0.1 — Heart + Brain</title>
+  <style>
+    :root {
+      --ink: #15201d;
+      --muted: #60706a;
+      --paper: #f2efe7;
+      --panel: rgba(255,255,255,.66);
+      --line: rgba(21,32,29,.15);
+      --green: #0d795e;
+      --lime: #b9ed75;
+      --orange: #f1a65a;
+      --blue: #5c86e8;
+      --shadow: 0 24px 70px rgba(34,52,46,.12);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(185,237,117,.32), transparent 25rem),
+        radial-gradient(circle at 90% 28%, rgba(92,134,232,.18), transparent 30rem),
+        var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0; z-index: -1; opacity: .23;
+      background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, black, transparent 75%);
+    }
+    a { color: inherit; }
+    .wrap { width: min(1180px, calc(100% - 36px)); margin: 0 auto; }
+    nav { display:flex; justify-content:space-between; align-items:center; padding:22px 0; font-size:13px; letter-spacing:.08em; text-transform:uppercase; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:800; }
+    .pulse { width:13px; height:13px; border-radius:50%; background:var(--green); box-shadow:0 0 0 0 rgba(13,121,94,.4); animation:pulse 2s infinite; }
+    @keyframes pulse { 70% { box-shadow:0 0 0 13px rgba(13,121,94,0); } }
+    nav .links { display:flex; gap:20px; color:var(--muted); }
+    nav a { text-decoration:none; }
+    .hero { padding:76px 0 60px; display:grid; grid-template-columns:1.2fr .8fr; gap:54px; align-items:end; }
+    .eyebrow { color:var(--green); font-weight:800; text-transform:uppercase; letter-spacing:.14em; font-size:12px; }
+    h1 { margin:13px 0 22px; font-size:clamp(54px,9vw,112px); line-height:.84; letter-spacing:-.065em; max-width:820px; }
+    h1 span { color:var(--green); }
+    .lede { font-size:clamp(18px,2vw,24px); line-height:1.45; max-width:740px; color:#34443f; }
+    .hero-side { padding:26px; border:1px solid var(--line); border-radius:24px; background:var(--panel); backdrop-filter:blur(16px); box-shadow:var(--shadow); }
+    .status { display:flex; align-items:center; justify-content:space-between; margin-bottom:26px; }
+    .badge { padding:7px 11px; border-radius:999px; font-size:12px; font-weight:800; background:var(--lime); }
+    .big-number { font-size:58px; font-weight:800; letter-spacing:-.06em; }
+    .small { color:var(--muted); font-size:13px; line-height:1.5; }
+    section { padding:70px 0; }
+    .section-head { display:grid; grid-template-columns:.7fr 1.3fr; gap:40px; align-items:start; margin-bottom:34px; }
+    h2 { margin:0; font-size:clamp(34px,5vw,62px); letter-spacing:-.045em; line-height:.95; }
+    .section-head p { margin:0; font-size:18px; line-height:1.6; color:#455650; }
+    .loop { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+    .node { position:relative; min-height:180px; border:1px solid var(--line); border-radius:20px; padding:20px; background:var(--panel); transition:.25s ease; }
+    .node::after { content:"→"; position:absolute; right:-16px; top:48%; font-weight:800; z-index:2; }
+    .node:last-child::after { content:"↺"; }
+    .node.active { transform:translateY(-7px); border-color:var(--green); background:white; box-shadow:0 16px 40px rgba(13,121,94,.13); }
+    .node .n { color:var(--muted); font-size:11px; letter-spacing:.1em; }
+    .node h3 { margin:32px 0 8px; font-size:20px; }
+    .node p { margin:0; color:var(--muted); font-size:13px; line-height:1.45; }
+    .controls { margin-top:20px; display:flex; gap:12px; align-items:center; }
+    button { border:0; border-radius:999px; background:var(--ink); color:white; padding:12px 18px; font:inherit; font-weight:750; cursor:pointer; }
+    button:hover { background:var(--green); }
+    .run-state { color:var(--muted); font-size:13px; }
+    .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:1px solid var(--line); border-radius:22px; padding:24px; background:var(--panel); box-shadow:0 10px 35px rgba(34,52,46,.06); }
+    .card .label { font-size:12px; text-transform:uppercase; letter-spacing:.11em; color:var(--muted); }
+    .card .metric { margin:16px 0 4px; font-size:40px; font-weight:800; letter-spacing:-.05em; }
+    .card p { margin:10px 0 0; color:var(--muted); line-height:1.55; font-size:14px; }
+    .pass { color:var(--green); }
+    .worlds { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .world { padding:30px; min-height:330px; border-radius:28px; color:white; overflow:hidden; position:relative; }
+    .world.fs { background:#183e35; }
+    .world.grid { background:#263961; }
+    .world::before { content:""; position:absolute; width:220px; height:220px; border-radius:50%; right:-60px; top:-60px; border:40px solid rgba(255,255,255,.07); }
+    .world h3 { font-size:32px; margin:8px 0 10px; }
+    .world p { color:rgba(255,255,255,.72); max-width:520px; line-height:1.55; }
+    .terminal { margin-top:28px; background:rgba(0,0,0,.22); border:1px solid rgba(255,255,255,.14); padding:18px; border-radius:14px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; line-height:1.75; }
+    .terminal .ok { color:var(--lime); }
+    .terminal .warn { color:#ffd18e; }
+    table { width:100%; border-collapse:separate; border-spacing:0 8px; }
+    th { text-align:left; color:var(--muted); font-size:11px; letter-spacing:.08em; text-transform:uppercase; padding:0 14px 8px; }
+    td { background:rgba(255,255,255,.65); padding:16px 14px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); font-size:14px; }
+    td:first-child { border-left:1px solid var(--line); border-radius:13px 0 0 13px; font-weight:750; }
+    td:last-child { border-right:1px solid var(--line); border-radius:0 13px 13px 0; }
+    .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; background:var(--green); }
+    .alpha { padding:34px; border-radius:28px; border:1px solid var(--line); background:linear-gradient(120deg,rgba(255,255,255,.75),rgba(185,237,117,.16)); display:grid; grid-template-columns:.7fr 1.3fr; gap:40px; }
+    .alpha ul { margin:0; padding-left:18px; color:#455650; line-height:1.8; }
+    footer { padding:60px 0 34px; color:var(--muted); display:flex; justify-content:space-between; border-top:1px solid var(--line); font-size:13px; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.92em; }
+    @media (max-width:850px) {
+      .hero,.section-head,.alpha { grid-template-columns:1fr; }
+      .loop { grid-template-columns:1fr; }
+      .node::after { content:"↓"; right:50%; top:auto; bottom:-20px; }
+      .node:last-child::after { content:"↺"; }
+      .cards { grid-template-columns:1fr 1fr; }
+      .worlds { grid-template-columns:1fr; }
+    }
+    @media (max-width:540px) { .cards { grid-template-columns:1fr; } nav .links { display:none; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <div class="brand"><span class="pulse"></span> Engine / 0.1</div>
+      <div class="links"><a href="#loop">Lus</a><a href="#bewijs">Bewijs</a><a href="#pilot">Pilot</a><a href="#plugins">Plugins</a></div>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <div class="eyebrow">Engine 0.1 research kernel · owner review pending</div>
+        <h1>Hart <span>+</span><br>brein.</h1>
+        <p class="lede">Eén levende, duurzame cognitieve lus die denkt, specialisten kiest, tools gebruikt en gewenste toestand blijft bewaken—zonder het model continu te laten draaien.</p>
+      </div>
+      <aside class="hero-side">
+        <div class="status"><strong>GOAL.md evidence</strong><span class="badge">READY</span></div>
+        <div class="big-number">33/33</div>
+        <div class="small">deterministische contract- en gedragstests groen<br>G1–G8 geïmplementeerd · owner review (G9) open</div>
+      </aside>
+    </header>
+
+    <section id="loop">
+      <div class="section-head">
+        <h2>De lus leeft.</h2>
+        <p>State woont niet in een chatsessie. Heart bouwt iedere keer verse, begrensde context; een algemeen brein kiest; een specialist kan helpen; alleen waargenomen effecten en het doel-oracle sluiten de cyclus.</p>
+      </div>
+      <div class="loop" aria-label="Engine cognitieve lus">
+        <div class="node active"><span class="n">01 / HEART</span><h3>Doel + state</h3><p>SQLite, snapshot, ervaring, aandacht en budget blijven bestaan.</p></div>
+        <div class="node"><span class="n">02 / BRAIN</span><h3>Kies operator</h3><p>Algemeen brein kiest specialist, wereldtool, wait of stop.</p></div>
+        <div class="node"><span class="n">03 / ORGAN</span><h3>Specialist</h3><p>Begrensd advies, gekoppeld aan exacte snapshot en request-ID.</p></div>
+        <div class="node"><span class="n">04 / TOOL</span><h3>Handel</h3><p>Getypeerde capability via een Engine-owned catalogus.</p></div>
+        <div class="node"><span class="n">05 / TRUTH</span><h3>Observeer</h3><p>Receipt + post-state + oracle. Modeltekst is nooit bewijs.</p></div>
+      </div>
+      <div class="controls"><button id="play">Visualiseer de lus</button><span class="run-state" id="runState">Statische uitleg — geen live Engine-proces.</span></div>
+    </section>
+
+    <section id="bewijs">
+      <div class="section-head"><h2>Twee werelden.<br>Eén Heart.</h2><p>De werelden zijn bewust ongelijksoortig. Het domein zit in adapter, tools en specialist—niet in een tweede cognitieve architectuur.</p></div>
+      <div class="worlds">
+        <article class="world fs"><span class="eyebrow" style="color:var(--lime)">Sandbox softwarewereld</span><h3>Filesystem</h3><p>Maakt directorystructuren en verplaatst twee bestanden op basis van een declaratief einddoel.</p><div class="terminal"><span class="ok">✓ completed</span><br>4 world mutations<br>model-independent target oracle: true</div></article>
+        <article class="world grid"><span class="eyebrow" style="color:#9fc1ff">Discrete simulatie</span><h3>Grid + living goal</h3><p>Bereikt het doel, blijft rustig monitoren, ziet externe drift en herstelt autonoom. Restart blijft een aparte continuïteitsproef.</p><div class="terminal"><span class="warn">! external drift observed</span><br><span class="ok">✓ repaired → monitoring</span><br>stable state: 0 brain calls<br>target oracle: true</div></article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>Meetbare kern.</h2><p>Geen transcript als acceptatiebasis. De acceptatie rust op duurzame causale records, failure-contracten en model-onafhankelijke target-oracles.</p></div>
+      <div class="cards">
+        <div class="card"><div class="label">Typed phase result</div><div class="metric pass">−47.13%</div><p>geobserveerde gecombineerde prompttokens versus de live baseline op precies deze twee consumed runs.</p></div>
+        <div class="card"><div class="label">Invocation contract</div><div class="metric">0</div><p>invocations in de gedekte conformancecases die na malformed results of lost acknowledgement alleen op REQUESTED blijven staan.</p></div>
+        <div class="card"><div class="label">Core branches</div><div class="metric">0</div><p>filesystem- of gridnamen in <code>Heart</code>. Dezelfde kern bedient beide.</p></div>
+        <div class="card"><div class="label">Effect truth</div><div class="metric">bool</div><p>alleen een exact booleaanse target-oracle mag completion bevestigen.</p></div>
+        <div class="card"><div class="label">Context discipline</div><div class="metric">typed</div><p>Begrensde projectie en target-scoped brains bestaan; token-aware truncatie plus outputreserve is nog vereist.</p></div>
+        <div class="card"><div class="label">Brain swap</div><div class="metric">2×</div><p>twee onafhankelijke navigatiespecialisten werken zonder wijziging aan Heart.</p></div>
+        <div class="card"><div class="label">Live lifecycle</div><div class="metric pass">ON</div><p>maintain → monitor → drift → repair; event-wakeup met polling fallback, zonder LLM-spin bij stabiele state.</p></div>
+      </div>
+    </section>
+
+    <section id="pilot">
+      <div class="section-head"><h2>Live modelpilot.</h2><p><strong>INCONCLUSIVE als gecontroleerde vergelijking.</strong> C0/C1/C2 gebruikt dezelfde lokale Qwen executive. Dit is één consumed integration run per hand-built wereld, geen bewijs dat multi-brain algemeen beter is.</p></div>
+      <table>
+        <thead><tr><th>Conditie</th><th>Filesystem</th><th>Grid</th><th>Contract</th></tr></thead>
+        <tbody id="pilotRows">
+          <tr><td>C0 bounded monolith</td><td><span class="dot"></span>oracle PASS · 6 invocations</td><td>INCONCLUSIVE · oracle niet gehaald · 3 context/output failures</td><td>external harness, 2 turnparen</td></tr>
+          <tr><td>C1 durable single</td><td><span class="dot"></span>oracle PASS · 7 invocations</td><td>oracle niet gehaald · 40 schema-geldige invocations: 23 partial, 17 failed</td><td>Heart + LLM, geen specialist</td></tr>
+          <tr><td>C2 Engine multi</td><td><span class="dot"></span>oracle PASS · 4 invocations</td><td><span class="dot"></span>oracle PASS · 9 invocations · partial + restart</td><td>Heart + LLM + deterministic organ</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Interpretatiegrens: C0 overschreed ondanks twee turnparen nog tweemaal het tokenvenster en had één afgekapt antwoord. C2−C1 mengt specialistische competentie en orkestratie. Vaste runvolgorde maakt latency niet vergelijkbaar. Success is uitsluitend het target-oracle binnen budget.</p>
+    </section>
+
+    <section id="plugins">
+      <div class="alpha">
+        <div><div class="eyebrow">Eerlijk maturity-oordeel</div><h2 style="margin-top:12px">Alpha kernel,<br>geen marketplace.</h2></div>
+        <ul>
+          <li><strong>Goed nu:</strong> qualified brain/capability-IDs, echte schemas, capability-refresh op geregistreerde targets, target-scoped brains, receipts, retrieval-evidence en failure semantics.</li>
+          <li><strong>Volgende falsificatie:</strong> apart installeerbare maintained-state plugin zonder Heart-wijziging; HomeOps als flagship, AppWorld als meetlab.</li>
+          <li><strong>Nog nodig:</strong> durable ActionRequest, deadline/idempotency, TASK/STREAM/cancel, provider discovery/config en pluginconformance-suite.</li>
+          <li><strong>Daarna:</strong> desktop, sensoren en apparaten; realtime stabilisatie blijft in devicecontrollers.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer><span>Engine 0.1 evidence console · 2026-08-10</span><span>prediction ≠ observation · brain ≠ authority · state ≠ context</span></footer>
+  </div>
+  <script>
+    const nodes = [...document.querySelectorAll('.node')];
+    const state = document.getElementById('runState');
+    const labels = ['Heart materialiseert doel + state', 'Algemeen brein kiest', 'Specialist levert advies', 'Heart voert capability uit', 'Observatie wordt nieuwe waarheid'];
+    let running = false;
+    document.getElementById('play').addEventListener('click', async () => {
+      if (running) return; running = true;
+      for (let i=0;i<nodes.length;i++) {
+        nodes.forEach((n,j)=>n.classList.toggle('active', i===j));
+        state.textContent = labels[i];
+        await new Promise(r=>setTimeout(r,650));
+      }
+      nodes.forEach((n,j)=>n.classList.toggle('active', j===0));
+      state.textContent = 'Cyclus geïllustreerd; er is geen receipt aangemaakt.';
+      running = false;
+    });
+  </script>
+</body>
+</html>

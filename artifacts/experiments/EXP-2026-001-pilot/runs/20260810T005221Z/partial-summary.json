@@ -1,0 +1,453 @@
+{
+  "baseline_contracts": {
+    "C0": "favorable external harness: fresh target snapshot and GoalSpec each turn, last four provider turns plus recent in-memory outcomes",
+    "C1": "Engine Heart plus same executive model, no specialists",
+    "C2": "same Heart/model plus deterministic task-solving specialists; C2-C1 mixes added competence and orchestration"
+  },
+  "claim_scope": "Instrumentation and directional comparison only; one consumed run per hand-built fixture. No statistical or architectural-superiority claim.",
+  "condition_order": [
+    "C0_bounded_monolith",
+    "C1_durable_single",
+    "C2_engine_multi"
+  ],
+  "condition_order_warning": "fixed order; latency comparisons are confounded",
+  "conditions": {
+    "C0_bounded_monolith": {
+      "filesystem": {
+        "capability_validation_errors": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 580,
+        "condition_wall_ms": 53935.658,
+        "decisions_by_kind": {
+          "use_tool": 6
+        },
+        "execution_exceptions": 0,
+        "executive_attempts": 6,
+        "executive_decisions": 6,
+        "executive_failed": 0,
+        "executive_succeeded": 6,
+        "final_cycle_index": 6,
+        "final_snapshot_sha256": "9cacd915232766e1728952189c12412a75fccd4ac266867be11993fc477d20bc",
+        "initial_snapshot_sha256": "84f04085f41eff1321a838e46c0d73c474abe1e252d416241b32e380ad3e02b7",
+        "invocation_states": {
+          "failed": 2,
+          "succeeded": 4
+        },
+        "model_caller_wall_latency_ms": {
+          "p50": 6283.387,
+          "p95": 20796.446,
+          "total": 53918.337
+        },
+        "oracle": true,
+        "prompt_tokens_known": 25067,
+        "provider_input_bytes": {
+          "max": 25386,
+          "p50": 11478,
+          "p95": 25386
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 2444.293,
+          "p95": 3036.978,
+          "total": 15508.828
+        },
+        "restart_boundary": null,
+        "restart_contract": null,
+        "returned_models": [
+          "ggml-org/Qwen3-4B-GGUF:Q4_K_M"
+        ],
+        "semantic_decision_rejections": 0,
+        "specialist_caller_wall_latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0.0
+        },
+        "specialist_calls": 0,
+        "specialist_identities": [],
+        "status": "completed",
+        "tool_dispatches": 6,
+        "tool_invocation_attempts": 6,
+        "tool_results_failed": 2,
+        "tool_results_partial": 0,
+        "tool_results_unknown": 0,
+        "usage_coverage": {
+          "attempts": 6,
+          "records": 6
+        }
+      },
+      "grid": {
+        "capability_validation_errors": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 2463,
+        "condition_wall_ms": 379834.879,
+        "decisions_by_kind": {
+          "use_tool": 24
+        },
+        "execution_exceptions": 0,
+        "executive_attempts": 40,
+        "executive_decisions": 24,
+        "executive_failed": 16,
+        "executive_succeeded": 24,
+        "final_cycle_index": 40,
+        "final_snapshot_sha256": "c28ba22a05e04be1acfef0c4fa78eedfa59af9a5a7a09dfa10b8d65cc0e49950",
+        "initial_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+        "invocation_states": {
+          "failed": 9,
+          "partial": 1,
+          "succeeded": 14
+        },
+        "model_caller_wall_latency_ms": {
+          "p50": 6705.798,
+          "p95": 19262.856,
+          "total": 379809.05
+        },
+        "oracle": false,
+        "prompt_tokens_known": 188443,
+        "provider_input_bytes": {
+          "max": 24339,
+          "p50": 22883,
+          "p95": 24339
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 2540.217,
+          "p95": 2990.443,
+          "total": 71575.86
+        },
+        "restart_boundary": {
+          "after_terminal_tool_invocations": 1,
+          "at_cycle_index": 1,
+          "continuity_equal": true,
+          "note": "provider history cleared; favorable external harness retained GoalSpec and in-memory outcomes",
+          "post_restart_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+          "pre_restart_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+          "reached": true,
+          "terminal_invocation_id": "fa1744ef71ad4c559807029b3e9f6cd7",
+          "terminal_invocation_state": "failed"
+        },
+        "restart_contract": "favorable external harness baseline, not intrinsic process continuity",
+        "returned_models": [
+          "ggml-org/Qwen3-4B-GGUF:Q4_K_M"
+        ],
+        "semantic_decision_rejections": 0,
+        "specialist_caller_wall_latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0.0
+        },
+        "specialist_calls": 0,
+        "specialist_identities": [],
+        "status": "budget_exhausted",
+        "tool_dispatches": 24,
+        "tool_invocation_attempts": 24,
+        "tool_results_failed": 9,
+        "tool_results_partial": 1,
+        "tool_results_unknown": 0,
+        "usage_coverage": {
+          "attempts": 40,
+          "records": 28
+        }
+      }
+    },
+    "C1_durable_single": {
+      "filesystem": {
+        "capability_validation_errors": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 519,
+        "condition_wall_ms": 17310.487,
+        "decisions_by_kind": {
+          "use_tool": 5
+        },
+        "execution_exceptions": 0,
+        "executive_attempts": 5,
+        "executive_decisions": 5,
+        "executive_failed": 0,
+        "executive_succeeded": 5,
+        "final_cycle_index": 4,
+        "final_snapshot_sha256": "9cacd915232766e1728952189c12412a75fccd4ac266867be11993fc477d20bc",
+        "initial_snapshot_sha256": "84f04085f41eff1321a838e46c0d73c474abe1e252d416241b32e380ad3e02b7",
+        "invocation_states": {
+          "failed": 1,
+          "succeeded": 4
+        },
+        "model_caller_wall_latency_ms": {
+          "p50": 3325.631,
+          "p95": 3812.435,
+          "total": 17253.853
+        },
+        "oracle": true,
+        "prompt_tokens_known": 5739,
+        "provider_input_bytes": {
+          "max": 5201,
+          "p50": 5098,
+          "p95": 5201
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 2298.94,
+          "p95": 2678.865,
+          "total": 12145.491
+        },
+        "restart_boundary": null,
+        "returned_models": [
+          "ggml-org/Qwen3-4B-GGUF:Q4_K_M"
+        ],
+        "semantic_decision_rejections": 0,
+        "specialist_caller_wall_latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0
+        },
+        "specialist_calls": 0,
+        "specialist_identities": [],
+        "status": "completed",
+        "tool_dispatches": 5,
+        "tool_invocation_attempts": 5,
+        "tool_results_failed": 1,
+        "tool_results_partial": 0,
+        "tool_results_unknown": 0,
+        "usage_coverage": {
+          "attempts": 5,
+          "records": 5
+        }
+      },
+      "grid": {
+        "capability_validation_errors": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 3967,
+        "condition_wall_ms": 128573.169,
+        "decisions_by_kind": {
+          "use_tool": 40
+        },
+        "execution_exceptions": 0,
+        "executive_attempts": 40,
+        "executive_decisions": 40,
+        "executive_failed": 0,
+        "executive_succeeded": 40,
+        "final_cycle_index": 40,
+        "final_snapshot_sha256": "82ea909a4f847a98ae41b111d3f2f01c5c3a8458c5ee5d2648bd80cd0af49a05",
+        "initial_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+        "invocation_states": {
+          "failed": 14,
+          "partial": 26
+        },
+        "model_caller_wall_latency_ms": {
+          "p50": 3237.056,
+          "p95": 3386.391,
+          "total": 128258.812
+        },
+        "oracle": false,
+        "prompt_tokens_known": 41827,
+        "provider_input_bytes": {
+          "max": 4393,
+          "p50": 4358,
+          "p95": 4393
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 2366.596,
+          "p95": 2552.431,
+          "total": 93990.506
+        },
+        "restart_boundary": {
+          "after_terminal_tool_invocations": 1,
+          "at_cycle_index": 1,
+          "continuity_equal": true,
+          "post_restart_goal": {
+            "cycle": 1,
+            "status": "active"
+          },
+          "post_restart_last_event_id": 10,
+          "post_restart_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+          "pre_restart_goal": {
+            "cycle": 1,
+            "status": "active"
+          },
+          "pre_restart_last_event_id": 10,
+          "pre_restart_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+          "reached": true,
+          "terminal_invocation_id": "c22a4b469f994f99b42080efe241daef",
+          "terminal_invocation_state": "failed"
+        },
+        "returned_models": [
+          "ggml-org/Qwen3-4B-GGUF:Q4_K_M"
+        ],
+        "semantic_decision_rejections": 0,
+        "specialist_caller_wall_latency_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "total": 0
+        },
+        "specialist_calls": 0,
+        "specialist_identities": [],
+        "status": "budget_exhausted",
+        "tool_dispatches": 40,
+        "tool_invocation_attempts": 40,
+        "tool_results_failed": 14,
+        "tool_results_partial": 26,
+        "tool_results_unknown": 0,
+        "usage_coverage": {
+          "attempts": 40,
+          "records": 40
+        }
+      }
+    },
+    "C2_engine_multi": {
+      "filesystem": {
+        "capability_validation_errors": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 1214,
+        "condition_wall_ms": 39325.209,
+        "decisions_by_kind": {
+          "consult_brain": 4,
+          "use_tool": 4
+        },
+        "execution_exceptions": 0,
+        "executive_attempts": 8,
+        "executive_decisions": 8,
+        "executive_failed": 0,
+        "executive_succeeded": 8,
+        "final_cycle_index": 7,
+        "final_snapshot_sha256": "9cacd915232766e1728952189c12412a75fccd4ac266867be11993fc477d20bc",
+        "initial_snapshot_sha256": "84f04085f41eff1321a838e46c0d73c474abe1e252d416241b32e380ad3e02b7",
+        "invocation_states": {
+          "succeeded": 4
+        },
+        "model_caller_wall_latency_ms": {
+          "p50": 4724.525,
+          "p95": 8888.025,
+          "total": 39170.258
+        },
+        "oracle": true,
+        "prompt_tokens_known": 10899,
+        "provider_input_bytes": {
+          "max": 5986,
+          "p50": 5441,
+          "p95": 5986
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 3242.601,
+          "p95": 8214.254,
+          "total": 28780.141
+        },
+        "restart_boundary": null,
+        "returned_models": [
+          "ggml-org/Qwen3-4B-GGUF:Q4_K_M"
+        ],
+        "semantic_decision_rejections": 0,
+        "specialist_caller_wall_latency_ms": {
+          "p50": 0.059,
+          "p95": 0.128,
+          "total": 0.299
+        },
+        "specialist_calls": 4,
+        "specialist_identities": [
+          "engine.filesystem.structure-brain/v1"
+        ],
+        "status": "completed",
+        "tool_dispatches": 4,
+        "tool_invocation_attempts": 4,
+        "tool_results_failed": 0,
+        "tool_results_partial": 0,
+        "tool_results_unknown": 0,
+        "usage_coverage": {
+          "attempts": 8,
+          "records": 8
+        }
+      },
+      "grid": {
+        "capability_validation_errors": 0,
+        "completion_rejections": 0,
+        "completion_tokens_known": 2405,
+        "condition_wall_ms": 76436.289,
+        "decisions_by_kind": {
+          "consult_brain": 9,
+          "use_tool": 9
+        },
+        "execution_exceptions": 0,
+        "executive_attempts": 18,
+        "executive_decisions": 18,
+        "executive_failed": 0,
+        "executive_succeeded": 18,
+        "final_cycle_index": 17,
+        "final_snapshot_sha256": "c6f6772f277dae00455a296f21a5dc31fbe81964966227e694d44a00e2505183",
+        "initial_snapshot_sha256": "908e69a91a5e1a05dcb7f5edb9a9755425088389935d0ad80de438217fb6ba3c",
+        "invocation_states": {
+          "partial": 1,
+          "succeeded": 8
+        },
+        "model_caller_wall_latency_ms": {
+          "p50": 4182.883,
+          "p95": 5469.038,
+          "total": 76284.683
+        },
+        "oracle": true,
+        "prompt_tokens_known": 21870,
+        "provider_input_bytes": {
+          "max": 5244,
+          "p50": 4701,
+          "p95": 5244
+        },
+        "provider_reported_prediction_ms": {
+          "p50": 2938.577,
+          "p95": 5027.277,
+          "total": 56417.95
+        },
+        "restart_boundary": {
+          "after_terminal_tool_invocations": 1,
+          "at_cycle_index": 2,
+          "continuity_equal": true,
+          "post_restart_goal": {
+            "cycle": 2,
+            "status": "active"
+          },
+          "post_restart_last_event_id": 19,
+          "post_restart_snapshot_sha256": "46ba45218237e045f84ad6896dd96e69969b6cf767629334cd3cea08cca92776",
+          "pre_restart_goal": {
+            "cycle": 2,
+            "status": "active"
+          },
+          "pre_restart_last_event_id": 19,
+          "pre_restart_snapshot_sha256": "46ba45218237e045f84ad6896dd96e69969b6cf767629334cd3cea08cca92776",
+          "reached": true,
+          "terminal_invocation_id": "20889bb60a4c4683b17bad409acd6d2b",
+          "terminal_invocation_state": "partial"
+        },
+        "returned_models": [
+          "ggml-org/Qwen3-4B-GGUF:Q4_K_M"
+        ],
+        "semantic_decision_rejections": 0,
+        "specialist_caller_wall_latency_ms": {
+          "p50": 0.03,
+          "p95": 0.143,
+          "total": 0.53
+        },
+        "specialist_calls": 9,
+        "specialist_identities": [
+          "engine.spatial-grid.grid-navigation-brain/v1"
+        ],
+        "status": "completed",
+        "tool_dispatches": 9,
+        "tool_invocation_attempts": 9,
+        "tool_results_failed": 0,
+        "tool_results_partial": 1,
+        "tool_results_unknown": 0,
+        "usage_coverage": {
+          "attempts": 18,
+          "records": 18
+        }
+      }
+    }
+  },
+  "decision_schema_family_sha256": "0fb14ef79ac627c9be49213f628cb0640bae3b708cd6b1b2176b4625bde6ac5a",
+  "model_artifact_sha256": "ab27b9bfa375a178d6cba48f3ad892b94b7739659dcc7aae8058ce0ffed6b328",
+  "model_requested": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+  "prompt_sha256": "3b9ebd0bb8148b250dff40ff113c006c8f6ea605bc54a36af9f30f4018ecb128",
+  "provider_config": {
+    "base_url": "http://127.0.0.1:18080/v1",
+    "max_input_bytes": 64000,
+    "max_output_tokens": 640,
+    "seed": "server default/unknown; temperature fixed at 0",
+    "session_history": "C0 only, bounded to the last four user/assistant turns",
+    "temperature": 0.0
+  },
+  "restart_after_terminal_tool_invocations": 1,
+  "source_sha256": "c1d8247a958215a27809c3ffbd23dc32ee0beee7fe0d56dc6e623ff9d2977b30",
+  "status": "exploratory_pilot_running"
+}

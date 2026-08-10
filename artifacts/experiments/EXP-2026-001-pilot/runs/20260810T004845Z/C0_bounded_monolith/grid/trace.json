@@ -1,0 +1,1322 @@
+[
+  {
+    "caller_wall_ms": 817.8980840020813,
+    "cycle": 0,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "494498a9efb54d3d9ea26a4e9c034570",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 817.8980840020813,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "8ebdcc6fd81c5b5d74e271589d02b79b1a3ddfb8a25d8cb28b47d083501628db",
+      "timings": {
+        "cache_n": 544,
+        "predicted_ms": 474.266,
+        "predicted_n": 20,
+        "predicted_per_second": 42.17042756596509,
+        "predicted_per_token_ms": 23.7133,
+        "prompt_ms": 316.932,
+        "prompt_n": 181,
+        "prompt_per_second": 571.1004253278305,
+        "prompt_per_token_ms": 1.7510055248618785
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 544
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 792.5016249937471,
+    "cycle": 1,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "4bc411a9ef254df99aab7c1f619e7e3c",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 792.5016249937471,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "51cc00ca3d421a89fb64bac9efaf272607854e9731be129aa826e4e61311c15c",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 467.308,
+        "predicted_n": 20,
+        "predicted_per_second": 42.79832572949746,
+        "predicted_per_token_ms": 23.3654,
+        "prompt_ms": 315.476,
+        "prompt_n": 175,
+        "prompt_per_second": 554.7173160557379,
+        "prompt_per_token_ms": 1.80272
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 791.9912920042407,
+    "cycle": 2,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "084f55d505e740a4812efcb45e1ac324",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 791.9912920042407,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "ec2a04f9b19ee22c133b28d634ec8de120caa8953ee58b99f843d7ddc7868d6d",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 468.56,
+        "predicted_n": 20,
+        "predicted_per_second": 42.68396790165614,
+        "predicted_per_token_ms": 23.428,
+        "prompt_ms": 314.61,
+        "prompt_n": 175,
+        "prompt_per_second": 556.2442388989542,
+        "prompt_per_token_ms": 1.7977714285714286
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 790.7130000094185,
+    "cycle": 3,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "b526e7828faf46278f3dc4a47c4f0f83",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 790.7130000094185,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "1c7cb205629e634d4eb646eb7730133b3be6e21a938ca742c49ba354a5f0e33f",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 466.525,
+        "predicted_n": 20,
+        "predicted_per_second": 42.870157011950056,
+        "predicted_per_token_ms": 23.326249999999998,
+        "prompt_ms": 315.013,
+        "prompt_n": 175,
+        "prompt_per_second": 555.5326288121444,
+        "prompt_per_token_ms": 1.8000742857142855
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 790.4284999967786,
+    "cycle": 4,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "33192ff7f89c4cacabed2e74fec4123a",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 790.4284999967786,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "fbfafc89da6c411abe3ebb34bcf64f23d63b810d312f26628f64ff786e683a32",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 466.451,
+        "predicted_n": 20,
+        "predicted_per_second": 42.876958137081914,
+        "predicted_per_token_ms": 23.32255,
+        "prompt_ms": 316.123,
+        "prompt_n": 175,
+        "prompt_per_second": 553.5819918196398,
+        "prompt_per_token_ms": 1.8064171428571427
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 792.2106670011999,
+    "cycle": 5,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "f4b0f21ad9f6470aa7a4fef96635e14b",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 792.2106670011999,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "aafc89158011e128a07a641f18acb9a82496c5fc7da830a5bce7e252845d130f",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 469.162,
+        "predicted_n": 20,
+        "predicted_per_second": 42.62919844318168,
+        "predicted_per_token_ms": 23.458099999999998,
+        "prompt_ms": 316.364,
+        "prompt_n": 175,
+        "prompt_per_second": 553.1602837238119,
+        "prompt_per_token_ms": 1.8077942857142857
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 795.5539999966277,
+    "cycle": 6,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "0da966654fe7479a889404b239313b9f",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 795.5539999966277,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "6376b12cb1b39bec1766774707fb9c589335abe1fd0f05b94d29e038590e7d25",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 471.854,
+        "predicted_n": 20,
+        "predicted_per_second": 42.38599227727221,
+        "predicted_per_token_ms": 23.5927,
+        "prompt_ms": 315.138,
+        "prompt_n": 175,
+        "prompt_per_second": 555.3122758918315,
+        "prompt_per_token_ms": 1.8007885714285714
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.7009579947917,
+    "cycle": 7,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "4bb47b736af24afd9b8adab8f7e4d93f",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.7009579947917,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "f67fd87c0f7b6ed9911674eecf2da5ea028844b99b3115abf65f0af89f5ef841",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 469.887,
+        "predicted_n": 20,
+        "predicted_per_second": 42.56342482341499,
+        "predicted_per_token_ms": 23.49435,
+        "prompt_ms": 316.335,
+        "prompt_n": 175,
+        "prompt_per_second": 553.2109946733685,
+        "prompt_per_token_ms": 1.8076285714285714
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 797.9775830026483,
+    "cycle": 8,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "537816f348ae47bd8cd7e358083c9985",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 797.9775830026483,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "0cc80e6425919a5325ee768b55347fde46531630dff2d5759f287e8df6840765",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 470.581,
+        "predicted_n": 20,
+        "predicted_per_second": 42.50065344754675,
+        "predicted_per_token_ms": 23.52905,
+        "prompt_ms": 314.816,
+        "prompt_n": 175,
+        "prompt_per_second": 555.880260215491,
+        "prompt_per_token_ms": 1.7989485714285713
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 792.9188339912798,
+    "cycle": 9,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "6d7dab7f35ee4dd9b7e4be0813ec0992",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 792.9188339912798,
+      "input_bytes": 3287,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "bf0cd1fa58aee94c6c74b9c41d1e6cf327efb728590b790e55142f8a2b1eba7f",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 469.247,
+        "predicted_n": 20,
+        "predicted_per_second": 42.62147653581163,
+        "predicted_per_token_ms": 23.46235,
+        "prompt_ms": 314.968,
+        "prompt_n": 175,
+        "prompt_per_second": 555.6119986792309,
+        "prompt_per_token_ms": 1.799817142857143
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 725,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 745
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 798.8290000066627,
+    "cycle": 10,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "f95c6687844840e9a7bb4223163b02da",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 798.8290000066627,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "ef64e2608defc13dd460ee062d20c7af5fbd700007e0408dfc4b24f9f4f52964",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 474.849,
+        "predicted_n": 20,
+        "predicted_per_second": 42.11865245583333,
+        "predicted_per_token_ms": 23.742449999999998,
+        "prompt_ms": 315.243,
+        "prompt_n": 176,
+        "prompt_per_second": 558.2994705671498,
+        "prompt_per_token_ms": 1.7911534090909091
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.5135830086656,
+    "cycle": 11,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "ba7a3ff4a7fd44f0b195a14f9558706e",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.5135830086656,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "8dea1cdece242d98c732579afe2d3bc98049f157b23a9bdba754cdcaddbeb4ed",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 471.056,
+        "predicted_n": 20,
+        "predicted_per_second": 42.457796949831874,
+        "predicted_per_token_ms": 23.552799999999998,
+        "prompt_ms": 315.542,
+        "prompt_n": 175,
+        "prompt_per_second": 554.6012892103113,
+        "prompt_per_token_ms": 1.8030971428571427
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 792.6741249975748,
+    "cycle": 12,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "9b265a7690c14d78af921611467aac3a",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 792.6741249975748,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "1001ed0d8d5dcac79312204b6858a2abd377c05cd99d279102a825b308321ace",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 469.204,
+        "predicted_n": 20,
+        "predicted_per_second": 42.6253825628085,
+        "predicted_per_token_ms": 23.4602,
+        "prompt_ms": 315.59,
+        "prompt_n": 175,
+        "prompt_per_second": 554.5169365315758,
+        "prompt_per_token_ms": 1.8033714285714284
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.8388750082813,
+    "cycle": 13,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "2f3cebfff61b444ca40d806b1e67fbf3",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.8388750082813,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "661f1a6729f2881dc85f3727a491aa68e783880fbdc5bddbceca011e4d264094",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 470.375,
+        "predicted_n": 20,
+        "predicted_per_second": 42.51926654265213,
+        "predicted_per_token_ms": 23.51875,
+        "prompt_ms": 315.592,
+        "prompt_n": 175,
+        "prompt_per_second": 554.5134223934701,
+        "prompt_per_token_ms": 1.803382857142857
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 792.8732080035843,
+    "cycle": 14,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "ed0f3f3dd1f3458987da461c419ed388",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 792.8732080035843,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "a7ffe638296d1413fdf4e30d843ce3d5f92a0e232064f5c3133570721b495e6c",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 468.581,
+        "predicted_n": 20,
+        "predicted_per_second": 42.682054970218594,
+        "predicted_per_token_ms": 23.42905,
+        "prompt_ms": 316.521,
+        "prompt_n": 175,
+        "prompt_per_second": 552.885906464342,
+        "prompt_per_token_ms": 1.8086914285714286
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 792.014457998448,
+    "cycle": 15,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "f7b434041d424fd6b08f110524fad688",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 792.014457998448,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "d1757114e9e07526d02e68db992ebcb06cd42e627fcb16377b9e4916e1f3281b",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 467.486,
+        "predicted_n": 20,
+        "predicted_per_second": 42.78202983618761,
+        "predicted_per_token_ms": 23.374299999999998,
+        "prompt_ms": 315.601,
+        "prompt_n": 175,
+        "prompt_per_second": 554.4976093231644,
+        "prompt_per_token_ms": 1.8034342857142858
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 791.0452910000458,
+    "cycle": 16,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "33f773ca11814d39983fc1b74289c28a",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 791.0452910000458,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "07b616ea2135223c275cbee63d1febd00e4ca66ad7cf444f8b4a554efecf66e3",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 466.504,
+        "predicted_n": 20,
+        "predicted_per_second": 42.87208684169911,
+        "predicted_per_token_ms": 23.325200000000002,
+        "prompt_ms": 315.744,
+        "prompt_n": 175,
+        "prompt_per_second": 554.2464781595215,
+        "prompt_per_token_ms": 1.8042514285714288
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.0869580052095,
+    "cycle": 17,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "930c16172b1f46f4bdfd166d1225f593",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.0869580052095,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "00ed19c6bea105fe3517752b49d5de80e601271193c78db8bd3a538fedd92f3c",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 469.496,
+        "predicted_n": 20,
+        "predicted_per_second": 42.59887198186992,
+        "predicted_per_token_ms": 23.4748,
+        "prompt_ms": 315.813,
+        "prompt_n": 175,
+        "prompt_per_second": 554.1253843255344,
+        "prompt_per_token_ms": 1.8046457142857142
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 792.8470830083825,
+    "cycle": 18,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "235f30b3929b4106af22e08a2776f785",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 792.8470830083825,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "ee0cc996722e7129c632cec35dd0e7e1bd21c4d41976d38f26251458a27e8886",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 468.901,
+        "predicted_n": 20,
+        "predicted_per_second": 42.65292673720039,
+        "predicted_per_token_ms": 23.445050000000002,
+        "prompt_ms": 315.267,
+        "prompt_n": 175,
+        "prompt_per_second": 555.0850548899822,
+        "prompt_per_token_ms": 1.8015257142857142
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 796.5811659960309,
+    "cycle": 19,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "6cb6b6c577e147efb01e825c9f8addc7",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 796.5811659960309,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "5790acaec578590aff0e3974a1eda3635a1a821647bbb88900c9d5b7c2ae34d1",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 471.579,
+        "predicted_n": 20,
+        "predicted_per_second": 42.41070955237617,
+        "predicted_per_token_ms": 23.57895,
+        "prompt_ms": 317.466,
+        "prompt_n": 175,
+        "prompt_per_second": 551.2401328016228,
+        "prompt_per_token_ms": 1.8140914285714287
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 798.2630830083508,
+    "cycle": 20,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "2d2fde2e4cc14f2ba3d91bbb1ee60f5c",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 798.2630830083508,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "69503fddb2767d6aec0f78aca0f7959e8cf7c322c30af354416c36ebf7a612cd",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 475.064,
+        "predicted_n": 20,
+        "predicted_per_second": 42.099590791977505,
+        "predicted_per_token_ms": 23.7532,
+        "prompt_ms": 314.971,
+        "prompt_n": 176,
+        "prompt_per_second": 558.7816021157503,
+        "prompt_per_token_ms": 1.7896079545454546
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 789.1669999953592,
+    "cycle": 21,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "c80fc29f6a484462b4b73532cd5c743f",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 789.1669999953592,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "03825437dc51627b8267205c13cce85424bf34cdd2de16249cecd88588a9d35e",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 464.225,
+        "predicted_n": 20,
+        "predicted_per_second": 43.08255694975497,
+        "predicted_per_token_ms": 23.21125,
+        "prompt_ms": 317.072,
+        "prompt_n": 175,
+        "prompt_per_second": 551.9251148004239,
+        "prompt_per_token_ms": 1.8118400000000001
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.272583007114,
+    "cycle": 22,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "7618e8c3900a4baebd50767080672f40",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.272583007114,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "7f4c5a599c0044f319d9928bf2c4e7c22c9e728a223a74e56d734b90c94652b1",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 470.32,
+        "predicted_n": 20,
+        "predicted_per_second": 42.52423881612519,
+        "predicted_per_token_ms": 23.516,
+        "prompt_ms": 314.573,
+        "prompt_n": 175,
+        "prompt_per_second": 556.3096642114867,
+        "prompt_per_token_ms": 1.7975599999999998
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.2394999990938,
+    "cycle": 23,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "92520ac6a6f647a099cb59288f6ba6c4",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.2394999990938,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "cd7cb94bf51714593844d41570966bef0d42fdfd184b175daabbf6b3322c9483",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 468.381,
+        "predicted_n": 20,
+        "predicted_per_second": 42.70028032734035,
+        "predicted_per_token_ms": 23.41905,
+        "prompt_ms": 315.639,
+        "prompt_n": 175,
+        "prompt_per_second": 554.430852968106,
+        "prompt_per_token_ms": 1.8036514285714287
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 799.3277089990443,
+    "cycle": 24,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "69d2a7621b0e440a89eefbe6eed184bd",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 799.3277089990443,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "a2fac117759a035956bce58daaf89962c6b3e99b40b63d00af341f73e434ce38",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 474.951,
+        "predicted_n": 20,
+        "predicted_per_second": 42.10960709631099,
+        "predicted_per_token_ms": 23.74755,
+        "prompt_ms": 316.14,
+        "prompt_n": 175,
+        "prompt_per_second": 553.5522236983614,
+        "prompt_per_token_ms": 1.8065142857142857
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 806.6307499975665,
+    "cycle": 25,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "ee64171a57bb4323956af0fd5f744495",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 806.6307499975665,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "8237920a0e45aabdd2db39cf61a915261bb966ded07c0d098ac9951e6b8195e5",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 483.961,
+        "predicted_n": 20,
+        "predicted_per_second": 41.325644008504824,
+        "predicted_per_token_ms": 24.198050000000002,
+        "prompt_ms": 316.052,
+        "prompt_n": 175,
+        "prompt_per_second": 553.7063521192715,
+        "prompt_per_token_ms": 1.8060114285714286
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 797.7817079954548,
+    "cycle": 26,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "f0dd61371c5f45f1aed8001b0eb336ff",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 797.7817079954548,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "6198f7af0ff0f6d6f09e628b265db09fc1ad99fb772e6b4a3d384300bf71daf2",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 474.47,
+        "predicted_n": 20,
+        "predicted_per_second": 42.15229624633801,
+        "predicted_per_token_ms": 23.7235,
+        "prompt_ms": 315.611,
+        "prompt_n": 175,
+        "prompt_per_second": 554.4800403027778,
+        "prompt_per_token_ms": 1.8034914285714285
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 831.2830829963787,
+    "cycle": 27,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "b9d3bdbd9ce9476ba8479aa65bd0e9ed",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 831.2830829963787,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "21b66a26b263a393e5a640c544d22b6b73812598d4ce94074bb76f1aac474d89",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 504.955,
+        "predicted_n": 20,
+        "predicted_per_second": 39.607489776316704,
+        "predicted_per_token_ms": 25.24775,
+        "prompt_ms": 317.079,
+        "prompt_n": 175,
+        "prompt_per_second": 551.9129302161291,
+        "prompt_per_token_ms": 1.81188
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 795.3693339950405,
+    "cycle": 28,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "becb80a9be9e4d79bc955b7460ed9521",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 795.3693339950405,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "ccee9e40154b052524d5703add904f20b9b675b9bf36cdd7309fa34db2f02a3e",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 471.973,
+        "predicted_n": 20,
+        "predicted_per_second": 42.3753053670443,
+        "predicted_per_token_ms": 23.59865,
+        "prompt_ms": 316.093,
+        "prompt_n": 175,
+        "prompt_per_second": 553.6345316093681,
+        "prompt_per_token_ms": 1.8062457142857145
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.1172910068417,
+    "cycle": 29,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "5c41f601a5e245a4a74ce3e23b46302b",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.1172910068417,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "7b137ca36a9ee29d651740e7517748146988583d02f85b7d6dff97d696c1c3a8",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 470.431,
+        "predicted_n": 20,
+        "predicted_per_second": 42.514205058765256,
+        "predicted_per_token_ms": 23.521549999999998,
+        "prompt_ms": 314.797,
+        "prompt_n": 175,
+        "prompt_per_second": 555.9138111227235,
+        "prompt_per_token_ms": 1.7988400000000002
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 802.3410419991706,
+    "cycle": 30,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "536a9f1699ee47419a6fa0d595be867e",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 802.3410419991706,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "83f0a22689eecc7586c3d630bb5d8a46bbcb3a5de6f71a13e273a093d31dece9",
+      "timings": {
+        "cache_n": 550,
+        "predicted_ms": 478.429,
+        "predicted_n": 20,
+        "predicted_per_second": 41.80348599269693,
+        "predicted_per_token_ms": 23.92145,
+        "prompt_ms": 315.879,
+        "prompt_n": 176,
+        "prompt_per_second": 557.1753741147718,
+        "prompt_per_token_ms": 1.7947670454545455
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 550
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 791.4407089992892,
+    "cycle": 31,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "b6e765a3676d48c49595230777e2075f",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 791.4407089992892,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "ea2cc8960a68bebac9748b0059ff3c859bb6ba20a686bcb44a871d6ea0d32658",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 466.198,
+        "predicted_n": 20,
+        "predicted_per_second": 42.900226942200526,
+        "predicted_per_token_ms": 23.3099,
+        "prompt_ms": 315.286,
+        "prompt_n": 175,
+        "prompt_per_second": 555.0516039405492,
+        "prompt_per_token_ms": 1.8016342857142857
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 790.0265409989515,
+    "cycle": 32,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "debdfcff77504b699b444f8fcdfc879b",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 790.0265409989515,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "48df4dedda88e7868f433b0e1c489c9f283f7e3b3c203454b592106d2ee8d117",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 466.465,
+        "predicted_n": 20,
+        "predicted_per_second": 42.87567127222836,
+        "predicted_per_token_ms": 23.323249999999998,
+        "prompt_ms": 315.798,
+        "prompt_n": 175,
+        "prompt_per_second": 554.1517045706432,
+        "prompt_per_token_ms": 1.80456
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 793.8704160042107,
+    "cycle": 33,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "392f7b08b6c74e779d85d1d1e906146f",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 793.8704160042107,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "89be9aca95759565ad108d856e79e9455a2b81d7e54636afa9c07eaa44d05d08",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 469.412,
+        "predicted_n": 20,
+        "predicted_per_second": 42.60649493408775,
+        "predicted_per_token_ms": 23.470599999999997,
+        "prompt_ms": 316.595,
+        "prompt_n": 175,
+        "prompt_per_second": 552.7566765109998,
+        "prompt_per_token_ms": 1.809114285714286
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 790.4369999887422,
+    "cycle": 34,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "e96d5647ef6844929e47c130a602eda7",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 790.4369999887422,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "506e1c6df38bcb96d4cb7909e17d14a91586ba30814226ccee37520d02c7b3e3",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 466.406,
+        "predicted_n": 20,
+        "predicted_per_second": 42.881095011642216,
+        "predicted_per_token_ms": 23.3203,
+        "prompt_ms": 316.473,
+        "prompt_n": 175,
+        "prompt_per_second": 552.9697636133255,
+        "prompt_per_token_ms": 1.808417142857143
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.6611660008784,
+    "cycle": 35,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "dd638aaf4e9340299c1f64e938e3cadf",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.6611660008784,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "074e5e6c7eacaf10cbb87fd582c1a5bec720d4e4138ed3b21edaf7be2c08dc62",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 470.259,
+        "predicted_n": 20,
+        "predicted_per_second": 42.529754879757746,
+        "predicted_per_token_ms": 23.51295,
+        "prompt_ms": 316.533,
+        "prompt_n": 175,
+        "prompt_per_second": 552.8649461509542,
+        "prompt_per_token_ms": 1.8087600000000001
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 791.5154160000384,
+    "cycle": 36,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "0c06fa6f6cbf412d9a4efe04164ff9a4",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 791.5154160000384,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "2ef22f4887c789cbd58acc1f587266c65723fdddb96416d5e4ff76f7ab69c2bb",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 468.25,
+        "predicted_n": 20,
+        "predicted_per_second": 42.71222637479979,
+        "predicted_per_token_ms": 23.4125,
+        "prompt_ms": 315.675,
+        "prompt_n": 175,
+        "prompt_per_second": 554.367624930704,
+        "prompt_per_token_ms": 1.8038571428571428
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.0342910005711,
+    "cycle": 37,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "b8b0fd60d1924e19b4518b3ad7fd7c3d",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.0342910005711,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "61c12a9fa30417da4ef6c6021bcea3210eae1ca666c9d5eebefa3bbbfdf8ed9f",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 470.239,
+        "predicted_n": 20,
+        "predicted_per_second": 42.53156373673812,
+        "predicted_per_token_ms": 23.51195,
+        "prompt_ms": 314.879,
+        "prompt_n": 175,
+        "prompt_per_second": 555.7690414413155,
+        "prompt_per_token_ms": 1.7993085714285715
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 795.5540830007521,
+    "cycle": 38,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "7f3f4560467a4efcb80cc1ed7fcb837a",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 795.5540830007521,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "812f0257a235c930a18477b1f7e8837e15b8738905db564a36b7450663dac56d",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 472.253,
+        "predicted_n": 20,
+        "predicted_per_second": 42.350180941148075,
+        "predicted_per_token_ms": 23.61265,
+        "prompt_ms": 314.555,
+        "prompt_n": 175,
+        "prompt_per_second": 556.3414983071323,
+        "prompt_per_token_ms": 1.7974571428571429
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  },
+  {
+    "caller_wall_ms": 794.5126670092577,
+    "cycle": 39,
+    "error": "RuntimeError: decision provider violated schema: 'kind' is a required property: {'name': 'engine.spatial.step/v1', 'based_on': []}",
+    "executive_attempt_id": "c960cc9006244c8087ce767dc033e2d4",
+    "kind": "model_error",
+    "usage": {
+      "caller_wall_ms": 794.5126670092577,
+      "input_bytes": 3288,
+      "model": "ggml-org/Qwen3-4B-GGUF:Q4_K_M",
+      "provider": "openai-compatible",
+      "provider_projection_sha256": "3f73ddfb5dc81e620def70715cadb8230c1e99912f1af939d2d2abe1a1d63c71",
+      "timings": {
+        "cache_n": 551,
+        "predicted_ms": 471.407,
+        "predicted_n": 20,
+        "predicted_per_second": 42.42618374355918,
+        "predicted_per_token_ms": 23.570349999999998,
+        "prompt_ms": 315.031,
+        "prompt_n": 175,
+        "prompt_per_second": 555.5008872142741,
+        "prompt_per_token_ms": 1.800177142857143
+      },
+      "usage": {
+        "completion_tokens": 20,
+        "prompt_tokens": 726,
+        "prompt_tokens_details": {
+          "cached_tokens": 551
+        },
+        "total_tokens": 746
+      }
+    }
+  }
+]

@@ -1,0 +1,52 @@
+[plugin]
+id = "engine.reference-world"
+version = "0.2.0"
+engine_api = ">=2.0,<3"
+contract_version = "engine.plugin/v2"
+description = "Deterministic non-house warehouse/grid reference world"
+
+[declarations]
+world_providers = ["warehouse-grid"]
+controllers = ["warehouse-controller"]
+executors = ["warehouse-task-executor"]
+effect_oracles = ["warehouse-effect-oracle"]
+specialists = ["engine.reference-world.warehouse-specialist/v1"]
+experience_providers = ["warehouse-experience"]
+entity_types = ["warehouse.grid", "warehouse.bin"]
+relation_types = ["contains"]
+observation_types = ["bin.count"]
+
+[needs]
+network = []
+filesystem = ["plugin-private-sqlite"]
+secrets = []
+privacy = []
+
+[store]
+identity = "engine.reference-world.store"
+schema_version = 1
+
+[[capability_families]]
+id = "engine.reference-world.transfer-bin/v2"
+family = "warehouse.transfer-bin"
+version = "2.0.0"
+description = "Transfer bounded crates from incoming to reserve bin"
+control_layer = "semantic"
+invocation_mode = "task"
+risk_class = "low"
+privacy_class = "local"
+idempotent = true
+deadline_ms = 5000
+effect_measurements = ["bin.count"]
+recovery = "poll_task_then_observe"
+input_schema = {type = "object", required = ["from", "to", "count"], properties = {from = {type = "string", const = "incoming"}, to = {type = "string", const = "reserve"}, count = {type = "integer", minimum = 1, maximum = 10}}, additionalProperties = false}
+effect_schema = {type = "object", required = ["minimum_count"], properties = {minimum_count = {type = "integer", minimum = 1, maximum = 10}}, additionalProperties = false}
+limits = {count = {min = 1, max = 10}}
+
+[[preferences]]
+id = "engine.reference-world.preference.reserve-target-band/v1"
+capability_family = "warehouse.transfer-bin"
+unit = "crate"
+promotion_mode = "shadow_low_risk"
+description = "Preferred bounded reserve-bin target learned from external warehouse choices"
+value_schema = {type = "integer", minimum = 1, maximum = 10}

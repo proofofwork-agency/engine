@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "engine-reference-world"
+version = "0.2.0"
+description = "Non-house warehouse reference world for Engine Plugin v2"
+requires-python = ">=3.12"
+dependencies = ["engine-sdk>=0.2,<0.3"]
+
+[project.entry-points."engine.plugins"]
+reference_world = "engine_reference_world.plugin:load_plugin"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.data-files]
+"share/engine/plugins/engine-reference-world" = ["engine-plugin.toml"]
