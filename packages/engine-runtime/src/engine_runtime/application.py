@@ -103,7 +103,10 @@ class EngineApplication:
         )
 
     def close(self) -> None:
-        self.store.close()
+        try:
+            self.heart.notify_lifecycle_observers()
+        finally:
+            self.store.close()
 
     def observe(self) -> Any:
         return self.heart.observe_connected_world(refresh_targets=None)

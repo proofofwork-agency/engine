@@ -52,8 +52,8 @@ The v1 terms `CONSULT_BRAIN` and `USE_TOOL` are legacy. V2 deliberately has no p
 
 | Value | Semantics | Implementation status |
 | --- | --- | --- |
-| `immediate` | Dispatch returns a terminal receipt or a result that can be reconciled immediately | **Exists now**; fake-tested, used by Homey |
-| `task` | Dispatch returns an external handle; Heart polls, cancels at deadline, and reconstructs after restart | **Exists now and is fake-tested** in the reference warehouse |
+| `immediate` | Dispatch returns a terminal receipt or a result that can be reconciled immediately | **Implemented** and **Fake/simulation-tested**; used by Homey |
+| `task` | Dispatch returns an external handle; Heart polls, cancels at deadline, and reconstructs after restart | **Implemented** and **Fake/simulation-tested** in the reference warehouse |
 | `stream` | Long-running stream with cursor/reconnect semantics | **Contract/store scaffolding**; no end-to-end reference proof yet |
 
 Invocation mode describes the duration of a capability, not goal duration, risk, or autonomy.
@@ -187,7 +187,7 @@ In practice, the current generic route starts at `shadow` once the evidence gate
 
 Without such a profile, a proven routine stops at `ready_for_approval`. With a profile, only a routine that already passed the real shadow gates may promote automatically inside that exact envelope. `engine yolo disable` durably revokes the profile, linked routines, and derived mandates.
 
-**Tested in a fake/simulation:** scope freeze, promotion, disable, and kill switches. **Not physically proven:** live Homey actuation.
+**Fake/simulation-tested:** scope freeze, promotion, disable, and kill switches. **Roadmap:** live Homey actuation and physical effect evidence.
 
 ## 16. Homey transport mode
 

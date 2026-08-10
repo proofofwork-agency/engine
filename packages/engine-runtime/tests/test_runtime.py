@@ -145,6 +145,15 @@ class EngineRuntimeTests(unittest.TestCase):
         self.assertEqual("local-llama.cpp", config.model_provider_id)
         self.assertIsNone(config.model_api_key)
 
+    def test_close_flushes_lifecycle_observers_before_store_close(self) -> None:
+        app = EngineApplication(
+            RuntimeConfig(store_path=self.base / "close.sqlite3"),
+            registry=PluginRegistryV2(),
+        )
+        with patch.object(app.heart, "notify_lifecycle_observers") as notify:
+            app.close()
+        notify.assert_called_once_with()
+
 
 class _GoalModel:
     provider_id = "fixture"

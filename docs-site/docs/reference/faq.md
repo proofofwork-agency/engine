@@ -162,10 +162,11 @@ it is not a distributed consensus protocol for multiple hosts.
 
 ## What is Engine's end goal?
 
-The thesis is a local-first runtime that can turn human intent into safe, typed,
-and auditable actions across heterogeneous software and physical systems, while
-models remain optional proposal providers, realtime controllers retain their
-authority, and an independent policy/safety boundary constrains execution.
+The thesis is a local-first runtime that can turn human intent into typed,
+bounded, and auditable actions across heterogeneous software and physical
+systems, while models remain optional proposal providers, realtime controllers
+retain their authority, and an independent policy/safety boundary constrains
+execution. That policy boundary does not itself make a physical system safe.
 
 The next increment of value comes from supporting or falsifying that thesis in
 small, measurable worlds. The end goal is not a demo that merely looks

@@ -16,8 +16,16 @@ def check_plugin(plugin: WorldPluginV2) -> tuple[str, ...]:
     """Run dependency-free structural checks used by generated plugin tests."""
     failures: list[str] = []
     manifest: PluginManifestV2 = plugin.manifest
+    lifecycle_observers = tuple(getattr(plugin, "lifecycle_observers", ()))
     experience_providers = tuple(getattr(plugin, "experience_providers", ()))
     routine_compilers = tuple(getattr(plugin, "routine_compilers", ()))
+    if {str(item.id) for item in lifecycle_observers} != set(
+        manifest.lifecycle_observers
+    ):
+        failures.append("loaded lifecycle observers differ from manifest")
+    for observer in lifecycle_observers:
+        if observer.plugin_id != manifest.id:
+            failures.append(f"lifecycle observer {observer.id} has wrong plugin_id")
     if {str(item.id) for item in experience_providers} != set(
         manifest.experience_providers
     ):

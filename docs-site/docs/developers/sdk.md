@@ -25,6 +25,7 @@ packages are already available as public PyPI releases.
 | cognition | `BrainDecisionV2`, `SpecialistAdviceV1`, `DecisionKindV2` | Typed, untrusted decision output |
 | learning | `PreferenceSpecV1`, `BehaviorSignalV1`, `BehaviorBatchV1`, `LearningCandidateV1` | Bounded preference evidence and promotion |
 | routines | `RoutineTemplateSpecV1`, `RoutineSpecV1`, `RoutineCandidateV1`, `AutonomyProfileV1` | Guards, shadow, approval, and exact delegated scope |
+| lifecycle observation | `LifecycleEventV1`, `LifecycleObserver` | Plugin-declared, non-authoritative reaction to durable Engine milestones |
 | manifest | `PluginManifestV2`, `load_static_manifest`, `validate_manifest`, `compare_manifests` | Static enrollment and drift detection |
 | conformance | `check_plugin` (root export) and additional helpers in `engine_sdk.conformance` | Dependency-light structural checks |
 
@@ -43,11 +44,25 @@ of a `ProposedActionV1` does not grant execution rights.
 - `SpecialistBrainV2`
 - `ExperienceProvider`
 - `RoutineCompiler`
+- `LifecycleObserver`
 - `WorldPluginV2`
 
 Structural typing keeps plugins independent of a concrete base class. At
 registration time, the runtime also checks identities and agreement with the
 manifest.
+
+`LifecycleEventV1` identifies a bounded event only after its associated Engine
+artifact or transition is durable. A `LifecycleObserver` may use that event for
+best-effort outbound presentation, but it cannot turn it into a world fact,
+authority, dispatch request, or effect proof. Observer failures are isolated
+from the operational lifecycle.
+
+The SDK lifecycle seam is intentionally not a raw telemetry subscription. The
+`engine.ntfy` implementation, for example, forwards only GoalSpec creation,
+learning/routine candidate creation or promotion, RoutineSpec addition or
+activation, and genuine model-backed `ProposedAction` events. It does not
+forward raw motion, light, sensor, snapshot, or individual behavior-signal
+changes.
 
 ## Canonical serialization and hashes
 

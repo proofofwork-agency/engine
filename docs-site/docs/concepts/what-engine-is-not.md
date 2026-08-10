@@ -72,6 +72,12 @@ The ownership boundary is:
 - Umwelt or another model provider: advisory reconstruction, prediction, and planning;
 - target providers, executors, and oracles: operational observation within their documented coverage.
 
+## Not an all-seeing truth machine
+
+Even a fresh snapshot can be partial. Engine can establish what happened only inside the current coverage of identified observations and the target-specific oracle. A light-state sensor may establish that a device reports `on` without proving room brightness. A task API may establish `accepted` without proving the requested business outcome. A camera may cover one zone while saying nothing about another.
+
+When the necessary evidence is absent, too old, or contradictory, Engine must preserve `UNKNOWN`, `STALE`, or `CONFLICTING`. It may re-observe, defer, request approval, or expose the gap. It may not ask a model to convert missing coverage into fact.
+
 ## Not a self-learning AGI
 
 Engine currently trains no general model and does not create new weights automatically. What is currently called “learning” is bounded, inspectable state adaptation: collecting evidence, treating a preference or routine as a candidate, shadowing it, creating a new `GoalSpec` version, and supporting exact rollback.
@@ -84,25 +90,26 @@ The table below compares each system's primary object. It does not claim that En
 
 | Project/category | Primary object | Overlap with Engine | Key difference |
 | --- | --- | --- | --- |
-| **OpenClaw** | Self-hosted personal agent/gateway around channels, sessions, and tools | Always-on runtime, local deployment, replaceable models, tools | Engine centers durable world state, maintained goals, and effect oracles; a chat gateway is not the core |
-| **Hermes Agent** | Personal agent with an experience-to-skill loop | Persistence, tools, specialization, and compounding experience | Hermes centers reusable agent skills; Engine centers a typed multi-world lifecycle and bounded GoalSpec/routine adaptation |
+| **OpenClaw** | Personal agent runtime with channels, durable memory, tools, skills, scheduled tasks, and standing intents | Persistent runtime, local deployment, replaceable models, tools | Engine centers typed operational state, independent authority, and post-effect oracles; persistence alone is not the distinction |
+| **Hermes Agent** | Persistent personal agent with memory and agent-managed/self-improving skills | Persistence, tools, specialization, and compounding experience | Engine learning produces bounded candidates and never grants a skill execution authority |
+| **Claude Cowork** | Delegation/workspace product for autonomous multi-step knowledge work | Goals, files/tools, scheduled work, and reviewable execution | Engine is an operational runtime and plugin boundary below or beside such an interaction layer; no integration currently exists |
 | **LangGraph/Temporal-style orchestration** | Explicit workflows, state machines, and durable jobs | Retries, durable state, and multi-step execution | Engine adds world snapshots, brains as proposal providers, capability policy, and post-effect oracles; orchestration may be simpler for fixed workflows |
 | **Home Assistant/Homey automation** | Product- or domain-specific device control and automations | Events, state, devices, and routines | Engine uses such a platform as a target/world through a plugin; it does not replace the platform or its local controllers |
 | **ROS/PLC/flight-stack category** | Device communication and/or realtime physical control | Adapters, capabilities, and actions targeting physical systems | Engine is the deliberative intent and policy layer above it, not the realtime control or safety layer |
 | **Umwelt** | World-model and research primitives | State reconstruction, predicted effects, uncertainty, and planning | Umwelt output is advisory; Engine owns concrete action, policy, authorization, and execution |
 
-The honest current position is this: OpenClaw and Hermes have a different product focus and a more mature user-facing surface; Engine has a narrower, experimental kernel with stronger explicit world/action contracts. The repository does not yet contain an executed, pinned head-to-head benchmark.
+The honest current position is this: OpenClaw, Hermes, and Cowork have different product focuses and more mature user-facing surfaces; Engine has a narrower, experimental kernel with stronger explicit world/action contracts. Any of them could be complementary as an interaction, delegation, or proposal layer. The repository contains no tested integration with them and no executed, pinned head-to-head benchmark.
 
 ## What the current implementation does not prove
 
-### **Tested in a fake/simulation, not physically proven**
+### **Fake/simulation-tested, not physically proven**
 
 - Homey closed-loop behavior, sensor oracles, event/poll recovery, routines, and YOLO scope;
 - warehouse task polling, cancellation, and restart;
 - learning routes across different plugin domains;
 - multi-world lifecycle and restart reconstruction.
 
-### **Exists as contract/scaffolding, without a complete reference proof**
+### **Implemented as contract/scaffolding, without a complete reference proof**
 
 - `STREAM` invocation and reconnect/cursor semantics.
 

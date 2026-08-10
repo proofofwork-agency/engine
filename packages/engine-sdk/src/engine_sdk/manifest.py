@@ -75,7 +75,7 @@ def manifest_from_dict(raw: Mapping[str, Any]) -> PluginManifestV2:
     declarations = _table(raw, "declarations", required=False)
     needs = _table(raw, "needs", required=False)
     store = _table(raw, "store", required=False)
-    capability_rows = raw.get("capability_families", ())
+    capability_rows = raw.get("capability_families", [])
     if not isinstance(capability_rows, list):
         raise ContractError("capability_families must be an array of tables")
     capabilities = tuple(_capability(item, str(plugin.get("id", ""))) for item in capability_rows)
@@ -106,6 +106,7 @@ def manifest_from_dict(raw: Mapping[str, Any]) -> PluginManifestV2:
         relation_types=_strings(declarations, "relation_types"),
         observation_types=_strings(declarations, "observation_types"),
         capabilities=capabilities,
+        lifecycle_observers=_strings(declarations, "lifecycle_observers"),
         experience_providers=_strings(declarations, "experience_providers"),
         preference_specs=preferences,
         routine_compilers=_strings(declarations, "routine_compilers"),
@@ -126,8 +127,14 @@ def validate_manifest(manifest: PluginManifestV2) -> None:
         raise ContractError("plugin.id must be a dotted stable lowercase identity")
     if not manifest.engine_api:
         raise ContractError("plugin.engine_api must be declared")
-    if not manifest.world_providers and not manifest.specialists:
-        raise ContractError("plugin must declare a world provider or specialist")
+    if (
+        not manifest.world_providers
+        and not manifest.specialists
+        and not manifest.lifecycle_observers
+    ):
+        raise ContractError(
+            "plugin must declare a world provider, specialist or lifecycle observer"
+        )
     if manifest.capabilities and not manifest.world_providers:
         raise ContractError("capability families require a world provider")
     if any(item.plugin_id != manifest.id for item in manifest.capabilities):
@@ -169,7 +176,7 @@ def compare_manifests(
         "id", "version", "engine_api", "contract_version", "world_providers",
         "controllers", "executors", "effect_oracles", "specialists",
         "entity_types", "relation_types", "observation_types",
-        "experience_providers", "routine_compilers",
+        "lifecycle_observers", "experience_providers", "routine_compilers",
     )
     for name in exact_fields:
         if getattr(static, name) != getattr(loaded, name):

@@ -61,6 +61,13 @@ class RoutineRuntimeTests(unittest.TestCase):
                 )
                 self.store.create_goal(goal)
                 self.store.save_routine(routine)
+                self.assertTrue(
+                    any(
+                        item["kind"] == "routine_created"
+                        and item["payload"]["routine_id"] == routine.id
+                        for item in self.store.events()
+                    )
+                )
                 snapshot = _snapshot(
                     1, entity_id, target_id,
                     minute=1320, any_on=True,

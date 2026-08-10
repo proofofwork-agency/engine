@@ -29,6 +29,28 @@ evidence are different dimensions:
 `quality` or `confidence` is not a substitute for an evidence grade. A
 high-confidence inference remains `INFERRED`.
 
+## Truth is coverage-bound
+
+Engine can establish a fact only within the current, documented coverage of an
+identified observation source or effect oracle. “Fresh” does not necessarily
+mean “complete.” For example:
+
+- a device-state observation can establish that a light reports `on`, while a
+  separate lux observation is needed to establish room brightness;
+- an API acknowledgement can establish that a task was accepted, while fresh
+  business or physical observations are needed to establish the requested
+  outcome;
+- a camera or presence sensor can cover one zone without saying anything about
+  an uncovered zone;
+- a deterministic oracle can justify `false` only when its inputs cover the
+  entire condition it evaluates.
+
+Outside that coverage the result remains `UNKNOWN`. Evidence that exceeded its
+freshness contract becomes `STALE`. Sources that disagree become `CONFLICTING`.
+These values block or defer claims that require certainty; a model prediction,
+high confidence, API success code, or cached earlier observation cannot silently
+upgrade them.
+
 ## Policy outcomes
 
 | Outcome | Meaning |

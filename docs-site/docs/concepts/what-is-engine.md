@@ -6,12 +6,13 @@ description: A grounded explanation of Engine, the current implementation, and t
 
 # What is Engine?
 
-Engine is a local-first runtime that connects persistent goals to typed observations and bounded actions across different worlds. The system combines a **Heart** for continuity with a **general brain**, **specialist brains**, and **world plugins**. A model may propose an action; only Engine can validate, authorize, execute, and observe the effect again.
+Engine is a local-first runtime that connects persistent goals to typed observations and bounded actions across different worlds. The system combines a **Heart** for continuity with exactly one active **general executive brain**, zero or more **specialist brains**, and **world plugins**. A model or planner may propose an action; it cannot authorize that proposal or establish the result.
 
 > **Status labels used in this documentation**
 >
-> - **Exists now** — implemented in the current v2 code and public contracts.
-> - **Tested in a fake/simulation** — proven through automation or preserved experiments, but not automatically proven on real hardware.
+> - **Implemented** — present in the current v2 code and public contracts.
+> - **Fake/simulation-tested** — proven through automation or preserved experiments, but not automatically proven on real hardware.
+> - **Live read-only** — observed against a real target without mutation.
 > - **Roadmap** — direction or hypothesis; do not present it as a current product capability.
 
 ## The short version
@@ -32,17 +33,38 @@ record goal
 
 Operational truth therefore does not live in a prompt. Goals, snapshots, observations, policy decisions, authorizations, receipts, and effects are stored durably and can be reconstructed after process or provider loss.
 
+## Current world versus desired world
+
+Engine continuously keeps two ideas separate:
+
+- the **current world**: what identified providers and sensors observed, including time, quality, staleness, conflicts, and gaps;
+- the **desired world**: the conditions in an `ACHIEVE` or `MAINTAIN` goal, with constraints, budgets, and stop conditions.
+
+Consider a light. “Turn on the hall light” is a command. “While this zone is occupied and dark, maintain the declared lighting band without exceeding its power limit” is a durable intent. A motion event may wake the Heart, but does not prove that the zone is occupied now. Engine first asks the Homey provider for a fresh observation, compares current lux, presence, light state, and power with the desired condition, and only then may request a bounded change. The device ACK still is not the result: a second observation and lighting oracle must establish the measured effect. This closed loop is **Fake/simulation-tested**; whole-home Homey observation is **Live read-only**.
+
+The same pattern could govern air conditioning: “keep occupied rooms between 21 and 23 °C under a declared power budget” is a `MAINTAIN` goal, whereas “set the air conditioner to 22 °C” is merely a command. A climate plugin would need explicit temperature and occupancy coverage, units, capability limits, authorization, and an independent post-effect oracle. That complete air-conditioning application is **Roadmap**, not a current physical claim.
+
+The living cycle is therefore:
+
+```text
+instruction -> durable intent -> observe current world -> compare with desired world
+            -> propose -> validate -> authorize -> execute -> observe effect
+            -> complete, continue, monitor, or preserve uncertainty
+```
+
+When the desired world is demonstrably true, a maintained goal becomes quiet. When an event or poll wakes it, Engine observes again. When evidence is insufficient, it does not ask a model to guess reality; it remains `UNKNOWN`, `STALE`, or `CONFLICTING`.
+
 ## What Engine consists of
 
 | Component | Responsibility | Status |
 | --- | --- | --- |
-| **Heart** | Keeps goals, world state, attention, cycles, experience, and recovery alive | **Exists now** |
-| **General brain** | Selects the next cognitive step, specialist, or semantic effect | **Exists now**: deterministic or model-backed |
-| **Specialist brains** | Provide bounded, domain-specific advice and optionally a typed proposal | **Exists now**; multiple specialists can be registered at once |
-| **World plugins** | Observe targets and translate Engine contracts into domain-specific semantics | **Exists now** through `engine.plugin/v2` |
-| **Policy and authorization** | Decide outside every brain whether an exact request may execute | **Exists now** as deny-by-default mandate policy |
-| **Executor and effect oracle** | Execute an authorized request and verify its effect against fresh state | **Exists now** |
-| **Learning/routines** | Process explicit corrections and bounded behavior signals without expanding authority | **Exists now**, primarily tested with fakes/simulations |
+| **Heart** | Keeps goals, world state, attention, cycles, experience, and recovery alive | **Implemented** |
+| **General brain** | Selects the next cognitive step, specialist, or semantic effect | **Implemented**: deterministic or model-backed |
+| **Specialist brains** | Provide bounded, domain-specific advice and optionally a typed proposal | **Implemented**; multiple specialists can be registered at once |
+| **World plugins** | Observe targets and translate Engine contracts into domain-specific semantics | **Implemented** through `engine.plugin/v2` |
+| **Policy and authorization** | Decide outside every brain whether an exact request may execute | **Implemented** as deny-by-default mandate policy |
+| **Executor and effect oracle** | Execute an authorized request and verify its effect against fresh state | **Implemented** |
+| **Learning/routines** | Process explicit corrections and bounded behavior signals without expanding authority | **Implemented**, primarily **Fake/simulation-tested** |
 | **Hard-realtime controller and safety hardware** | Enforce timing, interlocks, watchdogs, and physical limits | Belongs to the target; **not** the deliberative Heart loop |
 
 Read [Heart and brains](./heart-and-brains.md) for the exact division of responsibility and [Architecture](./architecture.md) for the full v2 chain.
@@ -56,7 +78,7 @@ Engine has two canonical goal modes:
 
 A `MAINTAIN` goal makes the difference from a one-off workflow clear. “Turn on light A” is a command. “Keep this workspace between 350 and 450 lux, under a power budget” is a persistent desired state. While the state is stable, Engine should continue observing without repeatedly calling the general or specialist brain.
 
-Both goal modes **exist now**. The quiet-monitoring, drift, and repair route has been tested in deterministic fakes/simulations. A v2 Homey observation run exists, but the decisive physical lux/watt actuation test remains on the roadmap. See [All modes](./modes.md).
+Both goal modes are **Implemented**. The quiet-monitoring, drift, and repair route is **Fake/simulation-tested**. A v2 Homey observation run is **Live read-only**, but the decisive physical lux/watt actuation test remains **Roadmap**. See [All modes](./modes.md).
 
 ## Which worlds exist now?
 
@@ -64,10 +86,10 @@ The current repository contains several layers of evidence:
 
 | World | What it proves | Evidence boundary |
 | --- | --- | --- |
-| Sandbox filesystem and discrete grid | The original 0.1 acceptance: the same Heart/brain/catalog path, partial effect, oracle, and restart | **Tested in a sandbox/simulation**; this is the older v1 acceptance layer |
-| Reference warehouse plugin | A separately installable, non-household v2 world with a durable `TASK`, polling, deadline cancellation, oracle, and restart | **Tested in a fake/simulation** |
-| Engine Homey/HomeOps | Whole-house world model, events as wake hints, polling, typed actions, sensor oracles, preferences, and routines | **Fake-tested**; only live observe-only operation is proven, not v2 actuation |
-| Engine Context | Local time, scheduled wakes, confirmed location, and optional weather with an explicit privacy choice | **Exists now**; missing data remains `UNKNOWN` |
+| Sandbox filesystem and discrete grid | The original 0.1 acceptance: the same Heart/brain/catalog path, partial effect, oracle, and restart | **Fake/simulation-tested**; this is the older v1 acceptance layer |
+| Reference warehouse plugin | A separately installable, non-household v2 world with a durable `TASK`, polling, deadline cancellation, oracle, and restart | **Fake/simulation-tested** |
+| Engine Homey/HomeOps | Whole-house world model, events as wake hints, polling, typed actions, sensor oracles, preferences, and routines | **Fake/simulation-tested** for mutation; **Live read-only** for whole-home observation |
+| Engine Context | Local time, scheduled wakes, confirmed location, and optional weather with an explicit privacy choice | **Implemented**; missing data remains `UNKNOWN` |
 
 These examples prove that a shared lifecycle can support different domains. They do not prove that every possible machine is already supported or can be operated safely.
 

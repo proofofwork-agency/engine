@@ -12,6 +12,7 @@ from .models import (
     BehaviorBatchV1,
     ExecutionReceiptV2,
     GoalSpecV2,
+    LifecycleEventV1,
     PluginManifestV2,
     ProposedActionV1,
     RoutineCandidateV1,
@@ -142,6 +143,16 @@ class RoutineCompiler(Protocol):
     ) -> tuple[RoutineSpecV1, GoalSpecV2]: ...
 
 
+class LifecycleObserver(Protocol):
+    @property
+    def id(self) -> str: ...
+
+    @property
+    def plugin_id(self) -> str: ...
+
+    def observe(self, events: tuple[LifecycleEventV1, ...]) -> None: ...
+
+
 class WorldPluginV2(Protocol):
     @property
     def manifest(self) -> PluginManifestV2: ...
@@ -166,3 +177,6 @@ class WorldPluginV2(Protocol):
 
     @property
     def routine_compilers(self) -> tuple[RoutineCompiler, ...]: ...
+
+    @property
+    def lifecycle_observers(self) -> tuple[LifecycleObserver, ...]: ...

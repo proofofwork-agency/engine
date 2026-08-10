@@ -8,7 +8,7 @@ description: The canonical Engine v2 architecture, plugin roles, stores, and com
 
 The canonical product route is `engine.plugin/v2`: dependency-light contracts in `engine-sdk`, the generic Heart and store in `src/engine`, and composition, discovery, and CLI in `engine-runtime`. The older v1 core remains available as compatibility evidence, but v1 plugins are observe-only in the v2 world.
 
-> **Status:** the v2 vertical software slice **exists now**. The lifecycle has been tested with Homey fakes and a reference warehouse. Live whole-world Homey observation is proven; live v2 mutation and physical certification are not.
+> **Status:** the v2 vertical software slice is **Implemented** and **Fake/simulation-tested** with Homey and a reference warehouse. Whole-world Homey observation is **Live read-only**; live v2 mutation and physical certification are **Roadmap**.
 
 ## Layers
 
@@ -136,7 +136,7 @@ A task executor may return `ACCEPTED` or `RUNNING` with an `external_handle`. Th
 5. reconciles through the same oracle;
 6. schedules another wake while the task remains nonterminal.
 
-This route **exists and is fake-tested** in the reference warehouse, including process restart and deadline cancellation. `STREAM` exists in the contracts but does not yet have a comparable end-to-end reference proof.
+This route is **Implemented** and **Fake/simulation-tested** in the reference warehouse, including process restart and deadline cancellation. `STREAM` exists in the contracts but does not yet have a comparable end-to-end reference proof.
 
 ## Plugin interface
 
@@ -158,11 +158,11 @@ A plugin may use only mutable capability families declared statically and enroll
 
 ## SDK and runtime
 
-### `engine-sdk` — **exists now**
+### `engine-sdk` — **Implemented**
 
 Contains public data types, protocols, manifest validation, conformance helpers, and `engine-plugin` scaffolding. The `world`, `specialist`, and `full` templates generate a separately installable plugin structure. Plugin authors do not need to import the complete Heart runtime.
 
-### `engine-runtime` — **exists now**
+### `engine-runtime` — **Implemented**
 
 Contains entry-point discovery, composition, runtime lease, signal handling, model configuration, and the `engine` CLI. Important surfaces cover plugin inspection, world observation, setup preview/activation, run/status, learning, routines, bounded YOLO enrollment, and model canary.
 

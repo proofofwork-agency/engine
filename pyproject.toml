@@ -28,6 +28,7 @@ members = [
   "packages/engine-runtime",
   "plugins/engine-homey",
   "plugins/engine-context",
+  "plugins/engine-ntfy",
   "plugins/reference-world",
 ]
 
@@ -37,4 +38,5 @@ engine-sdk = { workspace = true }
 engine-runtime = { workspace = true }
 engine-homey = { workspace = true }
 engine-context = { workspace = true }
+engine-ntfy = { workspace = true }
 engine-reference-world = { workspace = true }

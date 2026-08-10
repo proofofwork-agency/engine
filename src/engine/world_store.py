@@ -21,6 +21,7 @@ from engine_sdk import (
     GoalModeV2,
     GoalSpecV2,
     LearningCandidateV1,
+    LifecycleEventV1,
     ObservationV1,
     PolicyDecisionV1,
     PreferenceEvidenceV1,
@@ -336,6 +337,9 @@ class WorldStore:
         )
 
     def save_routine(self, routine: RoutineSpecV1) -> None:
+        existing = self.connection.execute(
+            "SELECT 1 FROM routine_specs_v1 WHERE id=?", (routine.id,)
+        ).fetchone()
         self.connection.execute(
             """
             INSERT INTO routine_specs_v1(
@@ -354,6 +358,18 @@ class WorldStore:
                 routine.plugin_id, routine.target_id, canonical_json(routine),
             ),
         )
+        if existing is None:
+            self._insert_event(
+                routine.goal_id,
+                "routine_created",
+                routine.plugin_id,
+                {
+                    "routine_id": routine.id,
+                    "template_id": routine.template_id,
+                    "target_id": routine.target_id,
+                    "entity_count": len(routine.entity_ids),
+                },
+            )
         self.connection.commit()
 
     def get_routine(self, routine_id: str) -> RoutineSpecV1:
@@ -388,6 +404,15 @@ class WorldStore:
         )
 
     def save_routine_candidate(self, candidate: RoutineCandidateV1) -> None:
+        existing = self.connection.execute(
+            "SELECT body_json FROM routine_candidates_v1 WHERE id=?",
+            (candidate.id,),
+        ).fetchone()
+        previous_status = (
+            str(json.loads(existing["body_json"]).get("status", ""))
+            if existing is not None
+            else None
+        )
         self.connection.execute(
             """
             INSERT INTO routine_candidates_v1(
@@ -402,6 +427,35 @@ class WorldStore:
                 candidate.target_id, canonical_json(candidate),
             ),
         )
+        if existing is None:
+            self._insert_event(
+                None,
+                "routine_candidate_created",
+                candidate.plugin_id,
+                {
+                    "candidate_id": candidate.id,
+                    "template_id": candidate.template_id,
+                    "target_id": candidate.target_id,
+                    "example_count": candidate.example_count,
+                    "status": candidate.status.value,
+                },
+            )
+        elif (
+            candidate.status is RoutineCandidateStatus.READY_FOR_APPROVAL
+            and previous_status != candidate.status.value
+        ):
+            self._insert_event(
+                None,
+                "routine_candidate_ready",
+                candidate.plugin_id,
+                {
+                    "candidate_id": candidate.id,
+                    "template_id": candidate.template_id,
+                    "target_id": candidate.target_id,
+                    "example_count": candidate.example_count,
+                    "status": candidate.status.value,
+                },
+            )
         self.connection.commit()
 
     def get_routine_candidate(self, candidate_id: str) -> RoutineCandidateV1:
@@ -782,7 +836,23 @@ class WorldStore:
         return _world_snapshot(json.loads(row["body_json"]))
 
     def save_proposal(self, value: ProposedActionV1) -> None:
-        self._save_lifecycle("proposed_actions_v1", value.id, value.goal_id, value)
+        self.connection.execute(
+            "INSERT INTO proposed_actions_v1(id, goal_id, body_json) VALUES(?,?,?)",
+            (value.id, value.goal_id, canonical_json(value)),
+        )
+        self._insert_event(
+            value.goal_id,
+            "proposal_created",
+            value.proposed_by,
+            {
+                "proposal_id": value.id,
+                "proposed_by": value.proposed_by,
+                "capability_family": value.capability_family,
+                "target_id": value.target_id,
+                "entity_id": value.entity_id,
+            },
+        )
+        self.connection.commit()
 
     def save_request(self, value: ActionRequestV1) -> None:
         self._save_lifecycle("action_requests_v1", value.id, value.proposal_id, value)
@@ -941,11 +1011,45 @@ class WorldStore:
     def append_event(
         self, goal_id: str | None, kind: str, source: str, payload: Mapping[str, Any]
     ) -> None:
+        self._insert_event(goal_id, kind, source, payload)
+        self.connection.commit()
+
+    def _insert_event(
+        self, goal_id: str | None, kind: str, source: str, payload: Mapping[str, Any]
+    ) -> None:
         self.connection.execute(
             "INSERT INTO world_events_v2(goal_id, kind, source, payload_json) VALUES(?,?,?,?)",
             (goal_id, kind, source, canonical_json(payload)),
         )
-        self.connection.commit()
+
+    def latest_event_sequence(self) -> int:
+        row = self.connection.execute(
+            "SELECT COALESCE(MAX(id), 0) AS value FROM world_events_v2"
+        ).fetchone()
+        return int(row["value"])
+
+    def lifecycle_events_after(
+        self, sequence: int, *, limit: int = 1000
+    ) -> tuple[LifecycleEventV1, ...]:
+        if sequence < 0:
+            raise ValueError("lifecycle event sequence cannot be negative")
+        if limit < 1 or limit > 10_000:
+            raise ValueError("lifecycle event limit must be in [1, 10000]")
+        rows = self.connection.execute(
+            "SELECT * FROM world_events_v2 WHERE id>? ORDER BY id LIMIT ?",
+            (sequence, limit),
+        ).fetchall()
+        return tuple(
+            LifecycleEventV1(
+                sequence=int(row["id"]),
+                goal_id=(str(row["goal_id"]) if row["goal_id"] is not None else None),
+                kind=str(row["kind"]),
+                source=str(row["source"]),
+                payload=dict(json.loads(row["payload_json"])),
+                created_at=str(row["created_at"]),
+            )
+            for row in rows
+        )
 
     def events(self, goal_id: str | None = None) -> tuple[dict[str, Any], ...]:
         if goal_id is None:
@@ -1004,10 +1108,27 @@ class WorldStore:
         return tuple(_preference_evidence(json.loads(row["body_json"])) for row in rows)
 
     def save_learning_candidate(self, candidate: LearningCandidateV1) -> None:
+        existing = self.connection.execute(
+            "SELECT body_json FROM learning_candidates_v1 WHERE id=?",
+            (candidate.id,),
+        ).fetchone()
         self.connection.execute(
             "INSERT OR REPLACE INTO learning_candidates_v1(id, goal_id, body_json) VALUES(?,?,?)",
             (candidate.id, candidate.goal_id, canonical_json(candidate)),
         )
+        if existing is None:
+            self._insert_event(
+                candidate.goal_id,
+                "learning_candidate_created",
+                candidate.plugin_id or "engine.learning/v2",
+                {
+                    "candidate_id": candidate.id,
+                    "field_path": candidate.field_path,
+                    "preference_id": candidate.preference_id,
+                    "evidence_count": len(candidate.evidence_ids),
+                    "status": candidate.status.value,
+                },
+            )
         self.connection.commit()
 
     def learning_candidates(

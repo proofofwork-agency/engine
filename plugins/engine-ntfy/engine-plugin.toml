@@ -1,0 +1,29 @@
+[plugin]
+id = "engine.ntfy"
+version = "0.1.0"
+engine_api = ">=2.0,<3"
+contract_version = "engine.plugin/v2"
+description = "Bounded outbound ntfy notifications for Engine lifecycle milestones"
+
+[declarations]
+world_providers = []
+controllers = []
+executors = []
+effect_oracles = []
+specialists = []
+lifecycle_observers = ["ntfy-engine-milestones"]
+experience_providers = []
+routine_compilers = []
+entity_types = []
+relation_types = []
+observation_types = []
+
+[needs]
+network = ["configured-ntfy-https-endpoint"]
+filesystem = []
+secrets = []
+privacy = ["bounded-engine-milestone-identifiers-after-owner-opt-in"]
+
+[store]
+identity = "engine.ntfy.stateless"
+schema_version = 1

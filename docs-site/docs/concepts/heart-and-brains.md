@@ -8,7 +8,9 @@ description: What the Heart, general brain, and multiple specialist brains mean 
 
 The organ metaphor is functional, not biological. The **Heart** carries continuity and authority boundaries; brains provide cognition. Without the Heart, brains are isolated model calls. Without a brain slot, Engine is only a deterministic control runtime. The current architecture combines both while keeping every brain replaceable.
 
-> **Current topology:** **one active general executive brain per runtime composition** plus **zero, one, or multiple registered specialist brains**. This exists now. Multiple competing general brains and their arbitration are not a first-class feature.
+> **Current topology:** **exactly one active general executive brain per runtime composition** plus **zero or more registered specialist brains**. This is **Implemented**. Multiple competing general brains and their arbitration are not a first-class feature.
+
+“Brain” names a role and typed interface, not a vendor or a model council. Conceptually, a Claude model, GPT model, local model, deterministic planner, or classical algorithm could implement a general or specialist role when connected through the appropriate contract. The current repository ships deterministic and OpenAI-compatible executive implementations. It does not ship a Claude-plus-GPT council, concurrent general executives, voting, or automatic provider arbitration.
 
 ## What the Heart means
 
@@ -59,10 +61,10 @@ The Heart never accepts completion on the brain's word alone. Only observed goal
 
 | Executive | Use | Status |
 | --- | --- | --- |
-| `DeterministicExecutiveBrainV2` | Provider-free baseline and known, stable routes | **Exists now**, the default without model configuration |
-| `ModelExecutiveBrainV2` | Structured-output provider for novelty, conflict, or ambiguity | **Exists now** behind a provider-neutral port; local/API canaries exist |
+| `DeterministicExecutiveBrainV2` | Provider-free baseline and known, stable routes | **Implemented**, the default without model configuration |
+| `ModelExecutiveBrainV2` | Structured-output provider for novelty, conflict, or ambiguity | **Implemented** behind a provider-neutral port; local/API canaries exist |
 
-At composition time, the runtime selects one of these executives. There is no automatic “council of LLMs.” An application could build its own composite executive behind the same protocol, but Engine does not yet define canonical arbitration, cost, or conflict semantics for one.
+At composition time, the runtime selects exactly one of these executives. There is no automatic “council of LLMs.” An application could build its own composite executive behind the same protocol, but Engine does not currently define canonical identity, arbitration, cost, timeout, or conflict semantics for one.
 
 ## Specialist brains
 

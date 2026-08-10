@@ -7,6 +7,7 @@ members = [
     "engine-context",
     "engine-heart",
     "engine-homey",
+    "engine-ntfy",
     "engine-reference-world",
     "engine-runtime",
     "engine-sdk",
@@ -142,6 +143,17 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.23,<5" },
     { name = "python-socketio", extras = ["client"], specifier = ">=5.11,<6" },
 ]
+
+[[package]]
+name = "engine-ntfy"
+version = "0.1.0"
+source = { editable = "plugins/engine-ntfy" }
+dependencies = [
+    { name = "engine-sdk" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "engine-sdk", editable = "packages/engine-sdk" }]
 
 [[package]]
 name = "engine-reference-world"

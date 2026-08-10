@@ -78,6 +78,13 @@ class WorldV2Tests(unittest.TestCase):
         self.assertEqual("waiting", first.status)
         self.assertTrue(first.brain_called)
         self.assertFalse(first.effect_achieved)
+        self.assertTrue(
+            any(
+                item["kind"] == "proposal_created"
+                and item["payload"]["proposal_id"] == first.proposal_id
+                for item in store.events(goal.id)
+            )
+        )
         self.assertEqual(
             {
                 "proposals": 1,
@@ -114,6 +121,39 @@ class WorldV2Tests(unittest.TestCase):
         self.assertFalse(stable.brain_called)
         self.assertEqual(calls, store.brain_call_count(goal.id))
         self.assertEqual(1, brain.calls)
+
+    def test_lifecycle_observer_starts_at_registration_and_retries_failure(self) -> None:
+        plugin, registry, store, brain, _, goal = self._system()
+        del plugin
+        store.append_event(goal.id, "before_observer", "fixture", {})
+        observer = _RetryingLifecycleObserver()
+        heart = WorldHeartV2(
+            store,
+            registry,
+            brain,
+            lifecycle_observers=(observer,),
+        )
+        store.append_event(
+            goal.id,
+            "goal_created",
+            "fixture",
+            {"id": "goal:after-observer"},
+        )
+
+        heart.run_cycle()
+        self.assertEqual(1, observer.calls)
+        self.assertEqual((), observer.delivered)
+
+        heart.run_cycle()
+        self.assertEqual(2, observer.calls)
+        self.assertIn("goal_created", observer.delivered)
+        self.assertNotIn("before_observer", observer.delivered)
+        self.assertTrue(
+            any(
+                item["kind"] == "lifecycle_observer_failed"
+                for item in store.events()
+            )
+        )
 
     def test_generated_bootstrap_world_runs_same_maintain_heart_without_core_change(self) -> None:
         root = scaffold_plugin(self.base, "generated-world", "world")
@@ -367,6 +407,13 @@ class WorldV2Tests(unittest.TestCase):
         self.assertIsNotNone(candidate)
         assert candidate is not None
         self.assertEqual(LearningStatus.SHADOW, candidate.status)
+        self.assertTrue(
+            any(
+                item["kind"] == "learning_candidate_created"
+                and item["payload"]["candidate_id"] == candidate.id
+                for item in store.events()
+            )
+        )
         before_shadow_end = learner.promote(
             corrected, candidate, ({"achieved": True},), now=base + timedelta(days=6)
         )
@@ -397,6 +444,21 @@ class WorldV2Tests(unittest.TestCase):
             )
         mandate = replace(_mandate(), learning_permissions=("learning.low-risk",))
         self.assertIsNone(learner.candidate(goal, "camera.surveillance_mode", mandate))
+
+
+class _RetryingLifecycleObserver:
+    id = "test.lifecycle-observer"
+    plugin_id = "test.notifications"
+
+    def __init__(self) -> None:
+        self.calls = 0
+        self.delivered: tuple[str, ...] = ()
+
+    def observe(self, events: tuple[Any, ...]) -> None:
+        self.calls += 1
+        if self.calls == 1:
+            raise RuntimeError("temporary delivery failure")
+        self.delivered = tuple(item.kind for item in events)
 
 
 class _AckOnlyExecutor:

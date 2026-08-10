@@ -7,18 +7,30 @@ description: Start here for the mental model, the current evidence boundary, and
 
 # Engine at a glance
 
-Engine is an experimental, local-first runtime for durable goals across software and physical worlds. It combines a durable **Heart**, one replaceable **general executive brain**, zero or more **specialist brains**, and installable **world plugins**.
+Engine is an experimental, local-first runtime for durable goals across software and physical worlds. It combines a durable **Heart**, exactly one active and replaceable **general executive brain**, zero or more **specialist brains**, and installable **world plugins**.
 
-The design starts with a world that continues to exist without a model context, rather than with a chat session:
+A request can be immediate—“turn this light off”—or become a durable intent: `ACHIEVE` an outcome once, or `MAINTAIN` it as the world changes. Engine persists that intent independently of the conversation, model, or process that first expressed it.
 
 ```text
-durable world state + durable goal
+interaction  ->  intelligence  ->  Engine  ->  target / world
+chat or API      model/planner     durable     software, home,
+                                  runtime      business, energy,
+                                               or machine
+```
+
+The intelligence layer is replaceable cognition, not operational authority. The design starts with a current world and a desired world that continue to exist without a model context:
+
+```text
+durable current world + durable desired goal
                 |
                 v
-          observe and assess
+     event or poll wakes the Heart
                 |
                 v
-     brain/specialist proposes
+         observe again and assess
+                |
+                v
+      brain/specialist proposes
                 |
                 v
  schema -> policy -> authorization
@@ -30,12 +42,12 @@ durable world state + durable goal
       oracle -> receipt -> experience
 ```
 
-A brain may choose and propose. The Heart maintains the cycle, state, and causal history. Policy grants or denies authority. A target-specific executor acts. Only a fresh observation and an effect oracle may establish what actually happened.
+A brain may choose and propose. The Heart maintains the cycle, state, and causal history. Policy grants or denies authority. A target-specific executor acts. An event is only a wake-up hint, and an API acknowledgement is only an execution fact. Only a fresh observation and an effect oracle may establish what actually happened within their current coverage.
 
 ## The essence in four statements
 
 1. **Heart means continuity.** Goals, snapshots, receipts, and experience remain durable outside the model session.
-2. **Brain means cognition, not authority.** A deterministic or model-backed executive chooses the next cognitive step; specialists provide bounded advice.
+2. **Brain means replaceable cognition, not authority.** A deterministic planner or model-backed executive chooses the next cognitive step; specialists provide bounded advice.
 3. **Plugins represent worlds with their own semantics.** Providers observe; controllers translate; executors act; oracles measure effects.
 4. **Success requires independent evidence.** Model output or an API acknowledgement is never enough.
 
@@ -44,7 +56,7 @@ A brain may choose and propose. The Heart maintains the cycle, state, and causal
 | Status | Meaning in this documentation |
 | --- | --- |
 | **Implemented** | Present in the current v2 code and public contracts |
-| **Tested with a fake or simulation** | Proved automatically, but not evidence of physical safety |
+| **Fake/simulation-tested** | Proved automatically, but not evidence of physical safety |
 | **Live read-only** | Observed against a real target without mutation |
 | **Roadmap** | A direction or hypothesis, not a feature available today |
 
@@ -56,7 +68,7 @@ The current repository contains:
 - a warehouse reference plugin, context plugin, and Homey plugin;
 - tests for reconstruction, stale/denied/malformed cases, immediate and task lifecycles, and bounded learning.
 
-The current evidence boundary is deliberately narrower than the vision: Homey has been observed live in read-only mode, but v2 mutations have only been tested with a fake. `STREAM`, multiple general executive brains, trained mini-brains, and physical-safety certification have not been demonstrated.
+The current evidence boundary is deliberately narrower than the vision: Homey observation is **Live read-only**, while its v2 mutation path is **Fake/simulation-tested**. `STREAM`, multiple general executive brains, trained mini-brains, and physical-safety certification have not been demonstrated. [The end goal](concepts/end-goal.md#five-plugin-and-application-examples) works through five possible applications and labels each one at this boundary.
 
 ## Choose a reading path
 

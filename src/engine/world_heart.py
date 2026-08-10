@@ -135,6 +135,7 @@ class WorldHeartV2:
         policy: MandatePolicyV1 | None = None,
         clock: Any | None = None,
         learner: BoundedPreferenceLearner | None = None,
+        lifecycle_observers: tuple[Any, ...] | None = None,
     ) -> None:
         self.store = store
         self.registry = registry
@@ -143,6 +144,15 @@ class WorldHeartV2:
         self.policy = policy or MandatePolicyV1()
         self._clock = clock or (lambda: datetime.now(UTC))
         self.learner = learner or BoundedPreferenceLearner(store)
+        self.lifecycle_observers = (
+            registry.lifecycle_observers
+            if lifecycle_observers is None
+            else lifecycle_observers
+        )
+        baseline_event = self.store.latest_event_sequence()
+        self._lifecycle_cursors = {
+            str(observer.id): baseline_event for observer in self.lifecycle_observers
+        }
         self.routine_runtime = RoutineRuntimeV1(
             store, registry, clock=self._clock
         )
@@ -689,7 +699,28 @@ class WorldHeartV2:
             current_snapshot = self.store.latest_world_snapshot() or current_snapshot
             previous = current_snapshot
         self.store.mark_wakes_handled(tuple(str(item["id"]) for item in due_wakes))
+        self.notify_lifecycle_observers()
         return tuple(passes)
+
+    def notify_lifecycle_observers(self) -> None:
+        """Deliver new audit milestones without granting observers authority."""
+        for observer in self.lifecycle_observers:
+            observer_id = str(getattr(observer, "id", "unknown"))
+            cursor = self._lifecycle_cursors.get(observer_id, 0)
+            events = self.store.lifecycle_events_after(cursor)
+            if not events:
+                continue
+            try:
+                observer.observe(events)
+            except Exception as exc:
+                self.store.append_event(
+                    None,
+                    "lifecycle_observer_failed",
+                    observer_id,
+                    {"error": f"{type(exc).__name__}: {exc}"},
+                )
+                continue
+            self._lifecycle_cursors[observer_id] = events[-1].sequence
 
     def _import_experience(self, snapshot: WorldSnapshotV2) -> None:
         for provider in self.registry.experience_providers:

@@ -1341,6 +1341,40 @@ class BehaviorBatchV1:
 
 
 @dataclass(frozen=True)
+class LifecycleEventV1:
+    sequence: int
+    kind: str
+    source: str
+    payload: JsonObject
+    created_at: str
+    goal_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.sequence < 1:
+            raise ContractError("lifecycle event sequence must be positive")
+        _require(self.kind, "lifecycle event kind")
+        _require(self.source, "lifecycle event source")
+        _require(self.created_at, "lifecycle event created_at")
+        canonical_data(self.payload)
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "LifecycleEventV1":
+        return cls(
+            sequence=int(value["sequence"]),
+            kind=str(value["kind"]),
+            source=str(value["source"]),
+            payload=dict(value.get("payload", {})),
+            created_at=str(value["created_at"]),
+            goal_id=(
+                str(value["goal_id"]) if value.get("goal_id") is not None else None
+            ),
+        )
+
+
+@dataclass(frozen=True)
 class PluginManifestV2:
     id: str
     version: str
@@ -1355,6 +1389,7 @@ class PluginManifestV2:
     relation_types: tuple[str, ...]
     observation_types: tuple[str, ...]
     capabilities: tuple[CapabilitySpecV2, ...]
+    lifecycle_observers: tuple[str, ...] = ()
     experience_providers: tuple[str, ...] = ()
     preference_specs: tuple[PreferenceSpecV1, ...] = ()
     routine_compilers: tuple[str, ...] = ()

@@ -8,7 +8,8 @@ sidebar_position: 2
 
 `engine.plugin/v2` is the public boundary between Engine and a world. A plugin
 may observe one or more targets and provide typed capabilities, controllers,
-executors, effect oracles, specialists, and experience providers. Engine remains
+executors, effect oracles, specialists, experience providers, and bounded
+lifecycle observers. Engine remains
 responsible for the generic lifecycle, policy, authorization, and audit.
 
 A plugin always has two sides:
@@ -56,6 +57,7 @@ controllers = ["warehouse-controller"]
 executors = ["warehouse-executor"]
 effect_oracles = ["warehouse-oracle"]
 specialists = []
+lifecycle_observers = []
 entity_types = ["warehouse.bin"]
 relation_types = []
 observation_types = ["bin.count"]
@@ -149,6 +151,27 @@ evidence, not implicit permission.
 A routine compiler translates plugin-owned pattern semantics into an inert
 `RoutineSpecV1` plus `GoalSpecV2`. It cannot create a mandate or authorization.
 
+### `LifecycleObserver`
+
+A lifecycle observer receives a typed `LifecycleEventV1` only after the
+corresponding Engine artifact or transition has been stored durably. It is
+intended for separately installed, explicitly declared outbound integrations
+such as bounded notifications. It cannot add facts, propose actions, authorize,
+dispatch, or serve as an effect oracle. Delivery is best-effort; failures are
+isolated and audited as `lifecycle_observer_failed`.
+
+Because this role can cross a privacy boundary, its plugin manifest must declare
+the required network and privacy needs. Implementations should export only the
+smallest deterministic projection needed for their purpose. Lifecycle events
+are not a feed of raw observations: motion, light, sensor, snapshot, and
+individual behavior-signal changes must not be inferred or forwarded unless a
+separate, explicitly reviewed contract allows that data.
+
+The reference `engine.ntfy` plugin is narrower still. It handles only GoalSpec
+creation, learning/routine candidate creation or promotion, RoutineSpec
+addition or activation, and a real model-backed `ProposedAction`. Its output is
+non-authoritative and never becomes observation or oracle evidence.
+
 ## Discovery is bounded by the manifest
 
 A provider may discover dynamic devices, but only previously declared capability
@@ -196,4 +219,3 @@ among other structural properties.
 That proves contract shape and fake behavior. It does not prove network
 isolation, artifact signing, a physical safe state, timing guarantees, or
 certification.
-

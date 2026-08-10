@@ -42,11 +42,12 @@ function Architecture() {
       <div className={styles.sectionIntro}>
         <span className={styles.eyebrow}>System boundaries</span>
         <Heading as="h2" id="architecture-title">
-          Thinking and doing stay deliberately separate.
+          Replaceable cognition. Durable operations.
         </Heading>
         <p>
-          Engine connects exactly one general executive—optionally assisted by specialists—to a
-          deterministic execution path. No brain gets a hidden route to a target.
+          Interaction leads to intelligence, intelligence proposes to Engine, and Engine connects
+          to the target world. Exactly one general executive may use specialists, but no brain gets
+          a hidden route to authority or execution.
         </p>
       </div>
 
@@ -102,7 +103,7 @@ function Lifecycle() {
       <div className={styles.sectionIntro}>
         <span className={styles.eyebrow}>One inspectable chain</span>
         <Heading as="h2" id="lifecycle-title">
-          Every mutation leaves evidence.
+          An acknowledgement is not the effect.
         </Heading>
       </div>
       <ol className={styles.lifecycle}>
@@ -114,7 +115,8 @@ function Lifecycle() {
         ))}
       </ol>
       <p className={styles.lifecycleNote}>
-        Missing telemetry is <strong>UNKNOWN</strong>, not automatically success or failure.
+        Events wake the Heart; a fresh observation establishes the current world. Missing or stale
+        coverage remains <strong>UNKNOWN</strong>, not automatically success or failure.
       </p>
     </section>
   );
@@ -145,8 +147,8 @@ function Modes() {
 function Home() {
   return (
     <Layout
-      title="Bounded action, from intent to evidence"
-      description="Engine is a local-first runtime for bounded, typed, and auditable actions."
+      title="Durable intent, bounded action, measured effects"
+      description="Engine is a local-first runtime that carries durable intent from fresh world state to independently measured effects."
     >
       <main>
         <header className={styles.hero}>
@@ -159,14 +161,14 @@ function Home() {
               <span className={styles.version}>LOCAL-FIRST · PROVIDER-NEUTRAL</span>
             </div>
             <Heading as="h1">
-              From intent to action,
+              From commands to durable intent,
               <br />
               <em>without surrendering control.</em>
             </Heading>
             <p className={styles.lead}>
-              Engine is a runtime for bounded, typed, and auditable actions across software and
-              physical systems. Brains may propose. The Heart coordinates, validates, and records;
-              policy decides who may execute what.
+              Engine keeps ACHIEVE and MAINTAIN goals alive across software and physical worlds.
+              Replaceable brains propose; the Heart preserves state and continuity; independent
+              policy authorizes; fresh observations establish what actually changed.
             </p>
             <div className={styles.heroActions}>
               <Link className={styles.primaryButton} to="/docs/concepts/what-is-engine">
@@ -193,9 +195,12 @@ function Home() {
 
         <section className={styles.finalCta}>
           <span className={styles.eyebrow}>Build with explicit boundaries</span>
-          <Heading as="h2">Explore the architecture, SDK, CLI, and plugin contracts.</Heading>
-          <Link className={styles.primaryButton} to="/docs/concepts/what-is-engine">
-            Start with the overview <span aria-hidden="true">→</span>
+          <Heading as="h2">See one Heart applied to home, software, business, energy, and robotics.</Heading>
+          <Link
+            className={styles.primaryButton}
+            to="/docs/concepts/end-goal#five-plugin-and-application-examples"
+          >
+            Explore five applications <span aria-hidden="true">→</span>
           </Link>
         </section>
       </main>

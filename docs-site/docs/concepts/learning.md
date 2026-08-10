@@ -8,7 +8,29 @@ description: The distinction between state, experience, preferences, routines, p
 
 Engine does not use “learning” as an umbrella term for every state change. The current implementation adapts durable preferences and routines through fixed evidence gates. It does not train model weights and does not turn observation or repeated behavior into authorization.
 
-> **Status:** explicit corrections, plugin-neutral behavior import, preference candidates, routine shadowing, GoalSpec versioning, and rollback **exist now** and have been tested with fakes/reference worlds. Online weight training and automatically created mini-brains are **roadmap**.
+> **Status:** explicit corrections, plugin-neutral behavior import, preference candidates, routine shadowing, GoalSpec versioning, and rollback are **Implemented** and **Fake/simulation-tested**. Online weight training and automatically created mini-brains are **Roadmap**.
+
+## From instruction to intent to bounded discovery
+
+These are three different sources of information:
+
+1. **Instruction:** an owner says what they want, such as “keep the reserve between these declared bounds.” Engine can compile that into a proposed durable intent, but still validates its entities, capabilities, constraints, and mandate.
+2. **Intent:** an accepted `GoalSpecV2` records the desired state as `ACHIEVE` or `MAINTAIN`. It is durable operational state with an explicit authority boundary, not a prompt remembered by a model.
+3. **Discovery:** later observations may suggest that a declared preference or routine could be useful. Discovery creates an inert candidate with provenance. It is not a new instruction and is never permission.
+
+The candidate may proceed only through fixed evidence, conflict, shadow, and promotion gates. Even a successful promotion can change only a namespaced preference or routine that was already declared and exactly scoped. Discovery cannot add targets, entities, capability families, risk, privacy access, mandate duration, parameter ceilings, or authorization.
+
+```text
+owner instruction
+  -> validated durable intent
+  -> observed experience
+  -> bounded candidate
+  -> evidence + shadow + conflict gates
+  -> approval or exact pre-delegated promotion
+  -> normal policy/authorization/oracle lifecycle
+```
+
+At every arrow, a brain may help describe or cluster evidence, but deterministic contracts decide identity, scope, thresholds, promotion, and rollback.
 
 ## Five things that remain separate
 
@@ -30,19 +52,19 @@ Engine has several distinct mechanisms that are sometimes loosely called “lear
 
 The original 0.1 fixtures record observed effects and specialist outcomes. A negative specialist outcome can change the next specialist selection after restart. The grid world uses an observed obstacle to replan.
 
-**Tested in simulation.** This is a transparent heuristic/state reducer, not weight training.
+**Fake/simulation-tested.** This is a transparent heuristic/state reducer, not weight training.
 
 ### 2. Observed successful plans can be reused
 
 V2 can cache an exactly typed plan when an effect oracle has established `achieved: true`. Reuse requires the same goal version, situation key, capability manifest fingerprint, and mandate. A known situation can therefore be handled without another model call.
 
-**Exists now.** This is deterministic memoization of observed success, not generalization to arbitrary new situations.
+**Implemented.** This is deterministic memoization of observed success, not generalization to arbitrary new situations.
 
 ### 3. Explicit owner corrections
 
 An explicit correction becomes `OBSERVED` preference evidence, is validated against the namespaced `PreferenceSpecV1`, and is written directly into a new `GoalSpecV2` version. The old version and value remain auditable.
 
-**Exists now.** A correction may only change an already declared preference; it adds no target, capability, or mandate.
+**Implemented.** A correction may only change an already declared preference; it adds no target, capability, or mandate.
 
 ### 4. Inferred preference adaptation
 
@@ -106,7 +128,7 @@ With `engine yolo enable`, the owner delegates a narrow Homey lighting envelope 
 
 An external opposing change temporarily receives actuator ownership. An explicit conflict, or three opposing changes within seven days, rolls back the routine, linked goal, and mandate.
 
-This route is **fake-tested**, not physically certified.
+This route is **Fake/simulation-tested**, not physically certified.
 
 ## What Engine does not learn
 

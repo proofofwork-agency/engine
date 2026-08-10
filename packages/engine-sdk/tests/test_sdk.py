@@ -12,6 +12,7 @@ from engine_sdk import (
     ConditionV1,
     ContractError,
     EvidenceGrade,
+    LifecycleEventV1,
     PreferencePromotionMode,
     RelationHypothesisV1,
     RiskClass,
@@ -27,6 +28,25 @@ from engine_sdk.scaffold import scaffold_plugin
 
 
 class EngineSDKTests(unittest.TestCase):
+    def test_lifecycle_event_round_trip_preserves_sequence_and_provenance(self) -> None:
+        event = LifecycleEventV1(
+            sequence=7,
+            kind="goal_created",
+            source="heart.v2",
+            payload={"goal_id": "goal:comfort"},
+            created_at="2026-08-10T12:00:00+00:00",
+            goal_id="goal:comfort",
+        )
+        self.assertEqual(event, LifecycleEventV1.from_dict(event.to_dict()))
+        with self.assertRaisesRegex(ContractError, "sequence must be positive"):
+            LifecycleEventV1(
+                sequence=0,
+                kind="goal_created",
+                source="heart.v2",
+                payload={},
+                created_at="2026-08-10T12:00:00+00:00",
+            )
+
     def test_behavior_and_goal_preference_contracts_round_trip(self) -> None:
         signal = BehaviorSignalV1(
             id="example.signal/1",

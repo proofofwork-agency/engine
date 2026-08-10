@@ -27,8 +27,9 @@ them.
 | OpenAI Agents SDK | Agent workflows, tools, handoffs, tracing, and sessions | Executive/specialist composition, structured output | Engine makes LLMs optional proposal providers and keeps policy/authorization/effect oracle outside agents |
 | MCP | Protocol for context and tools between clients and servers | Plugin/tool interoperability | MCP does not itself define Engine's operational state, mandate, request authorization, or fresh-effect oracle |
 | LangGraph | Stateful agent orchestration and persistence | Durable workflows, checkpoints, human-in-the-loop | Engine focuses its state machine specifically on target revisions, typed actions, policy, and observed physical/software effects |
-| OpenClaw | Personal agent runtime with tools, skills, and durable memory | Local/persistent agent experience, skills | The difference is not that “Engine has persistence”: Engine focuses on typed operational state plus independent authority and post-effect observation |
-| Hermes | Personal agent with memory and extensible/self-improving skills | Memory, tools, skills, model use | Engine treats learning as bounded evidence/state promotion; a skill or model gains no additional execution authority |
+| OpenClaw | Personal agent runtime with tools, skills, durable memory, scheduled tasks, and standing intents | Persistent runtime, local operation, memory, tools, event-conditioned work | The difference is not that “Engine has persistence”: Engine focuses on typed operational state plus independent authority and post-effect observation |
+| Hermes | Persistent personal agent with memory and agent-managed/self-improving skills | Memory, tools, skills, model use, cross-session improvement | Engine treats learning as bounded evidence/state promotion; a learned skill or model gains no additional execution authority |
+| Claude Cowork | Delegation/workspace product for autonomous multi-step knowledge work across selected files and tools | Goals, tool use, scheduled work, sub-agents, reviewable execution | Cowork is an interaction and work-delegation product; Engine is a typed operational runtime that could sit below or beside it |
 
 ## Home Assistant
 
@@ -133,27 +134,53 @@ OpenClaw documents an
 [skills](https://docs.openclaw.ai/skills). It would be inaccurate to describe
 OpenClaw as only ephemeral chat or prompt state.
 
+Its memory documentation also describes event-conditioned standing intents and
+scheduled tasks for future actions. OpenClaw therefore has persistent runtime
+behavior as well as memory; “Engine persists” is not a meaningful distinction
+on its own.
+
 Engine's positioning therefore does not rest on persistence alone. Its focus is
 typed operational state that can be reconstructed after context loss, proposals
 without authority, deterministic mandates/authorization, and independently
-observed effects. OpenClaw could instead provide an intent or interaction layer
-in front of Engine.
+observed effects. OpenClaw could provide an intent or interaction layer in front
+of Engine. That is a possible complementary composition, not a tested integration.
 
 ## Hermes
 
 Hermes describes itself in its official
-[documentation](https://hermes-agent.nousresearch.com/docs/) as an extensible
-agent with
-[skills](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills)
-and [memory](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/).
-Here too, “Hermes has no durable memory or learning” is not a defensible
-differentiating claim.
+[documentation](https://hermes-agent.nousresearch.com/docs/) as a persistent,
+self-improving agent. Its
+[skills documentation](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills)
+describes agent-managed skills that can be created and improved during use, and
+its [memory documentation](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/)
+describes persistent cross-session memory. “Hermes has no durable memory or
+learning” is therefore not a defensible differentiating claim.
 
 Engine uses a narrower definition of learning: plugin-owned behavior evidence
 can pass through fixed gates and influence a namespaced preference or routine
 version, without training weights or expanding authority. Self-improving skills
 might improve proposals in the future, but they would still have to pass through
 the same policy and oracle boundary.
+
+Hermes could likewise provide an interaction, delegation, or proposal layer for
+an Engine-backed world. The repository does not contain that integration today.
+
+## Claude Cowork
+
+Anthropic presents
+[Claude Cowork](https://www.anthropic.com/webinars/future-of-ai-at-work-introducing-cowork)
+as a work-delegation experience in which Claude carries out autonomous,
+multi-step workflows rather than only answering questions. Anthropic's
+[official product guide](https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork)
+also describes work across user-selected files and tools, scheduled tasks,
+parallel sub-agents, and results returned for review.
+
+Cowork and Engine are therefore not separated by “one can do multi-step work.”
+They occupy different product layers. Cowork is a user-facing workspace and
+delegation product. Engine is an experimental operational runtime for durable
+world state, typed target capabilities, independent policy/authorization, and
+post-effect observation. A future Cowork workflow could submit intent to Engine
+or review its audit evidence, but no Cowork integration is implemented or tested.
 
 ## Where Engine does and does not compete
 
@@ -172,5 +199,9 @@ Engine does not currently claim:
 - the robotics middleware and realtime guarantees of ROS 2;
 - the general agent-framework breadth of the Agents SDK or LangGraph;
 - to replace MCP;
-- the skill/assistant product experience of OpenClaw or Hermes;
+- the skill/assistant/workspace product experience of OpenClaw, Hermes, or Cowork;
 - that the table is a performance, safety, or quality benchmark.
+
+OpenClaw, Hermes, and Cowork are possible complementary interaction or cognition
+layers. They are not current Engine integrations, and the projects have not been
+run as a uniform benchmark.

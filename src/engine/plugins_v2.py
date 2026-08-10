@@ -32,6 +32,7 @@ class PluginRegistryV2:
     def __init__(self) -> None:
         self._plugins: dict[str, RegisteredPluginV2] = {}
         self._targets: dict[str, Any] = {}
+        self._lifecycle_observers: dict[str, Any] = {}
         self._experience_providers: dict[str, Any] = {}
         self._routine_compilers: dict[str, Any] = {}
         self._discovery_failures: dict[str, str] = {}
@@ -52,6 +53,16 @@ class PluginRegistryV2:
                 raise ValueError(f"duplicate target id: {provider.target_id}")
             if provider.plugin_id != static.id:
                 raise ValueError("provider plugin identity mismatch")
+        lifecycle_observers = tuple(getattr(plugin, "lifecycle_observers", ()))
+        declared_observers = set(static.lifecycle_observers)
+        loaded_observers = {str(item.id) for item in lifecycle_observers}
+        if loaded_observers != declared_observers:
+            raise ValueError("loaded lifecycle observers differ from static manifest")
+        for observer in lifecycle_observers:
+            if observer.plugin_id != static.id:
+                raise ValueError("lifecycle observer plugin identity mismatch")
+            if observer.id in self._lifecycle_observers:
+                raise ValueError(f"duplicate lifecycle observer id: {observer.id}")
         experience_providers = tuple(getattr(plugin, "experience_providers", ()))
         declared_experience = set(static.experience_providers)
         loaded_experience = {str(item.id) for item in experience_providers}
@@ -77,6 +88,9 @@ class PluginRegistryV2:
                 raise ValueError(f"duplicate routine compiler id: {compiler.id}")
         self._plugins[static.id] = RegisteredPluginV2(plugin, static, True)
         self._targets.update({provider.target_id: provider for provider in providers})
+        self._lifecycle_observers.update(
+            {observer.id: observer for observer in lifecycle_observers}
+        )
         self._experience_providers.update(
             {provider.id: provider for provider in experience_providers}
         )
@@ -145,6 +159,13 @@ class PluginRegistryV2:
     def manifests(self) -> tuple[PluginManifestV2, ...]:
         return tuple(
             self._plugins[key].static_manifest for key in sorted(self._plugins)
+        )
+
+    @property
+    def lifecycle_observers(self) -> tuple[Any, ...]:
+        return tuple(
+            self._lifecycle_observers[key]
+            for key in sorted(self._lifecycle_observers)
         )
 
     @property
