@@ -146,7 +146,7 @@ function Modes() {
 function Home() {
   return (
     <Layout
-      title="Veilige actie, van intentie tot bewijs"
+      title="Begrensde actie, van intentie tot bewijs"
       description="Engine is een local-first runtime voor begrensde, getypeerde en auditeerbare acties."
     >
       <main>
