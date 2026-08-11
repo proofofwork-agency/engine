@@ -1,0 +1,80 @@
+{"group_id":"train-pos-01","language":"en","text":"Keep the reserve bin at four crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-01","language":"nl","text":"Houd de reservebak op vier kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-02","language":"en","text":"Refill backup storage to six crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-02","language":"nl","text":"Vul de backupopslag aan tot zes kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-03","language":"en","text":"Ensure the warehouse buffer holds five crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-03","language":"nl","text":"Zorg dat de magazijnbuffer vijf kratten bevat.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-04","language":"en","text":"Top up emergency stock to three crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-04","language":"nl","text":"Vul de noodvoorraad aan tot drie kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-05","language":"en","text":"Maintain seven crates in the spare bin.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-05","language":"nl","text":"Behoud zeven kratten in de reservebak.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-06","language":"en","text":"Replenish reserve inventory until it reaches eight.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-06","language":"nl","text":"Vul de reservevoorraad aan totdat die acht bereikt.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-07","language":"en","text":"Restore the buffer level to four crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-07","language":"nl","text":"Herstel het bufferniveau naar vier kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-08","language":"en","text":"Bring reserve stock up to nine crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-08","language":"nl","text":"Breng de reservevoorraad op negen kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-09","language":"en","text":"Stock the backup bin with two crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-09","language":"nl","text":"Voorzie de backupbak van twee kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-10","language":"en","text":"Keep safety stock no lower than five crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-10","language":"nl","text":"Houd de veiligheidsvoorraad op minstens vijf kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-11","language":"en","text":"Fill the reserve area to a minimum of six crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-11","language":"nl","text":"Vul het reservegebied tot minimaal zes kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-12","language":"en","text":"Preserve a three crate warehouse buffer.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-12","language":"nl","text":"Behoud een magazijnbuffer van drie kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-13","language":"en","text":"Set aside four crates in reserve.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-13","language":"nl","text":"Zet vier kratten apart als reserve.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-14","language":"en","text":"Maintain the contingency bin at seven crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-14","language":"nl","text":"Houd de noodbufferbak op zeven kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-15","language":"en","text":"Replenish overflow reserve to five crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-15","language":"nl","text":"Vul de extra reserve aan tot vijf kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-16","language":"en","text":"Make sure spare inventory reaches eight crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-16","language":"nl","text":"Zorg dat de reservevoorraad acht kratten bereikt.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-17","language":"en","text":"Raise buffer stock to six crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-17","language":"nl","text":"Verhoog de buffervoorraad naar zes kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-18","language":"en","text":"Refill standby storage until it has four crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-18","language":"nl","text":"Vul de standbyopslag tot die vier kratten heeft.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-19","language":"en","text":"Keep warehouse reserve above two crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-19","language":"nl","text":"Houd de magazijnreserve boven twee kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-20","language":"en","text":"Establish a minimum stockpile of five crates in reserve.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-pos-20","language":"nl","text":"Maak een minimale reservevoorraad van vijf kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"train-neg-01","language":"en","text":"Tell me whether the reserve contains four crates.","label":"DEFER"}
+{"group_id":"train-neg-01","language":"nl","text":"Vertel me of de reserve vier kratten bevat.","label":"DEFER"}
+{"group_id":"train-neg-02","language":"en","text":"Do not refill the reserve to six crates.","label":"DEFER"}
+{"group_id":"train-neg-02","language":"nl","text":"Vul de reserve niet aan tot zes kratten.","label":"DEFER"}
+{"group_id":"train-neg-03","language":"en","text":"Empty four crates from the reserve bin.","label":"DEFER"}
+{"group_id":"train-neg-03","language":"nl","text":"Haal vier kratten uit de reservebak.","label":"DEFER"}
+{"group_id":"train-neg-04","language":"en","text":"Move five reserve crates to outgoing shipping.","label":"DEFER"}
+{"group_id":"train-neg-04","language":"nl","text":"Verplaats vijf reservekratten naar de uitgaande zending.","label":"DEFER"}
+{"group_id":"train-neg-05","language":"en","text":"Order six crates from the supplier.","label":"DEFER"}
+{"group_id":"train-neg-05","language":"nl","text":"Bestel zes kratten bij de leverancier.","label":"DEFER"}
+{"group_id":"train-neg-06","language":"en","text":"Set the warehouse lights to four percent.","label":"DEFER"}
+{"group_id":"train-neg-06","language":"nl","text":"Zet de magazijnlampen op vier procent.","label":"DEFER"}
+{"group_id":"train-neg-07","language":"en","text":"Reserve the meeting room for five people.","label":"DEFER"}
+{"group_id":"train-neg-07","language":"nl","text":"Reserveer de vergaderruimte voor vijf personen.","label":"DEFER"}
+{"group_id":"train-neg-08","language":"en","text":"Discuss a policy for keeping safety stock at five.","label":"DEFER"}
+{"group_id":"train-neg-08","language":"nl","text":"Bespreek beleid om veiligheidsvoorraad op vijf te houden.","label":"DEFER"}
+{"group_id":"train-neg-09","language":"en","text":"Estimate demand for eight reserve crates tomorrow.","label":"DEFER"}
+{"group_id":"train-neg-09","language":"nl","text":"Schat morgen de vraag naar acht reservekratten.","label":"DEFER"}
+{"group_id":"train-neg-10","language":"en","text":"Refill the incoming staging bin to six crates.","label":"DEFER"}
+{"group_id":"train-neg-10","language":"nl","text":"Vul de inkomende tussenbak tot zes kratten.","label":"DEFER"}
+{"group_id":"train-neg-11","language":"en","text":"Archive the report about four missing crates.","label":"DEFER"}
+{"group_id":"train-neg-11","language":"nl","text":"Archiveer het rapport over vier ontbrekende kratten.","label":"DEFER"}
+{"group_id":"train-neg-12","language":"en","text":"Cancel the refill that would keep reserve at seven.","label":"DEFER"}
+{"group_id":"train-neg-12","language":"nl","text":"Annuleer het aanvullen dat de reserve op zeven zou houden.","label":"DEFER"}
+{"group_id":"train-neg-13","language":"en","text":"Maybe someday refill reserve to three crates.","label":"DEFER"}
+{"group_id":"train-neg-13","language":"nl","text":"Vul de reserve misschien ooit aan tot drie kratten.","label":"DEFER"}
+{"group_id":"train-neg-14","language":"en","text":"Keep an unlimited number of crates in reserve.","label":"DEFER"}
+{"group_id":"train-neg-14","language":"nl","text":"Houd onbeperkt veel kratten in reserve.","label":"DEFER"}
+{"group_id":"train-neg-15","language":"en","text":"Top up the reserve bin.","label":"DEFER"}
+{"group_id":"train-neg-15","language":"nl","text":"Vul de reservebak aan.","label":"DEFER"}
+{"group_id":"train-neg-16","language":"en","text":"Report that reserve is below five crates.","label":"DEFER"}
+{"group_id":"train-neg-16","language":"nl","text":"Meld dat de reserve onder vijf kratten staat.","label":"DEFER"}
+{"group_id":"train-neg-17","language":"en","text":"Simulate refilling the buffer to four crates.","label":"DEFER"}
+{"group_id":"train-neg-17","language":"nl","text":"Simuleer het aanvullen van de buffer tot vier kratten.","label":"DEFER"}
+{"group_id":"train-neg-18","language":"en","text":"Train a model on five reserve examples.","label":"DEFER"}
+{"group_id":"train-neg-18","language":"nl","text":"Train een model op vijf reservevoorbeelden.","label":"DEFER"}
+{"group_id":"train-neg-19","language":"en","text":"Rewrite the goal that keeps four crates in reserve.","label":"DEFER"}
+{"group_id":"train-neg-19","language":"nl","text":"Herschrijf het doel dat vier kratten in reserve houdt.","label":"DEFER"}
+{"group_id":"train-neg-20","language":"en","text":"Disable reserve maintenance at five crates.","label":"DEFER"}
+{"group_id":"train-neg-20","language":"nl","text":"Schakel reserveonderhoud op vijf kratten uit.","label":"DEFER"}

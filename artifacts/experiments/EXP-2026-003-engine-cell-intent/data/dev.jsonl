@@ -1,0 +1,32 @@
+{"group_id":"dev-pos-01","language":"en","text":"Safeguard six crates as warehouse backup stock.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-01","language":"nl","text":"Bewaar zes kratten als backupvoorraad in het magazijn.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-02","language":"en","text":"Keep a floor of four crates in standby storage.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-02","language":"nl","text":"Houd een ondergrens van vier kratten in de standbyopslag.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-03","language":"en","text":"Replenish the safety buffer to five crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-03","language":"nl","text":"Vul de veiligheidsbuffer aan tot vijf kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-04","language":"en","text":"Make the reserve bin contain seven crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-04","language":"nl","text":"Zorg dat de reservebak zeven kratten bevat.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-05","language":"en","text":"Never let spare stock fall below three crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-05","language":"nl","text":"Laat de reservevoorraad nooit onder drie kratten zakken.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-06","language":"en","text":"Top off contingency inventory at eight crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-06","language":"nl","text":"Vul de noodvoorraad af op acht kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-07","language":"en","text":"Restore stockpile buffer to two crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-07","language":"nl","text":"Herstel de buffervoorraad tot twee kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-08","language":"en","text":"Set the minimum warehouse reserve to nine crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-pos-08","language":"nl","text":"Stel de minimale magazijnreserve in op negen kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"dev-neg-01","language":"en","text":"Do not top off contingency inventory at eight crates.","label":"DEFER"}
+{"group_id":"dev-neg-01","language":"nl","text":"Vul de noodvoorraad niet af op acht kratten.","label":"DEFER"}
+{"group_id":"dev-neg-02","language":"en","text":"How many crates are in standby storage now?","label":"DEFER"}
+{"group_id":"dev-neg-02","language":"nl","text":"Hoeveel kratten staan nu in de standbyopslag?","label":"DEFER"}
+{"group_id":"dev-neg-03","language":"en","text":"Drain four crates from the warehouse buffer.","label":"DEFER"}
+{"group_id":"dev-neg-03","language":"nl","text":"Haal vier kratten uit de magazijnbuffer.","label":"DEFER"}
+{"group_id":"dev-neg-04","language":"en","text":"Reserve a hotel room for five people.","label":"DEFER"}
+{"group_id":"dev-neg-04","language":"nl","text":"Reserveer een hotelkamer voor vijf personen.","label":"DEFER"}
+{"group_id":"dev-neg-05","language":"en","text":"Order five crates for the warehouse.","label":"DEFER"}
+{"group_id":"dev-neg-05","language":"nl","text":"Bestel vijf kratten voor het magazijn.","label":"DEFER"}
+{"group_id":"dev-neg-06","language":"en","text":"Only rehearse filling the buffer to six crates.","label":"DEFER"}
+{"group_id":"dev-neg-06","language":"nl","text":"Oefen alleen het vullen van de buffer tot zes kratten.","label":"DEFER"}
+{"group_id":"dev-neg-07","language":"en","text":"Refill the outbound bin to seven crates.","label":"DEFER"}
+{"group_id":"dev-neg-07","language":"nl","text":"Vul de uitgaande bak tot zeven kratten.","label":"DEFER"}
+{"group_id":"dev-neg-08","language":"en","text":"Remove the minimum reserve policy of three crates.","label":"DEFER"}
+{"group_id":"dev-neg-08","language":"nl","text":"Verwijder het minimumreservebeleid van drie kratten.","label":"DEFER"}

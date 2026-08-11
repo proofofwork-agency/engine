@@ -1,0 +1,40 @@
+{"group_id":"heldout-pos-01","language":"en","text":"Keep at least six crates in the standby warehouse bin.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-01","language":"nl","text":"Houd minstens zes kratten in de standbybak van het magazijn.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-02","language":"en","text":"Replenish contingency stock until it contains four crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-02","language":"nl","text":"Vul de noodvoorraad aan totdat die vier kratten bevat.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-03","language":"en","text":"Maintain a safety floor of eight units in reserve storage.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-03","language":"nl","text":"Behoud een veiligheidsgrens van acht kratten in de reserveopslag.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-04","language":"en","text":"Put five crates aside as the warehouse buffer.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-04","language":"nl","text":"Zet vijf kratten apart als magazijnbuffer.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-05","language":"en","text":"Restore backup inventory to a minimum of seven crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-05","language":"nl","text":"Herstel de backupvoorraad tot minimaal zeven kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-06","language":"en","text":"See that the spare bin never drops below three crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-06","language":"nl","text":"Zorg dat de reservebak nooit onder drie kratten komt.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-07","language":"en","text":"Top up the stockpile used for emergencies to two crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-07","language":"nl","text":"Vul de noodbuffervoorraad aan tot twee kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-08","language":"en","text":"Bring the reserve area back to nine crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-08","language":"nl","text":"Breng het reservegebied terug naar negen kratten.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-09","language":"en","text":"Hold four crates as contingency stock in the warehouse.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-09","language":"nl","text":"Bewaar vier kratten als noodvoorraad in het magazijn.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-10","language":"en","text":"Ensure buffer inventory has at least five crates.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-pos-10","language":"nl","text":"Zorg dat de buffervoorraad minstens vijf kratten bevat.","label":"warehouse.reserve-minimum/v1"}
+{"group_id":"heldout-neg-01","language":"en","text":"Do not keep six crates in reserve.","label":"DEFER"}
+{"group_id":"heldout-neg-01","language":"nl","text":"Houd niet zes kratten in reserve.","label":"DEFER"}
+{"group_id":"heldout-neg-02","language":"en","text":"Show whether reserve has four crates.","label":"DEFER"}
+{"group_id":"heldout-neg-02","language":"nl","text":"Toon of de reserve vier kratten heeft.","label":"DEFER"}
+{"group_id":"heldout-neg-03","language":"en","text":"Empty the contingency stock into shipping.","label":"DEFER"}
+{"group_id":"heldout-neg-03","language":"nl","text":"Leeg de noodvoorraad in de verzending.","label":"DEFER"}
+{"group_id":"heldout-neg-04","language":"en","text":"Refill the incoming staging bin to eight crates.","label":"DEFER"}
+{"group_id":"heldout-neg-04","language":"nl","text":"Vul de inkomende tussenbak tot acht kratten.","label":"DEFER"}
+{"group_id":"heldout-neg-05","language":"en","text":"Book the reserve meeting room for five people.","label":"DEFER"}
+{"group_id":"heldout-neg-05","language":"nl","text":"Boek de reserveruimte voor vijf personen.","label":"DEFER"}
+{"group_id":"heldout-neg-06","language":"en","text":"Simulate topping up emergency stock to three crates.","label":"DEFER"}
+{"group_id":"heldout-neg-06","language":"nl","text":"Simuleer het aanvullen van noodvoorraad tot drie kratten.","label":"DEFER"}
+{"group_id":"heldout-neg-07","language":"en","text":"Ask the supplier to deliver three reserve crates.","label":"DEFER"}
+{"group_id":"heldout-neg-07","language":"nl","text":"Vraag de leverancier drie reservekratten te leveren.","label":"DEFER"}
+{"group_id":"heldout-neg-08","language":"en","text":"Remove the safety floor from the reserve.","label":"DEFER"}
+{"group_id":"heldout-neg-08","language":"nl","text":"Verwijder de veiligheidsgrens uit de reserve.","label":"DEFER"}
+{"group_id":"heldout-neg-09","language":"en","text":"Explain why backup inventory is low.","label":"DEFER"}
+{"group_id":"heldout-neg-09","language":"nl","text":"Leg uit waarom de backupvoorraad laag is.","label":"DEFER"}
+{"group_id":"heldout-neg-10","language":"en","text":"Disable warehouse buffer maintenance.","label":"DEFER"}
+{"group_id":"heldout-neg-10","language":"nl","text":"Schakel het onderhoud van de magazijnbuffer uit.","label":"DEFER"}
