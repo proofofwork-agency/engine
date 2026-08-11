@@ -10,7 +10,7 @@ from engine_runtime import EngineApplication, RuntimeConfig
 from engine_runtime.cli import build_parser
 from jsonschema.exceptions import ValidationError
 
-from engine import PluginRegistryV2
+from engine import PluginRegistryV2, WorldStore
 
 
 class EngineRuntimeTests(unittest.TestCase):
@@ -85,6 +85,29 @@ class EngineRuntimeTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             app.correct(goal_id=goal_id, preference_id=preference, value=99)
 
+    def test_status_reports_store_size_and_lease_without_requiring_one(self) -> None:
+        app = EngineApplication(
+            RuntimeConfig(store_path=self.base / "engine.sqlite3"),
+            registry=PluginRegistryV2(),
+        )
+        self.addCleanup(app.close)
+
+        idle = app.status()
+
+        self.assertGreater(idle["store_bytes"], 0)
+        self.assertIsNone(idle["lease"])
+        self.assertIsNone(idle["last_heartbeat"])
+
+        with app.lease():
+            held = app.status()["lease"]
+            self.assertIsNotNone(held)
+            self.assertGreaterEqual(int(held["generation"]), 1)
+            self.assertIn("expires_at", held)
+
+        released = app.status()["lease"]
+        self.assertIsNotNone(released)
+        self.assertEqual(held["generation"], released["generation"])
+
     def test_cli_surface_contains_generic_commands(self) -> None:
         parser = build_parser()
         cases = (
@@ -145,14 +168,36 @@ class EngineRuntimeTests(unittest.TestCase):
         self.assertEqual("local-llama.cpp", config.model_provider_id)
         self.assertIsNone(config.model_api_key)
 
-    def test_close_flushes_lifecycle_observers_before_store_close(self) -> None:
+    def test_close_does_not_consume_lifecycle_events_without_a_lease(self) -> None:
+        observer = _LifecycleObserver()
+        registry = PluginRegistryV2()
+        registry._lifecycle_observers = {observer.id: observer}
+        path = self.base / "close.sqlite3"
         app = EngineApplication(
-            RuntimeConfig(store_path=self.base / "close.sqlite3"),
-            registry=PluginRegistryV2(),
+            RuntimeConfig(store_path=path),
+            registry=registry,
         )
-        with patch.object(app.heart, "notify_lifecycle_observers") as notify:
-            app.close()
-        notify.assert_called_once_with()
+        baseline = app.store.lifecycle_cursor(observer.id)
+        app.store.append_event(None, "runtime_started", "fixture", {"targets": 1})
+
+        app.close()
+
+        reopened = WorldStore(path)
+        self.addCleanup(reopened.close)
+        self.assertEqual((), observer.delivered)
+        self.assertEqual(baseline, reopened.lifecycle_cursor(observer.id))
+        self.assertGreater(reopened.latest_event_sequence(), int(baseline or 0))
+
+
+class _LifecycleObserver:
+    id = "test.runtime-lifecycle"
+    plugin_id = "test.notifications"
+
+    def __init__(self) -> None:
+        self.delivered: tuple[str, ...] = ()
+
+    def observe(self, events) -> None:
+        self.delivered += tuple(item.kind for item in events)
 
 
 class _GoalModel:

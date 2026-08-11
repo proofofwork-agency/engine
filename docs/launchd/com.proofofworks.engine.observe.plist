@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Template for the M4 observation soak (docs/RUNBOOK_M4.md).
+  The installed copy carries a Homey token: keep it only in
+  ~/Library/LaunchAgents/, chmod 600, never commit a filled-in copy.
+
+  KeepAlive is plain true on purpose: lease loss exits with code 0 and
+  ADR-0011 Decision 11 requires the supervisor, not the process, to restart
+  observation. Stopping therefore requires:
+    launchctl bootout gui/$UID/com.proofofworks.engine.observe
+  After a long-lived process exits, launchd may attempt one immediate restart;
+  RuntimeLease rejects it while the old 15 s lease is current. ThrottleInterval
+  then spaces rapid retries by 30 s, so a later attempt can acquire after
+  expiry. There is no in-process re-acquire.
+
+  Optional keys (add only when opted in, see the runbook):
+    ENGINE_NTFY_TOPIC, ENGINE_CONTEXT_LATITUDE, ENGINE_CONTEXT_LONGITUDE
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.proofofworks.engine.observe</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/uv</string>
+        <string>run</string>
+        <string>engine</string>
+        <string>run</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/danillofelanso/projects/proofofworks/engine</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ENGINE_DATABASE</key>
+        <string>/REPLACE/WITH/FRESH/m4/engine.sqlite3</string>
+        <key>ENGINE_CONTEXT_DATABASE</key>
+        <string>/REPLACE/WITH/FRESH/m4/context.sqlite3</string>
+        <key>ENGINE_HOMEY_CONFIG</key>
+        <string>/REPLACE/WITH/ABSOLUTE/homey.observe.toml</string>
+        <key>ENGINE_HOMEY_TOKEN</key>
+        <string>REPLACE_WITH_READONLY_PAT</string>
+        <key>ENGINE_HOMEY_AUTH</key>
+        <string>token</string>
+        <key>ENGINE_HOMEY_MODE</key>
+        <string>observe</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+    <key>StandardOutPath</key>
+    <string>/Users/danillofelanso/Library/Logs/engine/engine-observe.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/danillofelanso/Library/Logs/engine/engine-observe.err.log</string>
+</dict>
+</plist>

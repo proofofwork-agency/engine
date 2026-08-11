@@ -17,7 +17,6 @@ from engine_sdk import (
     locate_distribution_manifest,
 )
 
-
 _TOPIC = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 
 
@@ -152,6 +151,33 @@ def _messages(events: tuple[LifecycleEventV1, ...]) -> list[str]:
         elif event.kind == "routine_activated":
             messages.append(
                 f"Routine toegevoegd en geactiveerd: {_safe(payload.get('routine_id'))}"
+            )
+        elif event.kind == "runtime_started":
+            messages.append(
+                f"Engine gestart ({_non_negative_int(payload.get('targets'))} targets)"
+            )
+        elif event.kind == "runtime_stopped":
+            messages.append(
+                f"Engine gestopt: {_safe(payload.get('reason'))} na "
+                f"{_non_negative_int(payload.get('passes'))} cycli"
+            )
+        elif event.kind == "runtime_lease_lost":
+            messages.append(
+                "Engine runtime-lease verloren; proces stopt voor herstart"
+            )
+        elif event.kind == "runtime_circuit_open":
+            messages.append(
+                "Engine circuit open na "
+                f"{_non_negative_int(payload.get('consecutive_failures'))} "
+                "opeenvolgende cyclefouten"
+            )
+        elif event.kind == "runtime_heartbeat":
+            messages.append(
+                f"Engine hartslag: {_non_negative_int(payload.get('cycles'))} cycli, "
+                f"{_non_negative_int(payload.get('rows_written'))} rijen "
+                f"({_non_negative_int(payload.get('rows_confirmed'))} bevestigd), "
+                f"{_non_negative_int(payload.get('store_bytes')) // 1_000_000} MB store, "
+                f"{_non_negative_int(payload.get('open_attempts'))} open acties"
             )
         elif event.kind == "proposal_created" and str(
             payload.get("proposed_by", event.source)

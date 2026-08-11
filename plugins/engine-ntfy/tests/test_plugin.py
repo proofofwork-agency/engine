@@ -4,17 +4,17 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from engine_sdk import (
-    LifecycleEventV1,
-    check_plugin,
-    compare_manifests,
-    load_static_manifest,
-)
 from engine_ntfy.plugin import (
     NtfyConfig,
     NtfyLifecycleObserver,
     _messages,
     load_plugin,
+)
+from engine_sdk import (
+    LifecycleEventV1,
+    check_plugin,
+    compare_manifests,
+    load_static_manifest,
 )
 
 
@@ -108,6 +108,86 @@ class NtfyPluginTests(unittest.TestCase):
             ],
             _messages(events),
         )
+
+    def test_runtime_health_kinds_render_counts_only_and_raw_kinds_stay_out(
+        self,
+    ) -> None:
+        events = (
+            _event(1, "runtime_started", {"targets": 2}, source="engine.runtime/v2"),
+            _event(
+                2,
+                "runtime_circuit_open",
+                {
+                    "consecutive_failures": 5,
+                    "exception_type": "OSError",
+                    "message": "disk full at /Users/private/path",
+                    "backoff_seconds": 16.0,
+                },
+                source="engine.runtime/v2",
+            ),
+            _event(
+                3,
+                "runtime_heartbeat",
+                {
+                    "at": "2026-08-12T00:00:00+00:00",
+                    "cycles": 7,
+                    "rows_written": 3100,
+                    "rows_confirmed": 40,
+                    "store_bytes": 123456789,
+                    "open_attempts": 0,
+                },
+                source="engine.runtime/v2",
+            ),
+            _event(
+                4, "runtime_lease_lost", {"passes": 42}, source="engine.runtime/v2"
+            ),
+            _event(
+                5,
+                "runtime_stopped",
+                {"passes": 42, "reason": "lease_lost"},
+                source="engine.runtime/v2",
+            ),
+            _event(
+                6,
+                "cycle_failed",
+                {"exception_type": "OSError", "message": "secret detail"},
+                source="engine.runtime/v2",
+            ),
+            _event(
+                7,
+                "subscription_failed",
+                {"target_id": "target:home"},
+                source="engine.homey",
+            ),
+            _event(8, "prune_failed", {"message": "boom"}, source="engine.runtime/v2"),
+            _event(
+                9,
+                "homey_light_changed",
+                {"lux": 512, "watt": 13.7, "presence": True},
+                source="engine.homey",
+            ),
+        )
+
+        rendered = _messages(events)
+
+        self.assertEqual(
+            [
+                "Engine gestart (2 targets)",
+                "Engine circuit open na 5 opeenvolgende cyclefouten",
+                "Engine hartslag: 7 cycli, 3100 rijen (40 bevestigd), "
+                "123 MB store, 0 open acties",
+                "Engine runtime-lease verloren; proces stopt voor herstart",
+                "Engine gestopt: lease_lost na 42 cycli",
+            ],
+            rendered,
+        )
+        joined = "\n".join(rendered)
+        self.assertNotIn("512", joined)
+        self.assertNotIn("13.7", joined)
+        self.assertNotIn("presence", joined)
+        self.assertNotIn("disk full", joined)
+        self.assertNotIn("/Users/", joined)
+        self.assertNotIn("secret", joined)
 
     def test_post_uses_owner_topic_and_title(self) -> None:
         events = (

@@ -33,7 +33,7 @@ from engine.autonomy_v3 import enrollment_resource_keys
 from engine.learning_v2 import BoundedPreferenceLearner
 
 from .discovery import load_registry
-from .lease import RuntimeLease
+from .lease import RuntimeLease, lease_status
 from .models import OpenAICompatibleV2Model
 
 
@@ -107,10 +107,7 @@ class EngineApplication:
         )
 
     def close(self) -> None:
-        try:
-            self.heart.notify_lifecycle_observers()
-        finally:
-            self.store.close()
+        self.store.close()
 
     def observe(self) -> Any:
         return self.heart.observe_connected_world(refresh_targets=None)
@@ -211,6 +208,9 @@ class EngineApplication:
         snapshot = self.store.latest_world_snapshot()
         return {
             "store": str(self.config.store_path),
+            "store_bytes": self.store.database_size_bytes(),
+            "lease": lease_status(self.config.store_path),
+            "last_heartbeat": self.store.latest_event_payload("runtime_heartbeat"),
             "plugins": [item.id for item in self.registry.manifests],
             "targets": [item.target_id for item in self.registry.providers],
             "plugin_failures": self.registry.discovery_failures,

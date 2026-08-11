@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import plistlib
 import tempfile
 import threading
 import unittest
@@ -208,6 +209,222 @@ class DaemonSurvivalTests(unittest.TestCase):
         self.assertEqual(1, len(restored))
         self.assertEqual(TARGET_ID, restored[0]["payload"]["target_id"])
 
+    def test_run_forever_records_runtime_started_and_stopped_as_first_and_last(
+        self,
+    ) -> None:
+        _, provider, store, heart = self._system()
+        provider.poll_interval_seconds = 0.0
+
+        passes = heart.run_forever(threading.Event(), max_passes=2)
+
+        self.assertEqual(2, passes)
+        started = self._events(store, "runtime_started")
+        stopped = self._events(store, "runtime_stopped")
+        self.assertEqual(1, len(started))
+        self.assertEqual(1, len(stopped))
+        self.assertEqual(1, started[0]["payload"]["targets"])
+        self.assertEqual(2, stopped[0]["payload"]["passes"])
+        self.assertEqual("max_passes", stopped[0]["payload"]["reason"])
+        ordered = store.events()
+        self.assertEqual("runtime_started", ordered[0]["kind"])
+        self.assertEqual("runtime_stopped", ordered[-1]["kind"])
+        self.assertEqual((), self._events(store, "runtime_lease_lost"))
+
+    def test_preset_stop_event_records_stop_requested_reason(self) -> None:
+        _, provider, store, heart = self._system()
+        provider.poll_interval_seconds = 0.0
+        stop = threading.Event()
+        stop.set()
+
+        passes = heart.run_forever(stop, max_passes=2)
+
+        self.assertEqual(0, passes)
+        stopped = self._events(store, "runtime_stopped")
+        self.assertEqual(1, len(stopped))
+        self.assertEqual("stop_requested", stopped[0]["payload"]["reason"])
+
+    def test_lease_loss_is_recorded_durably_at_loop_exit(self) -> None:
+        _, provider, store, heart = self._system()
+        provider.poll_interval_seconds = 0.0
+
+        passes = heart.run_forever(
+            threading.Event(), max_passes=1, lease_lost=lambda: True
+        )
+
+        self.assertEqual(1, passes)
+        lost = self._events(store, "runtime_lease_lost")
+        stopped = self._events(store, "runtime_stopped")
+        self.assertEqual(1, len(lost))
+        self.assertEqual(1, lost[0]["payload"]["passes"])
+        self.assertEqual(1, len(stopped))
+        self.assertEqual("lease_lost", stopped[0]["payload"]["reason"])
+
+    def test_daily_heartbeat_fires_once_per_utc_day_with_counts_only_payload(
+        self,
+    ) -> None:
+        clock = _MutableClock(datetime(2026, 8, 11, 12, tzinfo=UTC))
+        provider = _DayJumpProvider(
+            "plugin.dayjump", "target:dayjump", clock, ("entity:day",)
+        )
+        provider.poll_interval_seconds = 0.0
+        registry = PluginRegistryV2()
+        registry._targets = {provider.target_id: provider}
+        store = WorldStore(self.base / "heartbeat.sqlite3")
+        self.addCleanup(store.close)
+        heart = WorldHeartV2(
+            store, registry, DeterministicExecutiveBrainV2(), clock=clock
+        )
+
+        passes = heart.run_forever(threading.Event(), max_passes=3)
+
+        self.assertEqual(3, passes)
+        beats = self._events(store, "runtime_heartbeat")
+        self.assertEqual(3, len(beats))
+        self.assertEqual(
+            ["2026-08-11", "2026-08-12", "2026-08-13"],
+            [item["payload"]["at"][:10] for item in beats],
+        )
+        self.assertEqual(
+            [0, 1, 2], [item["payload"]["cycles"] for item in beats]
+        )
+        for item in beats:
+            payload = item["payload"]
+            self.assertEqual(
+                {
+                    "at",
+                    "cycles",
+                    "rows_written",
+                    "rows_confirmed",
+                    "store_bytes",
+                    "open_attempts",
+                },
+                set(payload),
+            )
+            for key in (
+                "cycles",
+                "rows_written",
+                "rows_confirmed",
+                "store_bytes",
+                "open_attempts",
+            ):
+                self.assertIsInstance(payload[key], int)
+                self.assertGreaterEqual(payload[key], 0)
+        self.assertGreater(beats[0]["payload"]["store_bytes"], 0)
+        self.assertEqual(0, beats[0]["payload"]["open_attempts"])
+        self.assertEqual((), self._events(store, "heartbeat_failed"))
+
+    def test_transient_heartbeat_write_failure_retries_within_the_same_day(
+        self,
+    ) -> None:
+        _, provider, store, heart = self._system()
+        provider.poll_interval_seconds = 0.0
+        original_append = store.append_event
+        heartbeat_attempts = 0
+
+        def flaky_append(goal_id, kind, source, payload):
+            nonlocal heartbeat_attempts
+            if kind == "runtime_heartbeat":
+                heartbeat_attempts += 1
+                if heartbeat_attempts == 1:
+                    raise OSError("transient heartbeat write")
+            return original_append(goal_id, kind, source, payload)
+
+        with patch.object(store, "append_event", side_effect=flaky_append):
+            passes = heart.run_forever(threading.Event(), max_passes=2)
+
+        self.assertEqual(2, passes)
+        self.assertEqual(2, heartbeat_attempts)
+        self.assertEqual(1, len(self._events(store, "runtime_heartbeat")))
+
+    def test_heartbeat_payload_failure_isolated_once_and_retried(self) -> None:
+        _, provider, store, heart = self._system()
+        provider.poll_interval_seconds = 0.0
+        original_payload = heart._runtime_heartbeat_payload
+        payload_attempts = 0
+
+        def flaky_payload(boundary, passes):
+            nonlocal payload_attempts
+            payload_attempts += 1
+            if payload_attempts == 1:
+                raise OSError("transient heartbeat read")
+            return original_payload(boundary, passes)
+
+        with patch.object(
+            heart, "_runtime_heartbeat_payload", side_effect=flaky_payload
+        ):
+            passes = heart.run_forever(threading.Event(), max_passes=2)
+
+        self.assertEqual(2, passes)
+        self.assertEqual(2, payload_attempts)
+        self.assertEqual(1, len(self._events(store, "heartbeat_failed")))
+        self.assertEqual(1, len(self._events(store, "runtime_heartbeat")))
+        self.assertEqual((), self._events(store, "runtime_heartbeat_failed"))
+
+    def test_run_forever_flushes_stopped_event_before_releasing_its_caller(self) -> None:
+        registry, provider, store, _ = self._system()
+        provider.poll_interval_seconds = 0.0
+        observer = _RecordingLifecycleObserver()
+        heart = WorldHeartV2(
+            store,
+            registry,
+            DeterministicExecutiveBrainV2(),
+            clock=_MutableClock(datetime(2026, 8, 11, 12, tzinfo=UTC)),
+            lifecycle_observers=(observer,),
+        )
+
+        heart.run_forever(threading.Event(), max_passes=1)
+
+        self.assertEqual("runtime_stopped", observer.kinds[-1])
+        self.assertEqual(1, observer.kinds.count("runtime_stopped"))
+        self.assertEqual(
+            store.latest_event_sequence(),
+            store.lifecycle_cursor(observer.id),
+        )
+
+    def test_heartbeat_is_not_reemitted_by_restart_within_the_same_day(self) -> None:
+        registry, provider, store, heart = self._system()
+        provider.poll_interval_seconds = 0.0
+        heart.run_forever(threading.Event(), max_passes=1)
+        self.assertEqual(1, len(self._events(store, "runtime_heartbeat")))
+
+        same_day = WorldHeartV2(
+            store,
+            registry,
+            DeterministicExecutiveBrainV2(),
+            clock=_MutableClock(datetime(2026, 8, 11, 18, tzinfo=UTC)),
+        )
+        same_day.run_forever(threading.Event(), max_passes=1)
+        self.assertEqual(1, len(self._events(store, "runtime_heartbeat")))
+
+        next_day = WorldHeartV2(
+            store,
+            registry,
+            DeterministicExecutiveBrainV2(),
+            clock=_MutableClock(datetime(2026, 8, 12, 0, 30, tzinfo=UTC)),
+        )
+        next_day.run_forever(threading.Event(), max_passes=1)
+        beats = self._events(store, "runtime_heartbeat")
+        self.assertEqual(2, len(beats))
+        self.assertEqual("2026-08-12", beats[-1]["payload"]["at"][:10])
+
+    def test_launchd_template_keeps_daemon_alive_without_secrets(self) -> None:
+        path = (
+            Path(__file__).resolve().parents[1]
+            / "docs"
+            / "launchd"
+            / "com.proofofworks.engine.observe.plist"
+        )
+        data = plistlib.loads(path.read_bytes())
+        self.assertTrue(data["KeepAlive"])
+        self.assertTrue(data["RunAtLoad"])
+        self.assertEqual(30, int(data["ThrottleInterval"]))
+        self.assertEqual(["engine", "run"], data["ProgramArguments"][-2:])
+        environment = data["EnvironmentVariables"]
+        self.assertEqual("observe", environment["ENGINE_HOMEY_MODE"])
+        self.assertEqual("token", environment["ENGINE_HOMEY_AUTH"])
+        self.assertNotIn("ENGINE_HOMEY_ARMED", environment)
+        self.assertIn("REPLACE", environment["ENGINE_HOMEY_TOKEN"])
+
     def _system(
         self,
         *,
@@ -325,6 +542,26 @@ class _CollisionProvider:
     def subscribe(self, wake):
         del wake
         return None
+
+
+class _DayJumpProvider(_CollisionProvider):
+    """Advance the shared clock past a UTC-day boundary on every observe."""
+
+    def observe(self) -> TargetObservationV2:
+        observation = super().observe()
+        self.clock.advance(timedelta(hours=25))
+        return observation
+
+
+class _RecordingLifecycleObserver:
+    id = "test.daemon-lifecycle"
+    plugin_id = "test.notifications"
+
+    def __init__(self) -> None:
+        self.kinds: list[str] = []
+
+    def observe(self, events) -> None:
+        self.kinds.extend(item.kind for item in events)
 
 
 if __name__ == "__main__":

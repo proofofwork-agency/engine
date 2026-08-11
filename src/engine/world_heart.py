@@ -175,10 +175,12 @@ class WorldHeartV2:
             if lifecycle_observers is None
             else lifecycle_observers
         )
-        baseline_event = self.store.latest_event_sequence()
-        self._lifecycle_cursors = {
-            str(observer.id): baseline_event for observer in self.lifecycle_observers
-        }
+        self._lifecycle_cursors: dict[str, int] = {}
+        for observer in self.lifecycle_observers:
+            observer_id = str(getattr(observer, "id", "unknown"))
+            self._lifecycle_cursors[observer_id] = (
+                self.store.initialize_lifecycle_cursor(observer_id)
+            )
         self.routine_runtime = RoutineRuntimeV1(
             store, registry, clock=self._clock
         )
@@ -926,7 +928,9 @@ class WorldHeartV2:
                     {"error": f"{type(exc).__name__}: {exc}"},
                 )
                 continue
-            self._lifecycle_cursors[observer_id] = events[-1].sequence
+            self._lifecycle_cursors[observer_id] = self.store.save_lifecycle_cursor(
+                observer_id, events[-1].sequence
+            )
 
     def _import_experience(self, snapshot: WorldSnapshotV2) -> None:
         for provider in self.registry.experience_providers:
@@ -1133,6 +1137,7 @@ class WorldHeartV2:
         stop_event: threading.Event,
         *,
         max_passes: int | None = None,
+        lease_lost: Any | None = None,
     ) -> int:
         wake = threading.Event()
         event_targets: set[str] = set()
@@ -1157,10 +1162,25 @@ class WorldHeartV2:
             )
             for provider in providers
         }
+        passes = 0
         try:
+            self._append_isolated_event(
+                "runtime_started",
+                "engine.runtime/v2",
+                {"targets": len(providers)},
+            )
             for state in subscription_states.values():
                 self._attach_subscription(state, started_at)
-            passes = 0
+            last_heartbeat_day: str | None = None
+            try:
+                last_heartbeat = self.store.latest_event_payload("runtime_heartbeat")
+            except Exception:
+                last_heartbeat = None
+            if last_heartbeat is not None:
+                previous_at = last_heartbeat.get("at")
+                if isinstance(previous_at, str) and len(previous_at) >= 10:
+                    last_heartbeat_day = previous_at[:10]
+            heartbeat_failure_reported = False
             last_prune_at: datetime | None = None
             consecutive_failures = 0
             failure_backoff = _FAILURE_BACKOFF_INITIAL_SECONDS
@@ -1185,6 +1205,31 @@ class WorldHeartV2:
                         )
                     finally:
                         last_prune_at = boundary
+                boundary_day = boundary.isoformat()[:10]
+                if boundary_day != last_heartbeat_day:
+                    try:
+                        heartbeat_payload = self._runtime_heartbeat_payload(
+                            boundary, passes
+                        )
+                    except Exception as exc:
+                        if not heartbeat_failure_reported:
+                            heartbeat_failure_reported = self._append_isolated_event(
+                                "heartbeat_failed",
+                                "engine.runtime/v2",
+                                {
+                                    "exception_type": type(exc).__name__,
+                                    "message": str(exc),
+                                },
+                            )
+                    else:
+                        heartbeat_saved = self._append_isolated_event(
+                            "runtime_heartbeat",
+                            "engine.runtime/v2",
+                            heartbeat_payload,
+                        )
+                        if heartbeat_saved:
+                            last_heartbeat_day = boundary_day
+                            heartbeat_failure_reported = False
                 now = self._monotonic()
                 for state in subscription_states.values():
                     if (
@@ -1270,6 +1315,41 @@ class WorldHeartV2:
                 self._waiter(wake, min(timeout, 1.0))
             return passes
         finally:
+            lease_was_lost = False
+            if lease_lost is not None:
+                try:
+                    lease_was_lost = bool(lease_lost())
+                except Exception:
+                    lease_was_lost = False
+            if lease_was_lost:
+                self._append_isolated_event(
+                    "runtime_lease_lost",
+                    "engine.runtime/v2",
+                    {"passes": passes},
+                )
+            stop_reason = (
+                "lease_lost"
+                if lease_was_lost
+                else "stop_requested"
+                if stop_event.is_set()
+                else "max_passes"
+            )
+            self._append_isolated_event(
+                "runtime_stopped",
+                "engine.runtime/v2",
+                {"passes": passes, "reason": stop_reason},
+            )
+            try:
+                self.notify_lifecycle_observers()
+            except Exception as exc:
+                self._append_isolated_event(
+                    "lifecycle_delivery_failed",
+                    "engine.runtime/v2",
+                    {
+                        "exception_type": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                )
             for state in reversed(tuple(subscription_states.values())):
                 unsubscribe = state.unsubscribe
                 if unsubscribe is None:
@@ -1318,16 +1398,35 @@ class WorldHeartV2:
                 {"target_id": str(provider.target_id)},
             )
 
+    def _runtime_heartbeat_payload(
+        self,
+        boundary: datetime,
+        passes: int,
+    ) -> dict[str, Any]:
+        return {
+            "at": boundary.isoformat(),
+            "cycles": passes,
+            "rows_written": self.store.retention_counter(
+                "target_observation_rows_written"
+            ),
+            "rows_confirmed": self.store.retention_counter(
+                "target_observation_deduplications"
+            ),
+            "store_bytes": self.store.database_size_bytes(),
+            "open_attempts": len(self.store.dispatch_attempts(open_only=True)),
+        }
+
     def _append_isolated_event(
         self,
         kind: str,
         source: str,
         payload: dict[str, Any],
-    ) -> None:
+    ) -> bool:
         try:
             self.store.append_event(None, kind, source, payload)
         except Exception:
-            pass
+            return False
+        return True
 
     def _providers_for_goal(self, goal: GoalSpecV2) -> tuple[Any, ...]:
         del goal

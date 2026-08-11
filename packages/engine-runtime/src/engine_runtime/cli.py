@@ -190,8 +190,8 @@ def main(argv: list[str] | None = None) -> int:
 
                 signal.signal(signal.SIGINT, request_stop)
                 signal.signal(signal.SIGTERM, request_stop)
-                with app.lease(on_lost=stop.set):
-                    app.heart.run_forever(stop)
+                with app.lease(on_lost=stop.set) as lease:
+                    app.heart.run_forever(stop, lease_lost=lambda: lease.lost)
                 return 0
             if args.command == "status":
                 _print(app.status())

@@ -1,0 +1,154 @@
+# RUNBOOK_M4 — 14-day continuous observation soak
+
+> Everything this runbook produces is evidence class `PRODUCTION_OBSERVATIONAL`
+> (`RESEARCH_PROTOCOL.md` §3, ADR-0011 Decision 12). It proves observation
+> only. It supports no actuation, safety or certification claim.
+
+Anchors: `GOAL-0.2.md` M4 "Ogen open", `docs/adr/ADR-0011-bounded-continuous-observation.md`.
+
+## 1. Scope
+
+Run the Engine daemon (`engine run`) against the real Homey house in
+`OBSERVE` mode for at least fourteen days under launchd supervision.
+Mac sleep gaps are accepted and stay visible in the record (heartbeat and
+`confirmed_at` gaps); they are logged, never hidden. Nothing in this runbook
+arms the runtime or dispatches an action: `OBSERVE` mode dispatches nothing
+by construction, and `ENGINE_HOMEY_ARMED` stays unset throughout.
+
+M4 passes when the soak shows: continuous observation with restart
+continuity, durable behavior and manual-override signals, and store growth
+within budget — target `< 50 MB/day`, hard fail `> 150 MB/day`
+(ADR-0011 Decision 7). An unexplained daemon death or a busted growth budget
+fails M4; the gate does not move afterwards.
+
+## 2. Preconditions
+
+1. Repository gate is green at the soak commit (`uv run --with pytest
+   pytest -q`, Ruff F/I) and the commit hash is recorded with the evidence.
+2. Stop every process using the existing live store and verify that
+   `lsof .engine/engine.sqlite3` reports no holder. Then create a
+   SQLite-consistent read-only archive; never open the archived copy through
+   Engine (which would migrate it):
+
+   ```bash
+   mkdir -p artifacts/evidence/M4
+   sqlite3 .engine/engine.sqlite3 ".backup 'artifacts/evidence/M4/engine-pre-soak-13.7g.sqlite3'"
+   uv run python tools/verify_snapshot_reconstruction.py --database artifacts/evidence/M4/engine-pre-soak-13.7g.sqlite3
+   chmod 444 artifacts/evidence/M4/engine-pre-soak-13.7g.sqlite3
+   ```
+
+   The SQLite backup includes committed WAL state without copying transient
+   `-wal`/`-shm` files. Leave the source and old context/reference stores in
+   place; the soak points at fresh paths.
+3. Create a fresh soak directory, e.g. `~/engine-m4/`, for the new
+   databases and the Homey config copy.
+4. Make a soak copy of the Homey config, e.g. `~/engine-m4/homey.observe.toml`:
+   - set `mode = "observe"` (the env override in §3 also forces this;
+     keeping both aligned removes ambiguity);
+   - **remove the `poll_interval_seconds` line.** The live config pins
+     an explicit value; only when the key is absent does the frozen observe
+     default of `30 s` apply (ADR-0011 Decision 4). The env override fixes
+     mode, not poll.
+   - Note: `plugin_database`-style paths inside the TOML resolve relative
+     to the config file's directory, so the Homey plugin's local store
+     lands in the soak directory as intended.
+5. Use a read-only Homey Personal Access Token (zone + device read scopes
+   only, per `plugins/engine-homey/DEPLOYMENT.md` §1). The soak must not
+   hold write scopes it cannot use.
+6. Verify no other runtime holds a lease on the fresh store (a fresh
+   database cannot have one; `engine status` shows `lease: null`).
+
+## 3. Environment
+
+| Variable | Value for the soak | Semantics |
+| --- | --- | --- |
+| `ENGINE_DATABASE` | fresh **absolute** path, e.g. `/Users/REPLACE/engine-m4/engine.sqlite3` | Default is CWD-relative `.engine/engine.sqlite3`; launchd does not shell-expand `~`, and its working directory makes relative paths a trap. |
+| `ENGINE_CONTEXT_DATABASE` | fresh absolute path, e.g. `/Users/REPLACE/engine-m4/context.sqlite3` | Same CWD-relative default. |
+| `ENGINE_HOMEY_CONFIG` | absolute path of the soak TOML copy | Required by the Homey plugin. |
+| `ENGINE_HOMEY_TOKEN` | the read-only PAT | Required when auth is `token`. |
+| `ENGINE_HOMEY_AUTH` | `token` | `cli` auth disables Socket.IO events and falls back to polling only. |
+| `ENGINE_HOMEY_MODE` | `observe` | Env overrides the config's `mode`; keep the soak copy aligned as defense in depth. |
+| `ENGINE_HOMEY_ARMED` | **unset** | Armed only when exactly `1`; unset is the safe default and stays unset for all of M4. |
+| `ENGINE_NTFY_TOPIC` | optional | Unset means notifications off. When set, outbound projections carry counts and statuses only (ADR-0007 + ADR-0011 Decision 10). |
+| `ENGINE_CONTEXT_LATITUDE` / `ENGINE_CONTEXT_LONGITUDE` | optional | Absent means location observations are `UNKNOWN` — honest, not an error. |
+
+## 4. launchd supervision
+
+1. Copy `docs/launchd/com.proofofworks.engine.observe.plist` to
+   `~/Library/LaunchAgents/`, fill in the `REPLACE` values, `chmod 600` the
+   installed copy (it carries the PAT). Never commit a filled-in copy.
+2. Create the log directory: `mkdir -p ~/Library/Logs/engine`.
+3. Start and verify:
+
+   ```bash
+   launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.proofofworks.engine.observe.plist
+   launchctl print gui/$UID/com.proofofworks.engine.observe   # state = running
+   uv run engine status                                       # lease present, store_bytes small
+   ```
+
+4. Restart semantics (ADR-0011 Decision 11): `KeepAlive` is plain `true`,
+   so launchd restarts the process after **every** exit — crash, `kill -9`,
+   and lease loss (which exits cleanly with code 0 after appending
+   `runtime_lease_lost`). There is no in-process lease re-acquire. After a
+   long-lived process exits, launchd may try the first replacement
+   immediately: the runtime lease itself rejects that process if the old
+   15-second lease has not expired. `ThrottleInterval` then spaces rapid
+   retries by 30 seconds, so a later supervised attempt starts after expiry.
+5. Because every exit restarts, the only way to stop the soak is:
+
+   ```bash
+   launchctl bootout gui/$UID/com.proofofworks.engine.observe
+   ```
+
+   `launchctl kickstart -k gui/$UID/com.proofofworks.engine.observe` forces
+   a supervised restart.
+
+## 5. Supervised restart checks (A5 operational gate)
+
+Run both checks on day one, while watching:
+
+1. **kill -9.** Find the pid (`launchctl print` or `pgrep -f "engine run"`),
+   `kill -9` it, wait ≥ 30 s. Pass: a new process is running; `engine
+   status` shows a fresh lease generation; the store gained exactly one new
+   `runtime_started` event and the previous epoch shows no clean
+   `runtime_stopped` (the kill is visible, not hidden); lifecycle
+   notifications resume from the durable cursor without a flood of
+   duplicates and without a dropped backlog.
+2. **Sleep/wake.** Sleep the Mac ≥ 2 minutes, wake it. Pass: the same
+   process is still running (no restart needed), observation resumes, and
+   the gap stays visible as a hole between `confirmed_at` advances /
+   heartbeats. A hidden gap or a dead daemon is a fail.
+
+A restart that duplicates or drops the notification backlog fails the A5
+gate — fix before starting the fourteen-day window.
+
+## 6. Daily monitoring
+
+- `uv run engine status` — check `lease.expires_at` is advancing,
+  `store_bytes`, and `last_heartbeat` (counts only: `cycles`,
+  `rows_written`, `rows_confirmed`, `store_bytes`, `open_attempts`).
+- `uv run engine store status` — per-table growth and retention counters.
+- Growth budget (ADR-0011 Decision 7): compare `store_bytes` day over day.
+  Target `< 50 MB/day`. Above target: investigate (which table grows, is
+  dedupe firing — `rows_confirmed` should grow much faster than
+  `rows_written` in an idle house). Above `150 MB/day`: hard fail of M4;
+  record the negative result, do not move the gate.
+- The daemon appends one `runtime_heartbeat` per UTC day; a missing day
+  means the daemon was down or asleep the whole day — explain it in the
+  soak log either way.
+- With `ENGINE_NTFY_TOPIC` set, the five runtime kinds arrive as
+  count/status-only pushes (`runtime_started`, `runtime_stopped`,
+  `runtime_lease_lost`, `runtime_circuit_open`, `runtime_heartbeat`).
+
+Keep a dated soak log (one line per day is enough) next to the evidence.
+
+## 7. Ending the soak
+
+1. After ≥ 14 days, stop supervision: `launchctl bootout ...` (§4.5).
+2. Record: start/end timestamps, the soak commit hash, the daily log,
+   final `engine status` and `engine store status` output, and the soak
+   database itself under `artifacts/evidence/M4/` (read-only).
+3. Evaluate M4 against the `GOAL-0.2.md` criteria table: continuity
+   (restarts recovered, no unexplained death), durable behavior/override
+   signals, growth within budget. Record pass or fail honestly; a fail is
+   recorded with the same care as a pass.

@@ -160,6 +160,89 @@ class WorldV2Tests(unittest.TestCase):
             )
         )
 
+    def test_lifecycle_cursor_survives_restart_without_drop_or_duplicate(self) -> None:
+        plugin, registry, store, brain, _, goal = self._system()
+        del plugin
+        store.append_event(goal.id, "before_observer", "fixture", {})
+        first_observer = _RecordingLifecycleObserver()
+        heart = WorldHeartV2(
+            store, registry, brain, lifecycle_observers=(first_observer,)
+        )
+        store.append_event(goal.id, "goal_created", "fixture", {"id": "goal:first"})
+        heart.notify_lifecycle_observers()
+        self.assertEqual(("goal_created",), first_observer.delivered)
+
+        store.append_event(
+            goal.id,
+            "routine_activated",
+            "fixture",
+            {"routine_id": "routine:while-down"},
+        )
+
+        second_observer = _RecordingLifecycleObserver()
+        restarted = WorldHeartV2(
+            store, registry, brain, lifecycle_observers=(second_observer,)
+        )
+        restarted.notify_lifecycle_observers()
+        self.assertEqual(("routine_activated",), second_observer.delivered)
+        self.assertEqual(
+            store.latest_event_sequence(),
+            store.lifecycle_cursor(_RecordingLifecycleObserver.id),
+        )
+
+    def test_failed_delivery_keeps_durable_cursor_for_redelivery_after_restart(
+        self,
+    ) -> None:
+        plugin, registry, store, brain, _, goal = self._system()
+        del plugin
+        baseline = store.latest_event_sequence()
+        failing = _RecordingLifecycleObserver(fail_times=1)
+        heart = WorldHeartV2(store, registry, brain, lifecycle_observers=(failing,))
+        self.assertEqual(baseline, store.lifecycle_cursor(_RecordingLifecycleObserver.id))
+        store.append_event(goal.id, "goal_created", "fixture", {"id": "goal:retry"})
+
+        heart.notify_lifecycle_observers()
+
+        self.assertEqual((), failing.delivered)
+        self.assertEqual(
+            baseline, store.lifecycle_cursor(_RecordingLifecycleObserver.id)
+        )
+
+        recovered = _RecordingLifecycleObserver()
+        restarted = WorldHeartV2(
+            store, registry, brain, lifecycle_observers=(recovered,)
+        )
+        restarted.notify_lifecycle_observers()
+        self.assertEqual(
+            ("goal_created", "lifecycle_observer_failed"), recovered.delivered
+        )
+        self.assertEqual(
+            store.latest_event_sequence(),
+            store.lifecycle_cursor(_RecordingLifecycleObserver.id),
+        )
+
+    def test_lifecycle_cursor_seed_and_advance_are_cross_connection_monotonic(
+        self,
+    ) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del plugin, registry, brain, heart
+        store.append_event(goal.id, "before_registration", "fixture", {})
+        baseline = store.latest_event_sequence()
+        observer_id = "test.concurrent-observer"
+
+        first = store.initialize_lifecycle_cursor(observer_id)
+        store.append_event(goal.id, "after_registration", "fixture", {})
+        latest = store.latest_event_sequence()
+        peer = WorldStore(store.path)
+        self.addCleanup(peer.close)
+        second = peer.initialize_lifecycle_cursor(observer_id)
+
+        self.assertEqual(baseline, first)
+        self.assertEqual(baseline, second)
+        self.assertEqual(latest, peer.save_lifecycle_cursor(observer_id, latest))
+        self.assertEqual(latest, store.save_lifecycle_cursor(observer_id, baseline))
+        self.assertEqual(latest, peer.lifecycle_cursor(observer_id))
+
     def test_generated_bootstrap_world_runs_same_maintain_heart_without_core_change(self) -> None:
         root = scaffold_plugin(self.base, "generated-world", "world")
         sys.path.insert(0, str(root / "src"))
@@ -702,6 +785,21 @@ class WorldV2Tests(unittest.TestCase):
             )
         mandate = replace(_mandate(), learning_permissions=("learning.low-risk",))
         self.assertIsNone(learner.candidate(goal, "camera.surveillance_mode", mandate))
+
+
+class _RecordingLifecycleObserver:
+    id = "test.lifecycle-recorder"
+    plugin_id = "test.notifications"
+
+    def __init__(self, *, fail_times: int = 0) -> None:
+        self.fail_times = fail_times
+        self.delivered: tuple[str, ...] = ()
+
+    def observe(self, events: tuple[Any, ...]) -> None:
+        if self.fail_times > 0:
+            self.fail_times -= 1
+            raise RuntimeError("delivery transport failed")
+        self.delivered += tuple(item.kind for item in events)
 
 
 class _RetryingLifecycleObserver:

@@ -51,7 +51,7 @@ from engine_sdk import (
     canonical_json,
 )
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 _TARGET_BODY_ZLIB_PREFIX = b"engine.target-observation.zlib/v1\x00"
 _OPEN_DISPATCH_STATES = (
     DispatchAttemptStateV1.PREPARED.value,
@@ -60,6 +60,7 @@ _OPEN_DISPATCH_STATES = (
 )
 _RETENTION_COUNTER_NAMES = (
     "target_observation_deduplications",
+    "target_observation_rows_written",
     "prune_runs",
     "world_snapshots_pruned",
     "target_observations_pruned",
@@ -209,6 +210,11 @@ class WorldStore:
                 provider_id TEXT PRIMARY KEY,
                 plugin_id TEXT NOT NULL,
                 cursor TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS lifecycle_cursors_v1 (
+                observer_id TEXT PRIMARY KEY,
+                last_sequence INTEGER NOT NULL,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS behavior_signals_v1 (
@@ -1590,6 +1596,7 @@ class WorldStore:
                 confirmed_at,
             ),
         )
+        self._increment_retention_counter("target_observation_rows_written")
         self.connection.commit()
         return True
 
@@ -1883,6 +1890,94 @@ class WorldStore:
             )
             for row in rows
         )
+
+    def lifecycle_cursor(self, observer_id: str) -> int | None:
+        row = self.connection.execute(
+            "SELECT last_sequence FROM lifecycle_cursors_v1 WHERE observer_id=?",
+            (observer_id,),
+        ).fetchone()
+        return int(row["last_sequence"]) if row is not None else None
+
+    def initialize_lifecycle_cursor(self, observer_id: str) -> int:
+        if not observer_id:
+            raise ValueError("lifecycle observer id cannot be empty")
+        try:
+            self.connection.execute(
+                """
+                INSERT OR IGNORE INTO lifecycle_cursors_v1(observer_id,last_sequence)
+                SELECT ?,COALESCE(MAX(id),0) FROM world_events_v2
+                """,
+                (observer_id,),
+            )
+            row = self.connection.execute(
+                "SELECT last_sequence FROM lifecycle_cursors_v1 WHERE observer_id=?",
+                (observer_id,),
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("lifecycle cursor initialization did not persist")
+            self.connection.commit()
+            return int(row["last_sequence"])
+        except Exception:
+            self.connection.rollback()
+            raise
+
+    def save_lifecycle_cursor(self, observer_id: str, sequence: int) -> int:
+        if not observer_id:
+            raise ValueError("lifecycle observer id cannot be empty")
+        if sequence < 0:
+            raise ValueError("lifecycle cursor sequence cannot be negative")
+        try:
+            self.connection.execute(
+                """
+                INSERT INTO lifecycle_cursors_v1(observer_id,last_sequence)
+                VALUES(?,?)
+                ON CONFLICT(observer_id) DO UPDATE SET
+                    last_sequence=MAX(
+                        lifecycle_cursors_v1.last_sequence,
+                        excluded.last_sequence
+                    ),
+                    updated_at=CASE
+                        WHEN excluded.last_sequence > lifecycle_cursors_v1.last_sequence
+                        THEN CURRENT_TIMESTAMP
+                        ELSE lifecycle_cursors_v1.updated_at
+                    END
+                """,
+                (observer_id, sequence),
+            )
+            row = self.connection.execute(
+                "SELECT last_sequence FROM lifecycle_cursors_v1 WHERE observer_id=?",
+                (observer_id,),
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("lifecycle cursor advancement did not persist")
+            self.connection.commit()
+            return int(row["last_sequence"])
+        except Exception:
+            self.connection.rollback()
+            raise
+
+    def latest_event_payload(self, kind: str) -> dict[str, Any] | None:
+        row = self.connection.execute(
+            """
+            SELECT payload_json FROM world_events_v2
+            WHERE kind=? ORDER BY id DESC LIMIT 1
+            """,
+            (kind,),
+        ).fetchone()
+        return dict(json.loads(row["payload_json"])) if row is not None else None
+
+    def retention_counter(self, name: str) -> int:
+        if name not in _RETENTION_COUNTER_NAMES:
+            raise ValueError(f"unknown retention counter: {name}")
+        row = self.connection.execute(
+            "SELECT value FROM retention_counters_v1 WHERE name=?", (name,)
+        ).fetchone()
+        return int(row["value"]) if row is not None else 0
+
+    def database_size_bytes(self) -> int:
+        page_size = int(self.connection.execute("PRAGMA page_size").fetchone()[0])
+        page_count = int(self.connection.execute("PRAGMA page_count").fetchone()[0])
+        return page_size * page_count
 
     def events(self, goal_id: str | None = None) -> tuple[dict[str, Any], ...]:
         if goal_id is None:
