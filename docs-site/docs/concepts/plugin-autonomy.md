@@ -118,6 +118,11 @@ runtime. Engine Cell starts only after a deterministic/classical baseline shows
 a measured deficit, followed by a local runner, held-out evaluation, resource
 envelope, specialist adapter, and authority-free shadow evidence.
 
+EXP-2026-003 completed that evidence gate for one bounded intent-classifier
+candidate and returned a no-go: the Dutch held-out slice tied its classical
+baseline. The model and adapter were therefore not registered. See
+[Engine Cell](./engine-cell.md).
+
 See
 [ADR-0008](https://github.com/proofofwork-agency/engine/blob/main/docs/adr/ADR-0008-generic-plugin-autonomy-v3.md)
 and

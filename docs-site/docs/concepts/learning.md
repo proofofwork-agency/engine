@@ -183,6 +183,12 @@ Before such a learned component enters a correctness- or safety-relevant path, t
 
 Training is off-device by default; online updates are a separate, later hypothesis. A mini-brain must earn its complexity and can be removed again if the baseline proves equal or better.
 
+That rule has now produced one concrete negative result. EXP-2026-003 tested a
+small local English/Dutch warehouse-intent Cell. English improved, but Dutch
+tied the classical baseline, so the preregistered gate rejected deployment.
+No Cell is currently registered. See [Engine Cell](./engine-cell.md) for the
+metrics and permanent authority boundary.
+
 ## Summary
 
 | Question | Answer today |

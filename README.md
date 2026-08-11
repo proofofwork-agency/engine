@@ -256,6 +256,9 @@ artifacts/                Experiment protocols and selected evidence
 - No physical safety certificate derived from simulation.
 - No self-training model, online weight updates, or self-writing skill operating system.
 - No evidence that multiple general brains are better; that composition does not exist.
+- No learned Engine Cell is registered: EXP-2026-003 passed its safety/resource
+  envelope but tied the Dutch classical baseline and was rejected by its frozen
+  comparative gate.
 - No public plugin marketplace, cryptographic signing, or enforced plugin sandbox yet.
 
 ## Contributing

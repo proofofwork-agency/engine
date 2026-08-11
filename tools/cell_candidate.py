@@ -296,7 +296,7 @@ class WarehouseIntentCellSpecialist:
             inference = _static_defer(text, language, "adapter is shadow-only")
         else:
             inference = self.runner.infer(text, language)
-        if inference.label not in self.installed_template_ids:
+        if inference.supported and inference.label not in self.installed_template_ids:
             inference = CellInferenceV1(
                 **{
                     **inference.to_dict(),

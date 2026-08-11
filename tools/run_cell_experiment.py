@@ -18,7 +18,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from engine_reference_world.cell import (
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.cell_candidate import (  # noqa: E402 - support direct script execution
     CELL_ID,
     DEFER_LABEL,
     MAX_INPUT_BYTES,
@@ -30,7 +34,6 @@ from engine_reference_world.cell import (
     unsupported_reason,
 )
 
-ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT = ROOT / "artifacts/experiments/EXP-2026-003-engine-cell-intent"
 DATA = EXPERIMENT / "data"
 DIMENSIONS = 384

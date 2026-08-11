@@ -174,6 +174,12 @@ ADR en bewijs.
 Engine Cell blijft post-autonomy: eerst een gemeten tekort van een
 deterministische/klassieke baseline, daarna één lokale runner, held-out
 evaluatie, resource envelope, specialistadapter en authorityloze shadow.
+EXP-2026-003 doorliep deze poort op 2026-08-11 en eindigde eerlijk in **no-go**:
+de int8-kandidaat bond in de Nederlandse held-out slice met de klassieke
+baseline en miste daardoor de vooraf vastgelegde verbeteringsmarge. Er is geen
+Cell geregistreerd en het model blijft uitsluitend afgezonderd auditbewijs. Een
+volgende kandidaat vereist een nieuw ownerbesluit, experiment-id en ongebruikte
+held-out set; de gate wordt niet achteraf verplaatst.
 
 ---
 
