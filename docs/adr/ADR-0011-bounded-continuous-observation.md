@@ -151,3 +151,110 @@ is archived unchanged. Rolling back the code re-enables full-body writes and
 unconditional revisions but leaves all written data readable; retention can
 be disabled by simply not invoking prune. Stopping the daemon requires no
 reconciliation: `OBSERVE` mode has no in-flight mutations by construction.
+
+## Amendment 1 — M4 day-0 preflight corrections
+
+- Status: **proposed, awaiting owner signature**. Nothing in this amendment
+  is in force until the owner accepts it. The decisions above stay exactly
+  as written and are not edited retroactively.
+- Date: 2026-08-12
+- Trigger: a live preflight run of ~2 hours on the real house, started
+  2026-08-11T19:35Z. That run is **exploratory preflight evidence and is
+  discarded**; it is never promoted to the frozen M4 soak, and no scored
+  window began.
+
+### A1.1 — The growth budget covers every store the soak writes
+
+Decision 7 says "the continuous-store growth budget" without naming which
+store. `docs/RUNBOOK_M4.md` measured the Engine store, while `14days.md`
+already asked for all three databases. The preflight exposed the gap: the
+Engine store held ~5 MB while the Homey plugin store held ~30 MB after the
+same two hours.
+
+The budget covers **every mutable local store the soak writes**: the Engine
+database, the Homey plugin database and the context database, each counted
+as main file plus write-ahead log, reported per store **and** as an
+aggregate. The numeric gates are unchanged: target `< 50 MB/day`, hard fail
+`> 150 MB/day`.
+
+This clarification can only make the gate harder to pass. It is stricter
+than the Engine-only reading, the thresholds are untouched, it is agreed
+before a fresh burn-in on fresh stores, and the run that exposed the
+ambiguity is discarded rather than scored. Recording it here is what keeps
+it a clarification instead of a metric reinterpretation after seeing
+results, which `RULES.md` MUST NOT 22 forbids.
+
+The `runtime_heartbeat` payload's `store_bytes` field stays Engine-only: it
+is a cheap in-process page-count read and must not reach across into plugin
+storage. The aggregate is an operational measurement performed by the
+runbook, not a new runtime contract.
+
+### A1.2 — "An idle house writes near-zero rows" is falsified for this house
+
+The Consequences section claims an idle house writes near-zero rows. The
+preflight falsified it: 374 observation rows written and **zero**
+deduplications, with every Homey revision (249/249) carrying a distinct
+semantic fingerprint.
+
+The cause is not a defect in the fingerprint. `semantic_fingerprint`
+correctly excludes timestamps and observation ids from both observations and
+relations, exactly as Decision 1 requires. The cause is physical: this house
+has P1 and Homey Energy meters whose cumulative registers
+(`meter_power.consumed`, `meter_power.daily`, `meter_power.imported`,
+`energy_kwh`) increase on every poll by construction, joined by
+`voltage.phaseN` at 0.1 V, `current.lN` at 0.01 A and `rssi`, none of which
+fall under Decision 3's frozen quantization set of power, illuminance,
+temperature and battery.
+
+Honest restatement: rows follow canonical transitions, and on an
+installation with cumulative energy metering a canonical transition occurs
+every poll. Deduplication stays correct and useful wherever semantics are
+genuinely unchanged, but it is not itself the M4 gate — the growth budget
+is. The context plugin's row-per-observe behavior is by design and was never
+in the A1 change-only scope.
+
+No quantization bins are added by this amendment. Cumulative energy is real
+semantic change and bucketing it would destroy meaning. If the compressed
+and retained stores still miss the unchanged budget in a fresh burn-in, a
+separate unit-aware sampling decision is preregistered **before** another
+fresh burn-in, and never tuned against an official window.
+
+### A1.3 — The frozen fixture does not match the observed house
+
+Decision 7 freezes the budget "for the M4 house (16 zones, 33 devices)". The
+observed house is materially larger: 95 entities, 471 observations and 239
+relations per revision. This is recorded, not normalized away, and the
+numeric budget is **not** raised to accommodate it. If the house cannot meet
+the frozen budget, that is a recorded M4 failure with cuts, not a new number.
+
+### A1.4 — Plugin-store encoding, and retention as a pending decision
+
+Snapshot bodies in the Homey plugin store are stored zlib-compressed behind
+a versioned prefix, with legacy rows readable forever and the state hash
+still computed on the raw body so deduplication stays valid across the
+encoding change (landed in `bd86078`; verified against 284 real preflight
+rows, all decoding and round-tripping, compressing to 9.11% of raw).
+Encoding discards no evidence and needs no signature.
+
+**Retention for the plugin store is the open decision.** Deleting
+observation history is an evidence boundary and needs the same explicit
+signature Decision 6 received for the Engine store. The proposal is: keep
+the newest snapshot unconditionally, keep a 24-hour horizon, prune only the
+`snapshots` table, leave preference evidence, aliases, charters and the
+projection and revision ledgers untouched, preserve revision monotonicity,
+and reclaim pages verifiably. Production reads only `latest_snapshot`;
+`snapshot_history` has one caller repo-wide and it is a test. Until this is
+signed, the capability may exist but is wired to nothing.
+
+### A1.5 — Additional durable diagnostics
+
+The runtime records two further durable events, deliberately outside the
+`runtime_*` namespace and outside Decision 10's outbound accept list:
+`heartbeat_failed` when a heartbeat payload cannot be built, and
+`durable_wake_failed` once per outage when the scheduled-wake read fails and
+the loop degrades to polling. Both follow the existing convention for
+isolated-failure diagnostics (`cycle_failed`, `prune_failed`,
+`subscription_failed`). `runtime_stopped.reason` additionally admits
+`crashed`, which outranks a simultaneous lease loss, so a fault escaping the
+loop can no longer be recorded as a clean bounded-run completion. The
+outbound ntfy accept list remains exactly the five kinds of Decision 10.

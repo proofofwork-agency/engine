@@ -122,17 +122,74 @@ Run both checks on day one, while watching:
 A restart that duplicates or drops the notification backlog fails the A5
 gate — fix before starting the fourteen-day window.
 
+A nonzero exit code between restarts is expected and is not a failure. When
+launchd replaces a process immediately, the new one finds the previous
+15-second lease still valid, refuses to run, and exits with `LeaseHeldError`
+in the error log. `ThrottleInterval` then spaces the next attempt past
+expiry. The pass condition is a running process with a fresh lease
+generation, not a clean exit code on every attempt.
+
+## 5a. Burn-in before the official clock (mandatory)
+
+ADR-0011 Decision 7 requires a 24-hour and 48-hour burn-in before the frozen
+fourteen-day window. Do not skip it: a day-0 preflight on 2026-08-11 showed
+the plugin store growing at roughly 346 MB/day, which would have consumed
+the frozen window on a run that could not pass its own gate.
+
+Preconditions specific to the burn-in:
+
+1. Rotate the Homey PAT if it has ever been exposed, and reinstall it in the
+   LaunchAgent plist only.
+2. Use **fresh** stores. A store carrying rows written before `bd86078`
+   mixes uncompressed and compressed bodies and pollutes the compression
+   evidence.
+3. Record the commit hash the daemon actually runs. If the daemon runs from
+   its own virtual environment, reinstall it so the code under test is the
+   committed code.
+
+Measure at 0 h, 24 h and 48 h. The budget covers **all three stores**, main
+file plus write-ahead log, per store and aggregated (ADR-0011 Amendment 1.1):
+
+```bash
+for db in "$ENGINE_DATABASE" "$ENGINE_CONTEXT_DATABASE" \
+          "$(dirname "$ENGINE_HOMEY_CONFIG")/homeops.local.db"; do
+  main=$(stat -f%z "$db"); wal=$(stat -f%z "$db-wal" 2>/dev/null || echo 0)
+  echo "$db main=$main wal=$wal total=$((main + wal))"
+done
+```
+
+Also record, at each checkpoint: `uv run engine status` (lease, heartbeat
+counts), `uv run engine store status` (per-table rows and retention
+counters), the plugin store's snapshot counters (rows written, dedupes, raw
+versus stored bytes — the raw-to-stored ratio is the compression evidence),
+and confirmation that dispatch attempts remain zero.
+
+Reading the result honestly:
+
+- above `150 MB/day` aggregated: hard failure. Record it, do not start the
+  clock, do not adjust the budget;
+- between `50` and `150 MB/day`: the target is not met. Investigate which
+  store grows and why; this is not a pass;
+- below `50 MB/day` and stable between 24 h and 48 h: proceed to the
+  sleep/wake check and only then start the official fourteen days.
+
+Deduplication counters near zero are expected on a house with cumulative
+energy metering and are not themselves a failure (ADR-0011 Amendment 1.2).
+The budget is the gate, not the dedupe rate.
+
 ## 6. Daily monitoring
 
 - `uv run engine status` — check `lease.expires_at` is advancing,
   `store_bytes`, and `last_heartbeat` (counts only: `cycles`,
-  `rows_written`, `rows_confirmed`, `store_bytes`, `open_attempts`).
+  `rows_written`, `rows_confirmed`, `store_bytes`, `open_attempts`). Note
+  that `store_bytes` here is the Engine store only, by design; the budget
+  covers all three stores and is measured with the loop in §5a.
 - `uv run engine store status` — per-table growth and retention counters.
-- Growth budget (ADR-0011 Decision 7): compare `store_bytes` day over day.
-  Target `< 50 MB/day`. Above target: investigate (which table grows, is
-  dedupe firing — `rows_confirmed` should grow much faster than
-  `rows_written` in an idle house). Above `150 MB/day`: hard fail of M4;
-  record the negative result, do not move the gate.
+- Growth budget (ADR-0011 Decision 7 as clarified by Amendment 1.1):
+  compare the aggregated three-store total day over day. Target
+  `< 50 MB/day`. Above target: investigate which store grows. Above
+  `150 MB/day`: hard fail of M4; record the negative result, do not move
+  the gate.
 - The daemon appends one `runtime_heartbeat` per UTC day; a missing day
   means the daemon was down or asleep the whole day — explain it in the
   soak log either way.
@@ -146,8 +203,10 @@ Keep a dated soak log (one line per day is enough) next to the evidence.
 
 1. After ≥ 14 days, stop supervision: `launchctl bootout ...` (§4.5).
 2. Record: start/end timestamps, the soak commit hash, the daily log,
-   final `engine status` and `engine store status` output, and the soak
-   database itself under `artifacts/evidence/M4/` (read-only).
+   final `engine status` and `engine store status` output, the final
+   three-store size measurement from §5a, and the soak databases themselves
+   under `artifacts/evidence/M4/` (read-only). Copy a live SQLite database
+   with `sqlite3 <db> ".backup <target>"`, never with `cp`.
 3. Evaluate M4 against the `GOAL-0.2.md` criteria table: continuity
    (restarts recovered, no unexplained death), durable behavior/override
    signals, growth within budget. Record pass or fail honestly; a fail is
