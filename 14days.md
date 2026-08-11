@@ -9,7 +9,7 @@ ever disagree.
 
 ## Current state
 
-Last updated: `2026-08-11T19:46:52Z`.
+Last updated: `2026-08-12T00:20Z` (day-0 preflight findings; supersedes the 19:46Z state).
 
 - A0 through A5 are committed and pushed through commit
   `7918f06bd2de2725e7f4784e0160eb60b125fbbc`.
@@ -29,8 +29,43 @@ Last updated: `2026-08-11T19:46:52Z`.
 - Homey polling is authoritative at 30 seconds. Socket events are deliberately
   disabled in the current local configuration. An initial transient Homey
   `URLError` was retained in coverage; the following poll recovered normally.
-- The official 14-day clock has **not started yet**. The day-one sleep/wake gate
-  must pass first.
+- The official 14-day clock has **not started yet**, and the sleep/wake gate is
+  no longer the only thing in front of it. A day-0 storage preflight on
+  2026-08-11 measured the plugin store growing at roughly `346 MB/day`
+  unbounded, which would have spent the frozen window on a run that could not
+  pass its own budget. The currently running daemon is therefore **exploratory
+  preflight evidence and will be discarded**; see the day-0 section of
+  [`artifacts/evidence/M4/soak-log.md`](artifacts/evidence/M4/soak-log.md).
+
+### Before the clock may start (as of commit `89a99ac`)
+
+1. **Rotate the Homey PAT.** It was exposed in an agent transcript on
+   2026-08-11. Create a new read-only token, revoke the old one, and reinstall
+   it in the LaunchAgent plist only. Owner-only step.
+2. **Sign or reject ADR-0011 Amendment 1** (`docs/adr/ADR-0011-bounded-continuous-observation.md`).
+   It is proposed and not in force. It clarifies that the growth budget covers
+   all three stores including write-ahead logs with the numeric gates
+   unchanged, restates the falsified "idle house writes near-zero rows"
+   consequence honestly, records the fixture mismatch without raising the
+   budget, and names plugin-store retention as the open decision.
+3. **Decide on plugin-store retention (H2).** The capability is being built
+   deliberately wired to nothing; enabling it deletes observation history and
+   needs the same explicit signature the Engine store's retention received.
+4. **Rebuild the runtime and the stores from the committed code.** The daemon
+   runs its own virtual environment at `engine-m4/runtime-venv/`; reinstall it
+   so the code under test is the committed code, and start from fresh stores.
+   A store holding rows written before `bd86078` mixes uncompressed and
+   compressed bodies and pollutes the compression evidence.
+5. **Run the mandatory 24 h/48 h burn-in** per `docs/RUNBOOK_M4.md` §5a, then
+   the sleep/wake gate, and only then start the fourteen days.
+
+What already landed in response: snapshot bodies in the plugin store are
+zlib-compressed with permanent legacy readability, measured at 9.11% of raw
+against 284 real preflight rows; and the daemon can no longer be killed by an
+unguarded scheduled-wake read, nor record a crash as a clean stop
+(`bd86078`). Deduplication counters near zero are expected on a house with
+cumulative energy metering and are not themselves a failure — the budget is
+the gate.
 
 The original Mac's local operational paths are:
 
