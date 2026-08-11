@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import replace
-from datetime import UTC, datetime
+import zlib
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -50,7 +51,47 @@ from engine_sdk import (
     canonical_json,
 )
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 8
+_TARGET_BODY_ZLIB_PREFIX = b"engine.target-observation.zlib/v1\x00"
+_OPEN_DISPATCH_STATES = (
+    DispatchAttemptStateV1.PREPARED.value,
+    DispatchAttemptStateV1.RECOVERY_REQUIRED.value,
+    DispatchAttemptStateV1.RECEIPT_RECORDED.value,
+)
+_RETENTION_COUNTER_NAMES = (
+    "target_observation_deduplications",
+    "prune_runs",
+    "world_snapshots_pruned",
+    "target_observations_pruned",
+)
+
+
+@dataclass(frozen=True)
+class RetentionTableStatus:
+    rows: int
+    estimated_bytes: int
+
+
+@dataclass(frozen=True)
+class RetentionStatus:
+    tables: dict[str, RetentionTableStatus]
+    counters: dict[str, int]
+    database_bytes: int
+    free_bytes: int
+    auto_vacuum: str
+
+
+@dataclass(frozen=True)
+class PruneSummary:
+    boundary: str
+    cutoff: str
+    pinned_snapshot_ids: tuple[str, ...]
+    retained_snapshots: int
+    rows_deleted: dict[str, int]
+
+
+def _quote_identifier(value: str) -> str:
+    return '"' + value.replace('"', '""') + '"'
 
 
 class WorldStore:
@@ -59,8 +100,11 @@ class WorldStore:
     def __init__(self, path: str | Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        fresh_store = not self.path.exists() or self.path.stat().st_size == 0
         self.connection = sqlite3.connect(self.path)
         self.connection.row_factory = sqlite3.Row
+        if fresh_store:
+            self.connection.execute("PRAGMA auto_vacuum=INCREMENTAL")
         self.connection.execute("PRAGMA journal_mode=WAL")
         self.connection.execute("PRAGMA foreign_keys=ON")
         self._create_schema()
@@ -80,6 +124,10 @@ class WorldStore:
                 component TEXT PRIMARY KEY,
                 version INTEGER NOT NULL,
                 applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS retention_counters_v1 (
+                name TEXT PRIMARY KEY,
+                value INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS goal_specs_v2 (
                 id TEXT NOT NULL,
@@ -339,6 +387,13 @@ class WorldStore:
             """,
             (SCHEMA_VERSION,),
         )
+        self.connection.executemany(
+            """
+            INSERT OR IGNORE INTO retention_counters_v1(name,value)
+            VALUES(?,0)
+            """,
+            ((name,) for name in _RETENTION_COUNTER_NAMES),
+        )
         self._migrate_target_observation_confirmations()
         self.connection.commit()
 
@@ -364,7 +419,9 @@ class WorldStore:
             """
         ).fetchall()
         for row in rows:
-            observation = _target_observation(json.loads(row["body_json"]))
+            observation = _target_observation(
+                _decode_target_observation_body(row["body_json"])
+            )
             self.connection.execute(
                 """
                 UPDATE target_observations_v2
@@ -378,6 +435,252 @@ class WorldStore:
                     int(row["id"]),
                 ),
             )
+
+    def retention_status(self) -> RetentionStatus:
+        tables: dict[str, RetentionTableStatus] = {}
+        table_rows = self.connection.execute(
+            """
+            SELECT name FROM sqlite_schema
+            WHERE type='table' AND name NOT LIKE 'sqlite_%'
+            ORDER BY name
+            """
+        ).fetchall()
+        for table_row in table_rows:
+            table = str(table_row["name"])
+            identifier = _quote_identifier(table)
+            columns = tuple(
+                str(row["name"])
+                for row in self.connection.execute(
+                    f"PRAGMA table_info({identifier})"
+                ).fetchall()
+            )
+            byte_terms = [
+                f"COALESCE(length(CAST({_quote_identifier(column)} AS BLOB)),0)"
+                for column in columns
+            ]
+            byte_expression = "+".join(byte_terms) or "0"
+            status_row = self.connection.execute(
+                f"""
+                SELECT COUNT(*) AS rows,
+                       COALESCE(SUM({byte_expression}),0) AS estimated_bytes
+                FROM {identifier}
+                """
+            ).fetchone()
+            tables[table] = RetentionTableStatus(
+                rows=int(status_row["rows"]),
+                estimated_bytes=int(status_row["estimated_bytes"]),
+            )
+        counters = {
+            str(row["name"]): int(row["value"])
+            for row in self.connection.execute(
+                "SELECT name,value FROM retention_counters_v1 ORDER BY name"
+            ).fetchall()
+        }
+        page_size = int(self.connection.execute("PRAGMA page_size").fetchone()[0])
+        page_count = int(self.connection.execute("PRAGMA page_count").fetchone()[0])
+        free_pages = int(
+            self.connection.execute("PRAGMA freelist_count").fetchone()[0]
+        )
+        auto_vacuum_value = int(
+            self.connection.execute("PRAGMA auto_vacuum").fetchone()[0]
+        )
+        return RetentionStatus(
+            tables=tables,
+            counters=counters,
+            database_bytes=page_size * page_count,
+            free_bytes=page_size * free_pages,
+            auto_vacuum={0: "none", 1: "full", 2: "incremental"}.get(
+                auto_vacuum_value, f"unknown:{auto_vacuum_value}"
+            ),
+        )
+
+    def retention_pinned_snapshot_ids(self) -> tuple[str, ...]:
+        pinned: set[str] = set()
+        marks = ",".join("?" for _ in _OPEN_DISPATCH_STATES)
+        attempt_rows = self.connection.execute(
+            f"""
+            SELECT attempt.id AS attempt_id, request.body_json AS request_json
+            FROM dispatch_attempts_v1 AS attempt
+            LEFT JOIN action_requests_v1 AS request
+              ON request.id=attempt.request_id
+            WHERE attempt.state IN ({marks})
+            """,
+            _OPEN_DISPATCH_STATES,
+        ).fetchall()
+        for row in attempt_rows:
+            if row["request_json"] is None:
+                raise ValueError(
+                    "open dispatch attempt references a missing action request: "
+                    f"{row['attempt_id']}"
+                )
+            request = json.loads(row["request_json"])
+            snapshot_id = request.get("snapshot_id")
+            if not isinstance(snapshot_id, str) or not snapshot_id:
+                raise ValueError(
+                    "open dispatch action request has no snapshot_id: "
+                    f"{row['attempt_id']}"
+                )
+            pinned.add(snapshot_id)
+
+        binding_rows = self.connection.execute(
+            """
+            SELECT binding.evaluation_id,
+                   evaluation.body_json AS evaluation_json
+            FROM autonomy_bindings_v1 AS binding
+            LEFT JOIN autonomy_evaluations_v1 AS evaluation
+              ON evaluation.id=binding.evaluation_id
+            WHERE binding.status=?
+            """,
+            (AutonomyBindingStatusV1.PENDING_APPROVAL.value,),
+        ).fetchall()
+        for row in binding_rows:
+            if row["evaluation_json"] is None:
+                raise ValueError(
+                    "pending approval references a missing autonomy evaluation: "
+                    f"{row['evaluation_id']}"
+                )
+            evaluation = json.loads(row["evaluation_json"])
+            context = evaluation.get("context")
+            if not isinstance(context, Mapping):
+                raise ValueError(
+                    "pending approval evaluation has no context: "
+                    f"{row['evaluation_id']}"
+                )
+            for field in ("previous_snapshot_id", "current_snapshot_id"):
+                snapshot_id = context.get(field)
+                if snapshot_id is not None:
+                    if not isinstance(snapshot_id, str) or not snapshot_id:
+                        raise ValueError(
+                            "pending approval evaluation has an invalid "
+                            f"{field}: {row['evaluation_id']}"
+                        )
+                    pinned.add(snapshot_id)
+        return tuple(sorted(pinned))
+
+    def prune(
+        self,
+        boundary: datetime | str,
+        pinned_snapshot_ids: tuple[str, ...] = (),
+    ) -> PruneSummary:
+        boundary_at = _as_utc(boundary) if isinstance(boundary, str) else boundary
+        if boundary_at.tzinfo is None:
+            boundary_at = boundary_at.replace(tzinfo=UTC)
+        else:
+            boundary_at = boundary_at.astimezone(UTC)
+        cutoff = boundary_at - timedelta(hours=24)
+        pinned = set(self.retention_pinned_snapshot_ids())
+        pinned.update(str(item) for item in pinned_snapshot_ids)
+        rows_deleted = {
+            "world_snapshots_v2": 0,
+            "target_observations_v2": 0,
+        }
+        with self.connection:
+            snapshot_rows = self.connection.execute(
+                """
+                SELECT revision,snapshot_id,body_json,observed_at
+                FROM world_snapshots_v2 ORDER BY revision
+                """
+            ).fetchall()
+            if snapshot_rows:
+                pinned.add(str(snapshot_rows[-1]["snapshot_id"]))
+            doomed = tuple(
+                str(row["snapshot_id"])
+                for row in snapshot_rows
+                if str(row["snapshot_id"]) not in pinned
+                and _as_utc(str(row["observed_at"])) < cutoff
+            )
+            if doomed:
+                cursor = self.connection.executemany(
+                    "DELETE FROM world_snapshots_v2 WHERE snapshot_id=?",
+                    ((snapshot_id,) for snapshot_id in doomed),
+                )
+                rows_deleted["world_snapshots_v2"] = cursor.rowcount
+
+            retained_rows = self.connection.execute(
+                """
+                SELECT snapshot_id,body_json FROM world_snapshots_v2
+                ORDER BY revision
+                """
+            ).fetchall()
+            minimum_revisions: dict[str, int] = {}
+            reference_pairs: set[tuple[str, int]] = set()
+            for row in retained_rows:
+                body = _decode_world_snapshot_body(row["body_json"])
+                target_revisions = body.get("target_revisions", {})
+                if not isinstance(target_revisions, Mapping):
+                    raise ValueError(
+                        "retained world snapshot has invalid target_revisions: "
+                        f"{row['snapshot_id']}"
+                    )
+                is_reference = "entities" not in body
+                for target_id_value, revision_value in target_revisions.items():
+                    target_id = str(target_id_value)
+                    revision = int(revision_value)
+                    current = minimum_revisions.get(target_id)
+                    minimum_revisions[target_id] = (
+                        revision if current is None else min(current, revision)
+                    )
+                    if is_reference:
+                        reference_pairs.add((target_id, revision))
+
+            for target_id, minimum_revision in minimum_revisions.items():
+                cursor = self.connection.execute(
+                    """
+                    DELETE FROM target_observations_v2
+                    WHERE target_id=? AND revision<?
+                    """,
+                    (target_id, minimum_revision),
+                )
+                rows_deleted["target_observations_v2"] += cursor.rowcount
+
+            for target_id, revision in sorted(reference_pairs):
+                minimum_revision = minimum_revisions[target_id]
+                if revision < minimum_revision:
+                    raise AssertionError(
+                        "retention minimum revision exceeds a retained reference"
+                    )
+                exists = self.connection.execute(
+                    """
+                    SELECT 1 FROM target_observations_v2
+                    WHERE target_id=? AND revision=?
+                    """,
+                    (target_id, revision),
+                ).fetchone()
+                if exists is None:
+                    raise AssertionError(
+                        "retention left a dangling target reference: "
+                        f"{target_id}@{revision}"
+                    )
+
+            self._increment_retention_counter("prune_runs")
+            self._increment_retention_counter(
+                "world_snapshots_pruned",
+                rows_deleted["world_snapshots_v2"],
+            )
+            self._increment_retention_counter(
+                "target_observations_pruned",
+                rows_deleted["target_observations_v2"],
+            )
+        return PruneSummary(
+            boundary=boundary_at.isoformat(),
+            cutoff=cutoff.isoformat(),
+            pinned_snapshot_ids=tuple(sorted(pinned)),
+            retained_snapshots=len(retained_rows),
+            rows_deleted=rows_deleted,
+        )
+
+    def vacuum(self) -> None:
+        if self.connection.in_transaction:
+            raise RuntimeError("cannot vacuum while a transaction is active")
+        self.connection.execute("VACUUM")
+
+    def _increment_retention_counter(self, name: str, amount: int = 1) -> None:
+        if name not in _RETENTION_COUNTER_NAMES:
+            raise ValueError(f"unknown retention counter: {name}")
+        self.connection.execute(
+            "UPDATE retention_counters_v1 SET value=value+? WHERE name=?",
+            (amount, name),
+        )
 
     def create_goal(self, goal: GoalSpecV2) -> None:
         if self.has_goal(goal.id):
@@ -982,12 +1285,8 @@ class WorldStore:
         where = ""
         parameters: tuple[str, ...] = ()
         if open_only:
-            parameters = (
-                DispatchAttemptStateV1.PREPARED.value,
-                DispatchAttemptStateV1.RECOVERY_REQUIRED.value,
-            )
             where = " WHERE state IN (?,?,?)"
-            parameters = (*parameters, DispatchAttemptStateV1.RECEIPT_RECORDED.value)
+            parameters = _OPEN_DISPATCH_STATES
         rows = self.connection.execute(
             "SELECT body_json FROM dispatch_attempts_v1" + where + " ORDER BY rowid",
             parameters,
@@ -1240,7 +1539,7 @@ class WorldStore:
         return int(row["value"])
 
     def save_target_observation(self, observation: TargetObservationV2) -> bool:
-        body = canonical_json(observation)
+        body = _encode_target_observation_body(observation)
         digest = artifact_sha256(observation)
         semantic_digest = observation.semantic_fingerprint()
         confirmed_at = observation.confirmed_at or observation.observed_at
@@ -1256,7 +1555,7 @@ class WorldStore:
             stored_semantic = latest["semantic_sha256"]
             if stored_semantic is None:
                 stored_semantic = _target_observation(
-                    json.loads(latest["body_json"])
+                    _decode_target_observation_body(latest["body_json"])
                 ).semantic_fingerprint()
             if stored_semantic != semantic_digest:
                 raise ValueError("same target revision cannot describe different state")
@@ -1266,6 +1565,9 @@ class WorldStore:
                 WHERE target_id=? AND revision=?
                 """,
                 (confirmed_at, observation.target_id, observation.revision),
+            )
+            self._increment_retention_counter(
+                "target_observation_deduplications"
             )
             self.connection.commit()
             return False
@@ -1301,7 +1603,9 @@ class WorldStore:
         ).fetchone()
         if row is None:
             return None
-        observation = _target_observation(json.loads(row["body_json"]))
+        observation = _target_observation(
+            _decode_target_observation_body(row["body_json"])
+        )
         return replace(
             observation,
             confirmed_at=(
@@ -1315,6 +1619,18 @@ class WorldStore:
         expected = self.next_world_revision()
         if snapshot.revision != expected:
             raise ValueError(f"world revision must be {expected}")
+        reference = {
+            "revision": snapshot.revision,
+            "snapshot_id": snapshot.id,
+            "observed_at": snapshot.observed_at,
+            "target_revisions": snapshot.target_revisions,
+            "coverage": snapshot.coverage,
+        }
+        reconstructed = _reconstruct_world_snapshot(self.connection, reference)
+        if reconstructed.sha256 != snapshot.sha256:
+            raise ValueError(
+                f"world snapshot is not reconstructible: {snapshot.id}"
+            )
         self.connection.execute(
             """
             INSERT INTO world_snapshots_v2(
@@ -1322,8 +1638,11 @@ class WorldStore:
             ) VALUES(?,?,?,?,?)
             """,
             (
-                snapshot.revision, snapshot.id, canonical_json(snapshot),
-                snapshot.sha256, snapshot.observed_at,
+                snapshot.revision,
+                snapshot.id,
+                canonical_json(reference),
+                snapshot.sha256,
+                snapshot.observed_at,
             ),
         )
         self.connection.commit()
@@ -1336,18 +1655,18 @@ class WorldStore:
 
     def latest_world_snapshot(self) -> WorldSnapshotV2 | None:
         row = self.connection.execute(
-            "SELECT body_json FROM world_snapshots_v2 ORDER BY revision DESC LIMIT 1"
+            "SELECT * FROM world_snapshots_v2 ORDER BY revision DESC LIMIT 1"
         ).fetchone()
-        return _world_snapshot(json.loads(row["body_json"])) if row else None
+        return _load_world_snapshot_row(self.connection, row) if row else None
 
     def world_snapshot(self, snapshot_id: str) -> WorldSnapshotV2:
         row = self.connection.execute(
-            "SELECT body_json FROM world_snapshots_v2 WHERE snapshot_id=?",
+            "SELECT * FROM world_snapshots_v2 WHERE snapshot_id=?",
             (snapshot_id,),
         ).fetchone()
         if row is None:
             raise KeyError(snapshot_id)
-        return _world_snapshot(json.loads(row["body_json"]))
+        return _load_world_snapshot_row(self.connection, row)
 
     def save_proposal(self, value: ProposedActionV1) -> None:
         self.connection.execute(
@@ -1906,6 +2225,143 @@ class WorldStore:
                 "target_selector": goal.entity_scope,
                 "mutation": "observe_only",
             })
+
+
+def _encode_target_observation_body(observation: TargetObservationV2) -> bytes:
+    raw = canonical_json(observation).encode("utf-8")
+    return _TARGET_BODY_ZLIB_PREFIX + zlib.compress(raw)
+
+
+def _decode_target_observation_body(value: Any) -> dict[str, Any]:
+    if isinstance(value, str):
+        raw = value.encode("utf-8")
+    elif isinstance(value, (bytes, bytearray, memoryview)):
+        raw = bytes(value)
+        if raw.startswith(_TARGET_BODY_ZLIB_PREFIX):
+            try:
+                raw = zlib.decompress(raw[len(_TARGET_BODY_ZLIB_PREFIX):])
+            except zlib.error as exc:
+                raise ValueError("corrupt compressed target observation body") from exc
+    else:
+        raise ValueError("unsupported target observation body encoding")
+    try:
+        decoded = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("invalid target observation body") from exc
+    if not isinstance(decoded, dict):
+        raise ValueError("target observation body must be an object")
+    return decoded
+
+
+def _decode_world_snapshot_body(value: Any) -> dict[str, Any]:
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        value = bytes(value).decode("utf-8")
+    if not isinstance(value, str):
+        raise ValueError("unsupported world snapshot body encoding")
+    try:
+        decoded = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise ValueError("invalid world snapshot body") from exc
+    if not isinstance(decoded, dict):
+        raise ValueError("world snapshot body must be an object")
+    return decoded
+
+
+def _load_world_snapshot_row(
+    connection: sqlite3.Connection, row: Any
+) -> WorldSnapshotV2:
+    body = _decode_world_snapshot_body(row["body_json"])
+    if "entities" in body:
+        snapshot = _world_snapshot(body)
+    else:
+        snapshot = _reconstruct_world_snapshot(connection, body)
+    expected = str(row["artifact_sha256"])
+    if snapshot.sha256 != expected:
+        raise ValueError(
+            f"world snapshot artifact mismatch: {snapshot.id}"
+        )
+    return snapshot
+
+
+def _reconstruct_world_snapshot(
+    connection: sqlite3.Connection, reference: Mapping[str, Any]
+) -> WorldSnapshotV2:
+    required = {
+        "revision",
+        "snapshot_id",
+        "observed_at",
+        "target_revisions",
+        "coverage",
+    }
+    missing = sorted(required - set(reference))
+    if missing:
+        raise ValueError(
+            f"world snapshot reference is missing: {', '.join(missing)}"
+        )
+    raw_target_revisions = reference["target_revisions"]
+    if not isinstance(raw_target_revisions, Mapping):
+        raise ValueError("world snapshot target_revisions must be an object")
+    target_revisions = {
+        str(target_id): int(revision)
+        for target_id, revision in raw_target_revisions.items()
+    }
+    raw_coverage = reference["coverage"]
+    if not isinstance(raw_coverage, Mapping):
+        raise ValueError("world snapshot coverage must be an object")
+    coverage = dict(raw_coverage)
+    entities: list[EntityV1] = []
+    relations: list[RelationV1] = []
+    observations: list[ObservationV1] = []
+    for target_id, revision in sorted(target_revisions.items()):
+        row = connection.execute(
+            """
+            SELECT body_json FROM target_observations_v2
+            WHERE target_id=? AND revision=?
+            """,
+            (target_id, revision),
+        ).fetchone()
+        if row is None:
+            raise ValueError(
+                "world snapshot references missing target observation: "
+                f"{target_id}@{revision}"
+            )
+        target = _target_observation(
+            _decode_target_observation_body(row["body_json"])
+        )
+        if target.target_id != target_id or target.revision != revision:
+            raise ValueError(
+                "world snapshot target observation identity mismatch: "
+                f"{target_id}@{revision}"
+            )
+        entities.extend(target.entities)
+        relations.extend(target.relations)
+        stale = _snapshot_target_is_stale(coverage, target_id)
+        observations.extend(
+            replace(item, evidence_grade=EvidenceGrade.STALE)
+            if stale
+            else item
+            for item in target.observations
+        )
+    return WorldSnapshotV2(
+        id=str(reference["snapshot_id"]),
+        revision=int(reference["revision"]),
+        observed_at=str(reference["observed_at"]),
+        target_revisions=target_revisions,
+        entities=tuple(sorted(entities, key=lambda item: item.id)),
+        relations=tuple(sorted(relations, key=lambda item: item.id)),
+        observations=tuple(sorted(observations, key=lambda item: item.id)),
+        coverage=coverage,
+    )
+
+
+def _snapshot_target_is_stale(
+    coverage: Mapping[str, Any], target_id: str
+) -> bool:
+    targets = coverage.get("targets", {})
+    if not isinstance(targets, Mapping):
+        return False
+    target = targets.get(target_id, {})
+    return isinstance(target, Mapping) and target.get("stale") is True
 
 
 def _target_observation(value: Mapping[str, Any]) -> TargetObservationV2:

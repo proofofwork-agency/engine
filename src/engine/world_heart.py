@@ -1086,7 +1086,16 @@ class WorldHeartV2:
                 if unsubscribe is not None:
                     subscriptions.append(unsubscribe)
             passes = 0
+            last_prune_at: datetime | None = None
             while not stop_event.is_set() and (max_passes is None or passes < max_passes):
+                boundary = self._clock()
+                if (
+                    last_prune_at is None
+                    or boundary - last_prune_at >= timedelta(hours=1)
+                ):
+                    pins = self.store.retention_pinned_snapshot_ids()
+                    self.store.prune(boundary, pinned_snapshot_ids=pins)
+                    last_prune_at = boundary
                 now = time.monotonic()
                 due = {target_id for target_id, deadline in next_poll.items() if now >= deadline}
                 with lock:

@@ -115,6 +115,17 @@ class EngineApplication:
     def observe(self) -> Any:
         return self.heart.observe_connected_world(refresh_targets=None)
 
+    def store_status(self) -> Any:
+        return self.store.retention_status()
+
+    def store_prune(self, *, vacuum: bool = False) -> Any:
+        boundary = datetime.now(UTC)
+        pins = self.store.retention_pinned_snapshot_ids()
+        summary = self.store.prune(boundary, pinned_snapshot_ids=pins)
+        if vacuum:
+            self.store.vacuum()
+        return summary
+
     def setup(
         self,
         *,

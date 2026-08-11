@@ -27,6 +27,12 @@ def build_parser() -> argparse.ArgumentParser:
     world_sub = world.add_subparsers(dest="world_command", required=True)
     world_sub.add_parser("observe")
 
+    store = top.add_parser("store")
+    store_sub = store.add_subparsers(dest="store_command", required=True)
+    store_sub.add_parser("status")
+    store_prune = store_sub.add_parser("prune")
+    store_prune.add_argument("--vacuum", action="store_true")
+
     setup = top.add_parser("setup")
     setup.add_argument("--plugin", required=True)
     setup.add_argument("--target", required=True)
@@ -150,6 +156,14 @@ def main(argv: list[str] | None = None) -> int:
 
         app = EngineApplication(RuntimeConfig.from_environment())
         try:
+            if args.command == "store":
+                if args.store_command == "status":
+                    _print(canonical_data(app.store_status()))
+                else:
+                    with app.lease():
+                        summary = app.store_prune(vacuum=args.vacuum)
+                    _print(canonical_data(summary))
+                return 0
             if args.command == "world":
                 with app.lease():
                     _print(canonical_data(app.observe()))

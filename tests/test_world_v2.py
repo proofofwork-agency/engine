@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib
+import json
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -422,6 +424,180 @@ class WorldV2Tests(unittest.TestCase):
             "SELECT semantic_sha256 FROM target_observations_v2"
         ).fetchone()
         self.assertEqual(latest.semantic_fingerprint(), row["semantic_sha256"])
+
+    def test_reference_snapshot_round_trip_preserves_hashes_and_stale_grade(
+        self,
+    ) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del heart, goal
+        boundary = datetime.now(UTC)
+        clock = _MutableClock(boundary)
+        confirming_heart = WorldHeartV2(store, registry, brain, clock=clock)
+        fresh = confirming_heart.observe_connected_world(refresh_targets=None)
+        clock.advance(
+            timedelta(seconds=plugin.providers[0].freshness_seconds + 1)
+        )
+        stale = confirming_heart.observe_connected_world(refresh_targets=set())
+
+        loaded = store.world_snapshot(stale.id)
+
+        self.assertEqual(stale.sha256, loaded.sha256)
+        self.assertEqual(
+            stale.semantic_fingerprint(), loaded.semantic_fingerprint()
+        )
+        self.assertTrue(
+            all(
+                item.evidence_grade is EvidenceGrade.STALE
+                for item in loaded.observations
+            )
+        )
+        self.assertNotEqual(fresh.semantic_fingerprint(), loaded.semantic_fingerprint())
+        row = store.connection.execute(
+            "SELECT body_json FROM world_snapshots_v2 WHERE snapshot_id=?",
+            (stale.id,),
+        ).fetchone()
+        self.assertEqual(
+            {
+                "coverage",
+                "observed_at",
+                "revision",
+                "snapshot_id",
+                "target_revisions",
+            },
+            set(json.loads(row["body_json"])),
+        )
+
+    def test_legacy_and_reference_world_snapshots_coexist(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del plugin, registry, brain, goal
+        legacy = heart.observe_connected_world(refresh_targets=None)
+        store.connection.execute(
+            "UPDATE world_snapshots_v2 SET body_json=? WHERE snapshot_id=?",
+            (canonical_json(legacy), legacy.id),
+        )
+        store.connection.commit()
+        reference = heart.observe_connected_world(refresh_targets=None)
+
+        loaded_legacy = store.world_snapshot(legacy.id)
+        loaded_reference = store.world_snapshot(reference.id)
+
+        self.assertEqual(legacy.sha256, loaded_legacy.sha256)
+        self.assertEqual(
+            legacy.semantic_fingerprint(),
+            loaded_legacy.semantic_fingerprint(),
+        )
+        self.assertEqual(reference.sha256, loaded_reference.sha256)
+        self.assertEqual(
+            reference.semantic_fingerprint(),
+            loaded_reference.semantic_fingerprint(),
+        )
+        self.assertEqual(reference, store.latest_world_snapshot())
+
+    def test_compressed_and_legacy_target_observation_bodies_both_load(
+        self,
+    ) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del registry, brain, heart, goal
+        observation = plugin.providers[0].observe()
+        store.save_target_observation(observation)
+        row = store.connection.execute(
+            """
+            SELECT body_json, typeof(body_json) AS storage_type
+            FROM target_observations_v2 WHERE target_id=? AND revision=?
+            """,
+            (observation.target_id, observation.revision),
+        ).fetchone()
+        self.assertEqual("blob", row["storage_type"])
+        self.assertIsInstance(row["body_json"], bytes)
+        compressed = store.latest_target_observation(observation.target_id)
+        assert compressed is not None
+        self.assertEqual(
+            observation.semantic_fingerprint(),
+            compressed.semantic_fingerprint(),
+        )
+
+        store.connection.execute(
+            """
+            UPDATE target_observations_v2 SET body_json=?
+            WHERE target_id=? AND revision=?
+            """,
+            (
+                canonical_json(observation),
+                observation.target_id,
+                observation.revision,
+            ),
+        )
+        store.connection.commit()
+        row = store.connection.execute(
+            """
+            SELECT typeof(body_json) AS storage_type
+            FROM target_observations_v2 WHERE target_id=? AND revision=?
+            """,
+            (observation.target_id, observation.revision),
+        ).fetchone()
+        self.assertEqual("text", row["storage_type"])
+        legacy = store.latest_target_observation(observation.target_id)
+        assert legacy is not None
+        self.assertEqual(
+            observation.semantic_fingerprint(), legacy.semantic_fingerprint()
+        )
+
+    def test_referenced_target_tamper_fails_world_reconstruction(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del plugin, registry, brain, goal
+        snapshot = heart.observe_connected_world(refresh_targets=None)
+        target = store.latest_target_observation(TARGET_ID)
+        assert target is not None
+        original = target.observations[0]
+        tampered = replace(
+            target,
+            observations=(
+                replace(original, value=int(original.value) + 1),
+                *target.observations[1:],
+            ),
+        )
+        store.connection.execute(
+            """
+            UPDATE target_observations_v2 SET body_json=?
+            WHERE target_id=? AND revision=?
+            """,
+            (canonical_json(tampered), target.target_id, target.revision),
+        )
+        store.connection.commit()
+
+        with self.assertRaisesRegex(ValueError, "artifact mismatch"):
+            store.world_snapshot(snapshot.id)
+
+    def test_read_only_snapshot_verifier_accepts_synthetic_mixed_store(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del plugin, registry, brain, goal
+        legacy = heart.observe_connected_world(refresh_targets=None)
+        store.connection.execute(
+            "UPDATE world_snapshots_v2 SET body_json=? WHERE snapshot_id=?",
+            (canonical_json(legacy), legacy.id),
+        )
+        store.connection.commit()
+        heart.observe_connected_world(refresh_targets=None)
+        database = store.path
+        store.close()
+
+        result = subprocess.run(
+            (
+                sys.executable,
+                "tools/verify_snapshot_reconstruction.py",
+                "--database",
+                str(database),
+            ),
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(
+            "verified=2 legacy=1 reference=1 failures=0", result.stdout
+        )
 
     def test_declarative_conditions_preserve_units_unknown_and_boolean_composition(self) -> None:
         plugin, registry, store, brain, heart, goal = self._system()

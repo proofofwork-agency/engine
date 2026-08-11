@@ -44,6 +44,7 @@ from engine_sdk import (
     ScopedConditionV1,
     StandingMandateV1,
     WorldSnapshotV2,
+    canonical_json,
     compare_manifests,
     load_static_manifest,
 )
@@ -907,7 +908,21 @@ class HomeyV2WorldTests(unittest.TestCase):
         zone_id = f"homey:{config.target_id}:zone:zone_1"
         now = datetime(2026, 8, 10, 22, 0, tzinfo=UTC)
         snapshot = _routine_world(1, config.target_id, zone_id, now, True)
-        store.save_world_snapshot(snapshot)
+        store.connection.execute(
+            """
+            INSERT INTO world_snapshots_v2(
+                revision, snapshot_id, body_json, artifact_sha256, observed_at
+            ) VALUES(?,?,?,?,?)
+            """,
+            (
+                snapshot.revision,
+                snapshot.id,
+                canonical_json(snapshot),
+                snapshot.sha256,
+                snapshot.observed_at,
+            ),
+        )
+        store.connection.commit()
         template = registry.routine_template(
             "engine.homey", "lighting.daily-off/v1"
         )
