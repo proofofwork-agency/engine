@@ -150,19 +150,65 @@ Preconditions specific to the burn-in:
 Measure at 0 h, 24 h and 48 h. The budget covers **all three stores**, main
 file plus write-ahead log, per store and aggregated (ADR-0011 Amendment 1.1):
 
+Your terminal does **not** inherit the daemon's environment: those variables
+live in the LaunchAgent plist, not in your shell, so reading `$ENGINE_DATABASE`
+from a fresh terminal measures nothing or the wrong store. Resolve the paths
+from the plist itself, which is also what keeps this measurement honest when
+the plist changes. Only non-secret keys are read; the token is never touched.
+
 ```bash
-for db in "$ENGINE_DATABASE" "$ENGINE_CONTEXT_DATABASE" \
-          "$(dirname "$ENGINE_HOMEY_CONFIG")/homeops.local.db"; do
-  main=$(stat -f%z "$db"); wal=$(stat -f%z "$db-wal" 2>/dev/null || echo 0)
-  echo "$db main=$main wal=$wal total=$((main + wal))"
+set -eu
+PLIST="$HOME/Library/LaunchAgents/com.proofofworks.engine.observe.plist"
+ENGINE_DB=$(plutil -extract EnvironmentVariables.ENGINE_DATABASE raw "$PLIST")
+CONTEXT_DB=$(plutil -extract EnvironmentVariables.ENGINE_CONTEXT_DATABASE raw "$PLIST")
+HOMEY_CFG=$(plutil -extract EnvironmentVariables.ENGINE_HOMEY_CONFIG raw "$PLIST")
+
+# The Homey store's filename comes from the config, not from convention.
+HOMEOPS_DB=$(uv run python -c '
+import sys, tomllib
+from pathlib import Path
+cfg = Path(sys.argv[1])
+rel = tomllib.loads(cfg.read_text())["homey"].get("plugin_database", "homeops.db")
+print((cfg.parent / rel).resolve())
+' "$HOMEY_CFG")
+
+total=0
+for db in "$ENGINE_DB" "$CONTEXT_DB" "$HOMEOPS_DB"; do
+  if [ ! -f "$db" ]; then echo "MISSING STORE: $db" >&2; exit 1; fi
+  main=$(stat -f%z "$db")
+  wal=0; [ -f "$db-wal" ] && wal=$(stat -f%z "$db-wal")
+  sub=$((main + wal)); total=$((total + sub))
+  printf '%-22s main=%-12s wal=%-10s total=%s\n' "$(basename "$db")" "$main" "$wal" "$sub"
 done
+printf 'checkpoint=%s aggregate_bytes=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$total"
 ```
 
-Also record, at each checkpoint: `uv run engine status` (lease, heartbeat
-counts), `uv run engine store status` (per-table rows and retention
-counters), the plugin store's snapshot counters (rows written, dedupes, raw
-versus stored bytes — the raw-to-stored ratio is the compression evidence),
-and confirmation that dispatch attempts remain zero.
+A missing store aborts the measurement rather than counting as zero: silently
+scoring a store that does not exist as "no growth" is the one way this
+measurement could report a pass it did not earn.
+
+Paste the `checkpoint=` line into the soak log at each of 0 h, 24 h and 48 h.
+The rate between two checkpoints is
+`(bytes_later - bytes_earlier) / (seconds_between) * 86400 / 1e6` MB/day;
+compare that against the budget, not the raw totals.
+
+Read the plugin store's own counters, which no CLI surfaces:
+
+```bash
+sqlite3 "file:$HOMEOPS_DB?mode=ro" \
+  "SELECT name, value FROM snapshot_storage_counters_v1 ORDER BY name;"
+```
+
+`snapshot_raw_body_bytes_written` divided by
+`snapshot_stored_body_bytes_written` is the compression evidence measured in
+production rather than in a benchmark. If this query fails with *no such
+table*, the store predates the compression build and is **not a valid burn-in
+store** — start from a fresh one.
+
+Also record at each checkpoint: `uv run engine status` (lease, heartbeat
+counts), `uv run engine store status` (per-table rows, retention counters and
+`free_bytes` versus `database_bytes`), and confirmation that dispatch attempts
+remain zero.
 
 Reading the result honestly:
 
