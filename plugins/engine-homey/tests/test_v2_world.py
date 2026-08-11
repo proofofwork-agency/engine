@@ -13,8 +13,8 @@ from engine_context.plugin import (
     ContextWorldProvider,
     ExplicitLocationProvider,
 )
-from engine_homey.store import HomeOpsStore
 from engine_homey.config import DeviceBinding
+from engine_homey.store import HomeOpsStore
 from engine_homey.v2 import (
     LIGHTING_ZONE_STATE,
     PRESENCE_DARK_ON,
@@ -34,15 +34,15 @@ from engine_sdk import (
     EvidenceGrade,
     GoalModeV2,
     GoalSpecV2,
+    ObservationV1,
+    RiskClass,
+    RoutineCandidateStatus,
+    RoutineCandidateV1,
+    RoutineShadowEventV1,
     RoutineSpecV1,
     RoutineStatus,
     ScopedConditionV1,
     StandingMandateV1,
-    ObservationV1,
-    RoutineCandidateStatus,
-    RoutineCandidateV1,
-    RoutineShadowEventV1,
-    RiskClass,
     WorldSnapshotV2,
     compare_manifests,
     load_static_manifest,
@@ -109,6 +109,42 @@ class HomeyV2WorldTests(unittest.TestCase):
         plugin = load_plugin_v2()
         self.assertEqual("engine.homey", plugin.manifest.id)
         self.assertIsNone(plugin._plugin)
+
+    def test_generic_v3_autonomy_uses_same_heart_without_homey_core_branch(self) -> None:
+        config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
+        registry = PluginRegistryV2()
+        registry.register(plugin, PLUGIN_ROOT)
+        app = EngineApplication(
+            RuntimeConfig(store_path=self.base / "autonomy-v3.sqlite3"),
+            registry=registry,
+        )
+        zone_id = f"homey:{config.target_id}:zone:zone_1"
+        try:
+            with app.lease():
+                app.autonomy_enroll(
+                    plugin_id="engine.homey",
+                    strategy_id="homey.enrolled-lighting-state/v1",
+                    target_ids=(config.target_id,),
+                    entity_ids=(zone_id,),
+                    capability_families=(LIGHTING_ZONE_STATE,),
+                    goal_template_ids=("homey.lighting-zone-state/v1",),
+                    limits={"desired_on": True},
+                    instantiate_goal_templates=True,
+                )
+            app.autonomy_mode("delegated")
+            with app.lease():
+                app.heart.run_cycle()
+            self.assertTrue(
+                transport.devices["light-1"]["capabilitiesObj"]["onoff"]["value"]
+            )
+            self.assertEqual(0, app.store.brain_call_count())
+            self.assertEqual(1, len(app.store.dispatch_attempts()))
+            self.assertIsNotNone(
+                app.store.dispatch_attempts()[0].autonomy_binding
+            )
+        finally:
+            app.close()
+            plugin_store.close()
 
     def test_whole_world_three_zone_closed_loop_and_stable_zero_model_calls(self) -> None:
         config, transport, plugin_store, homey = self._home()
@@ -456,7 +492,7 @@ class HomeyV2WorldTests(unittest.TestCase):
         finally:
             plugin_store.close()
 
-    def test_yolo_profile_freezes_exact_homey_scope_and_disable_revokes(self) -> None:
+    def test_yolo_alias_changes_mode_without_creating_homey_authority(self) -> None:
         config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
         del transport
         registry = PluginRegistryV2()
@@ -466,15 +502,11 @@ class HomeyV2WorldTests(unittest.TestCase):
         )
         zone_id = f"homey:{config.target_id}:zone:zone_1"
         try:
-            profile = app.yolo_enable(
-                target_id=config.target_id, entity_ids=(zone_id,)
-            )
-            self.assertEqual((zone_id,), profile.entity_ids)
-            self.assertEqual("low", profile.risk_ceiling.value)
-            self.assertEqual(3, len(profile.routine_template_ids))
-            disabled = app.yolo_disable(profile_id=profile.id)[0]
-            self.assertFalse(disabled.enabled)
-            self.assertIsNotNone(disabled.revoked_at)
+            del zone_id
+            self.assertEqual("delegated", app.yolo_alias_enable()["mode"])
+            self.assertEqual((), app.store.autonomy_enrollments())
+            self.assertEqual((), app.store.autonomy_profiles())
+            self.assertEqual("paused", app.yolo_alias_disable()["mode"])
         finally:
             app.close()
             plugin_store.close()

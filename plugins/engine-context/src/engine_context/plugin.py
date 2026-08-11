@@ -144,6 +144,7 @@ class ContextStore:
 
 
 class ContextWorldProvider:
+    id = "local-context"
     plugin_id = "engine.context"
     target_id = "engine.context.local"
     poll_interval_seconds = 60.0

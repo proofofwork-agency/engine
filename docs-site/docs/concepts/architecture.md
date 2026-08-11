@@ -1,14 +1,21 @@
 ---
 title: Architecture
 sidebar_position: 3
-description: The canonical Engine v2 architecture, plugin roles, stores, and complete action lifecycle.
+description: The canonical Engine action lifecycle, v3 plugin autonomy, stores, roles, and authority boundary.
 ---
 
 # Architecture
 
-The canonical product route is `engine.plugin/v2`: dependency-light contracts in `engine-sdk`, the generic Heart and store in `src/engine`, and composition, discovery, and CLI in `engine-runtime`. The older v1 core remains available as compatibility evidence, but v1 plugins are observe-only in the v2 world.
+The canonical product route combines the v2 typed action lifecycle with
+`engine.plugin/v3`: dependency-light contracts in `engine-sdk`, the generic
+Heart and store in `src/engine`, and composition, discovery, and CLI in
+`engine-runtime`. V2 plugins without autonomy remain loadable. The older v1
+core remains compatibility evidence, but v1 plugins are observe-only here.
 
-> **Status:** the v2 vertical software slice is **Implemented** and **Fake/simulation-tested** with Homey and a reference warehouse. Whole-world Homey observation is **Live read-only**; live v2 mutation and physical certification are **Roadmap**.
+> **Status:** the action and generic autonomy vertical software slices are
+> **Implemented** and **Fake/simulation-tested** with Homey and a reference
+> warehouse. Whole-world Homey observation is **Live read-only**; live mutation
+> and physical certification are **Roadmap**.
 
 ## Layers
 
@@ -51,7 +58,7 @@ The Heart is generic. The plugin owns the meaning of “light,” “crate,” �
 
 A model transcript is none of these objects and cannot replace them.
 
-## The complete v2 lifecycle
+## The complete mutation lifecycle
 
 A mutating pass proceeds as follows.
 
@@ -140,7 +147,10 @@ This route is **Implemented** and **Fake/simulation-tested** in the reference wa
 
 ## Plugin interface
 
-Every v2 plugin has an inert static `engine-plugin.toml` and a Python entry point in the `engine.plugins` group. The runtime reads the static manifest first and compares it with the loaded plugin. Factory construction should not open a network connection or mutate a target.
+Every v3 plugin has an inert static `engine-plugin.toml`, an explicit
+`[autonomy]` table, and a Python entry point in the `engine.plugins` group. The
+runtime reads the static manifest first and compares it with the loaded plugin.
+Factory construction should not open a network connection or mutate a target.
 
 The public roles are deliberately separated:
 
@@ -153,18 +163,35 @@ The public roles are deliberately separated:
 | `SpecialistBrainV2` | Provide bounded advice/a typed proposal | Execute or authorize |
 | `ExperienceProvider` | Publish cursor-based behavior signals | Patch GoalSpecs or infer permission |
 | `RoutineCompiler` | Translate a plugin pattern into inert routine/goal data | Create a mandate |
+| `LifecycleObserver` | React to bounded durable milestones | Add facts, authority, dispatch, raw telemetry, or effect evidence |
+| `AutonomyStrategy` | Return one proposal-only decision from bounded context | Schedule itself, authorize, dispatch, or own executor/model/registry handles |
+| `GoalTemplateCompiler` | Compile a named typed candidate into inert GoalSpec data | Mint permission or emit a free executable goal |
 
 A plugin may use only mutable capability families declared statically and enrolled. Unknown dynamic capabilities are projected as `opaque`, `QUERY`, and read-only.
+
+## Heart-owned autonomy scheduling
+
+Autonomy adds no second runtime. Once per cycle Heart observes one
+previous/current world boundary, reconciles in-flight work, evaluates stable
+goals/routines/enrollments, collects strategy or bounded cognition proposals,
+resolves `(target, entity, conflict_domain)` resources, reobserves, rechecks
+mode/enrollment/policy/authorization/lease gates, and admits at most one mutation
+per resource through the lifecycle above.
+
+`AutonomyEnrollmentV2` is durable authority input created by an owner; an
+`AutonomyEvaluationV1` or `AutonomyBindingV1` is not. Goal creation is limited
+to declared typed templates. `SuggestionV1` is non-operational. See
+[Generic plugin autonomy](./plugin-autonomy.md).
 
 ## SDK and runtime
 
 ### `engine-sdk` — **Implemented**
 
-Contains public data types, protocols, manifest validation, conformance helpers, and `engine-plugin` scaffolding. The `world`, `specialist`, and `full` templates generate a separately installable plugin structure. Plugin authors do not need to import the complete Heart runtime.
+Contains public data types, protocols, manifest validation, conformance helpers, and `engine-plugin` scaffolding. The `world`, `specialist`, and `full` templates generate a separately installable v3 plugin with explicit autonomy declarations. Plugin authors do not need to import the complete Heart runtime.
 
 ### `engine-runtime` — **Implemented**
 
-Contains entry-point discovery, composition, runtime lease, signal handling, model configuration, and the `engine` CLI. Important surfaces cover plugin inspection, world observation, setup preview/activation, run/status, learning, routines, bounded YOLO enrollment, and model canary.
+Contains entry-point discovery, composition, fenced runtime lease, signal handling, model configuration, and the `engine` CLI. Important surfaces cover plugin inspection, world observation, setup preview/activation, run/status, learning, routines, generic autonomy enrollment/proposals, YOLO mode aliases, and model canary.
 
 ### Maturity boundary
 

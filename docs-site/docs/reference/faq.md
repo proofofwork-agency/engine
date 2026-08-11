@@ -72,8 +72,10 @@ authority can exist.
 At the goal level, there are `achieve` and `maintain`. At the capability level,
 there are `immediate`, `task`, and `stream`. Cognitive decisions use
 `query_world`, `consult_specialist`, `propose_effect`, `wait`, `complete`, and
-`abandon`. There is also a bounded `yolo` autonomy profile for the first Homey
-lighting tranche; it is not an unrestricted mode.
+`abandon`. Generic autonomy separately uses `observe`, `supervised`,
+`delegated`, and `paused`. Mode alone grants no scope: an exact enabled v3
+enrollment is also required. `yolo` is only an alias for delegated/paused/status
+and creates no enrollment.
 
 ## Are `task` and `stream` production-ready?
 

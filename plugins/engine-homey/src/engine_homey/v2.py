@@ -10,6 +10,11 @@ from uuid import uuid4
 from engine_sdk import (
     ActionRequestV1,
     AuthorizationV1,
+    AutonomyContextV1,
+    AutonomyDecisionKindV1,
+    AutonomyDecisionV1,
+    AutonomyProfileV1,
+    AutonomyStrategySpecV1,
     BehaviorBatchV1,
     BehaviorSignalV1,
     CapabilitySpecV2,
@@ -20,8 +25,10 @@ from engine_sdk import (
     EvidenceGrade,
     ExecutionReceiptV2,
     ExecutionStateV2,
+    GoalCandidateV1,
     GoalModeV2,
     GoalSpecV2,
+    GoalTemplateSpecV1,
     ObservationV1,
     PluginManifestV2,
     ProposedActionV1,
@@ -30,7 +37,6 @@ from engine_sdk import (
     RoutineStatus,
     RoutineTemplateSpecV1,
     ScopedConditionV1,
-    AutonomyProfileV1,
     SpecialistAdviceV1,
     TargetObservationV2,
     WorldSnapshotV2,
@@ -87,6 +93,7 @@ def _static_manifest() -> PluginManifestV2:
 
 
 class HomeyWorldProvider:
+    id = "homey-world"
     plugin_id = "engine.homey"
     poll_interval_seconds = 5.0
     freshness_seconds = 30.0
@@ -271,6 +278,7 @@ class HomeyWorldProvider:
 
 
 class HomeyDomainController:
+    id = "homey-domain-controller"
     plugin_id = "engine.homey"
     supported_families = (LIGHTING, LIGHTING_ZONE_STATE, SWITCH, COVER, CLIMATE)
 
@@ -373,6 +381,7 @@ class HomeyDomainController:
 
 
 class HomeyExecutorV2:
+    id = "homey-executor"
     plugin_id = "engine.homey"
 
     def __init__(self, target: HomeyTarget):
@@ -417,6 +426,7 @@ class HomeyExecutorV2:
 
 
 class HomeyEffectOracleV2:
+    id = "homey-effect-oracle"
     plugin_id = "engine.homey"
     supported_families = (LIGHTING, LIGHTING_ZONE_STATE, SWITCH, COVER, CLIMATE)
 
@@ -493,6 +503,7 @@ class HomeyEffectOracleV2:
 
 class HomeyDomainSpecialistV2:
     id = "engine.homey.domain-specialist/v2"
+    plugin_id = "engine.homey"
     supported_families = (LIGHTING, LIGHTING_ZONE_STATE, SWITCH, COVER, CLIMATE)
 
     def advise(
@@ -791,6 +802,119 @@ class HomeyGoalBaselineV2:
         )
 
 
+class HomeyLightingStateStrategyV1:
+    id = "homey.enrolled-lighting-state/v1"
+    plugin_id = "engine.homey"
+
+    def __init__(self, spec: AutonomyStrategySpecV1):
+        self.spec = spec
+
+    def evaluate(self, context: AutonomyContextV1) -> AutonomyDecisionV1:
+        enrollment = context.projection.get("enrollment", {})
+        world = context.projection.get("world", {})
+        if not isinstance(enrollment, dict) or not isinstance(world, dict):
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER, rationale="bounded projection is malformed"
+            )
+        limits = enrollment.get("limits", {})
+        desired = limits.get("desired_on") if isinstance(limits, dict) else None
+        if not isinstance(desired, bool):
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER,
+                rationale="enrollment must contain boolean desired_on",
+            )
+        entity_ids = tuple(str(item) for item in enrollment.get("entity_ids", ()))
+        observations = world.get("observations", ())
+        for entity_id in entity_ids:
+            observed = next(
+                (
+                    item for item in observations
+                    if isinstance(item, dict)
+                    and item.get("entity_id") == entity_id
+                    and item.get("property") == "lighting.any_on"
+                ),
+                None,
+            )
+            if observed is None or not isinstance(observed.get("value"), bool):
+                return AutonomyDecisionV1(
+                    AutonomyDecisionKindV1.DEFER,
+                    rationale="fresh zone lighting state is unavailable",
+                )
+            if observed["value"] == desired:
+                continue
+            target_revisions = world.get("target_revisions", {})
+            if not isinstance(target_revisions, dict) or len(target_revisions) != 1:
+                return AutonomyDecisionV1(
+                    AutonomyDecisionKindV1.DEFER,
+                    rationale="exact Homey target boundary is unavailable",
+                )
+            target_id = next(iter(target_revisions))
+            candidate = GoalCandidateV1(
+                id="goal-candidate:" + uuid4().hex,
+                plugin_id=self.plugin_id,
+                template_id="homey.lighting-zone-state/v1",
+                target_id=str(target_id),
+                entity_ids=(entity_id,),
+                parameters={"on": desired},
+                based_on_snapshot_id=context.current_snapshot_id,
+                based_on_world_revision=context.current_world_revision,
+                proposed_by=self.id,
+                rationale="fresh lighting state differs from enrolled desired_on",
+                evidence_ids=(str(observed.get("id", "")),),
+            )
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.PROPOSE_GOAL_CANDIDATE,
+                goal_candidate=candidate,
+                rationale=candidate.rationale,
+                evidence_ids=candidate.evidence_ids,
+            )
+        return AutonomyDecisionV1(
+            AutonomyDecisionKindV1.NOOP,
+            rationale="all enrolled zones already match desired_on",
+        )
+
+
+class HomeyGoalTemplateCompilerV1:
+    id = "homey-goal-template-compiler"
+    plugin_id = "engine.homey"
+    supported_templates = ("homey.lighting-zone-state/v1",)
+
+    def compile(
+        self,
+        template: GoalTemplateSpecV1,
+        candidate: GoalCandidateV1,
+        context: AutonomyContextV1,
+    ) -> GoalSpecV2:
+        del context
+        desired = bool(candidate.parameters["on"])
+        digest = artifact_sha256(
+            {
+                "template": template.id,
+                "target": candidate.target_id,
+                "entities": candidate.entity_ids,
+                "on": desired,
+            }
+        )[:24]
+        effect = DesiredEffectV1(
+            id="lighting-zone-state",
+            capability_family=LIGHTING_ZONE_STATE,
+            entity_selector={"entity_ids": list(candidate.entity_ids)},
+            condition=ConditionV1(
+                "eq", path="observation:lighting.any_on", value=desired
+            ),
+            parameters={"on": desired},
+            description="Maintain an exact enrolled zone lighting state",
+        )
+        return GoalSpecV2(
+            id="goal:autonomy:" + digest,
+            source_intent="Typed Homey lighting-zone-state template",
+            mode=GoalModeV2.MAINTAIN,
+            entity_scope={"target_ids": [candidate.target_id]},
+            desired_effects=(effect,),
+            priority=60,
+        )
+
+
 @dataclass(frozen=True)
 class HomeyPluginV2:
     manifest: PluginManifestV2
@@ -801,6 +925,8 @@ class HomeyPluginV2:
     specialists: tuple[Any, ...]
     experience_providers: tuple[Any, ...] = ()
     routine_compilers: tuple[Any, ...] = ()
+    autonomy_strategies: tuple[Any, ...] = ()
+    goal_template_compilers: tuple[Any, ...] = ()
 
 
 class HomeyExperienceProviderV1:
@@ -993,6 +1119,14 @@ class LazyHomeyPluginV2:
     def routine_compilers(self) -> tuple[Any, ...]:
         return self._load().routine_compilers
 
+    @property
+    def autonomy_strategies(self) -> tuple[Any, ...]:
+        return self._load().autonomy_strategies
+
+    @property
+    def goal_template_compilers(self) -> tuple[Any, ...]:
+        return self._load().goal_template_compilers
+
 
 def create_plugin_v2(
     config: HomeyConfig,
@@ -1006,6 +1140,10 @@ def create_plugin_v2(
         config, store, transport=transport, event_source=event_source
     )
     provider = HomeyWorldProvider(target, manifest)
+    strategy_spec = next(
+        item for item in manifest.autonomy_strategies
+        if item.id == HomeyLightingStateStrategyV1.id
+    )
     return HomeyPluginV2(
         manifest=manifest,
         providers=(provider,),
@@ -1015,6 +1153,8 @@ def create_plugin_v2(
         specialists=(HomeyDomainSpecialistV2(),),
         experience_providers=(HomeyExperienceProviderV1(store, provider),),
         routine_compilers=(HomeyRoutineCompilerV1(target),),
+        autonomy_strategies=(HomeyLightingStateStrategyV1(strategy_spec),),
+        goal_template_compilers=(HomeyGoalTemplateCompilerV1(),),
     )
 
 

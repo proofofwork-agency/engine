@@ -1,6 +1,7 @@
 # engine-runtime
 
-Pluginneutrale composition root en productie-CLI voor Engine v2.
+Pluginneutrale composition root en CLI voor de v2-actielifecycle en
+`engine.plugin/v3`-autonomie.
 
 ```console
 engine plugins list
@@ -19,17 +20,22 @@ engine routines inspect <candidate-or-routine-id>
 engine routines approve <candidate-id>
 engine routines reject <candidate-id>
 engine routines rollback <routine-id>
-engine yolo enable --entity homey:home:zone:study
+engine autonomy mode observe
+engine autonomy strategies list
+engine autonomy enroll --plugin <plugin> --strategy <strategy> \
+  --target <target> --entity <entity> --capability <family>
+engine autonomy proposals list
+engine yolo enable
 engine yolo status
 engine yolo disable
 ```
 
 `engine setup` is standaard een preview. Alleen `--activate` schrijft het doel
 en mandaat. De CLI leest capabilities en preferences uit het statische
-pluginmanifest en bevat geen Homey- of warehousevelden. De afzonderlijke
-`yolo`-enrollment is in de eerste release bewust Homey-lighting-specifiek: hij
-bevriest exacte zone-IDs en de drie statisch gedeclareerde templates. Zonder
-expliciete `yolo enable` eindigt een bewezen routine bij `ready_for_approval`.
+pluginmanifest en bevat geen Homey- of warehousevelden. Generic autonomy vereist
+apart een globale mode én een exact v3-enrollment; mode alleen verleent geen
+scope. `yolo` is uitsluitend een alias voor delegated/paused/status en maakt
+geen enrollment. Oude targetflags leveren een migratie-instructie.
 
 ## General model as brain
 

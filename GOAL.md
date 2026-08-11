@@ -45,6 +45,14 @@ ENGINE
 6. **Safety/autorisatie** kunnen later of parallel bestaan; zij **definiëren Engine niet**.
 7. **Mini-brains** zijn een groeipad (ervaring → consolideren → registreren), **niet** de voorwaarde voor 0.1.
 
+Het algemene brein blijft een orgaan van Engine, ook nu plugins in
+`engine.plugin/v3` strategieën mogen leveren. Een enrolled strategie mag een
+bekende, getypeerde situatie deterministisch behandelen of via Heart exact één
+executive- óf specialistcall aanvragen. Zij wordt daarmee geen tweede algemeen
+brein, scheduler, runtime of autoriteitsbron. Heart bouwt voor strategie en
+cognitie dezelfde begrensde contextprojectie en alle mutaties blijven door de
+normale observe/validate/policy/authorize/dispatch/observe/oracle-route gaan.
+
 **Engine is niet:**
 
 - alleen een harness (model + tools per beurt, zonder eigen continuïteit);

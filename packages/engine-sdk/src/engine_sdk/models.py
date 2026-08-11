@@ -9,8 +9,9 @@ from typing import Any, Mapping
 
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
 JsonObject = dict[str, Any]
-PLUGIN_CONTRACT_VERSION = "engine.plugin/v2"
-ENGINE_API_VERSION = "2.0"
+PLUGIN_CONTRACT_VERSION = "engine.plugin/v3"
+SUPPORTED_PLUGIN_CONTRACT_VERSIONS = ("engine.plugin/v2", PLUGIN_CONTRACT_VERSION)
+ENGINE_API_VERSION = "3.0"
 
 
 class ContractError(ValueError):
@@ -118,6 +119,48 @@ class RoutineCandidateStatus(StrEnum):
     ROLLED_BACK = "rolled_back"
 
 
+class AutonomyModeV1(StrEnum):
+    OBSERVE = "observe"
+    SUPERVISED = "supervised"
+    DELEGATED = "delegated"
+    PAUSED = "paused"
+
+
+class CognitionRouteV1(StrEnum):
+    DETERMINISTIC = "deterministic"
+    EXECUTIVE = "executive"
+    SPECIALIST = "specialist"
+    HYBRID = "hybrid"
+
+
+class AutonomyDecisionKindV1(StrEnum):
+    NOOP = "NOOP"
+    DEFER = "DEFER"
+    PROPOSE_EFFECT = "PROPOSE_EFFECT"
+    PROPOSE_GOAL_CANDIDATE = "PROPOSE_GOAL_CANDIDATE"
+    REQUEST_EXECUTIVE = "REQUEST_EXECUTIVE"
+    REQUEST_SPECIALIST = "REQUEST_SPECIALIST"
+
+
+class AutonomyBindingStatusV1(StrEnum):
+    SHADOW = "shadow"
+    PENDING_APPROVAL = "pending_approval"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    DISPATCHED = "dispatched"
+    DEFERRED = "deferred"
+    SUPERSEDED = "superseded"
+
+
+class DispatchAttemptStateV1(StrEnum):
+    PREPARED = "prepared"
+    ABORTED_BEFORE_IO = "aborted_before_io"
+    RECEIPT_RECORDED = "receipt_recorded"
+    EFFECT_RECONCILED = "effect_reconciled"
+    RECOVERY_REQUIRED = "recovery_required"
+    CLOSED_UNKNOWN = "closed_unknown"
+
+
 def utc_now() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -147,6 +190,10 @@ def artifact_sha256(value: Any) -> str:
 def _require(value: str, name: str) -> None:
     if not value or not value.strip():
         raise ContractError(f"{name} must be non-empty")
+
+
+def _has_wildcard(value: str) -> bool:
+    return any(marker in value for marker in ("*", "?", "["))
 
 
 @dataclass(frozen=True)
@@ -587,6 +634,292 @@ class RoutineShadowEventV1:
 
 
 @dataclass(frozen=True)
+class AutonomyStrategySpecV1:
+    """Static declaration for a single-pass, proposal-only strategy."""
+
+    id: str
+    plugin_id: str
+    version: str
+    cognition_route: CognitionRouteV1
+    capability_families: tuple[str, ...] = ()
+    goal_template_ids: tuple[str, ...] = ()
+    context_plugin_ids: tuple[str, ...] = ()
+    privacy_classes: tuple[PrivacyClass, ...] = ()
+    specialist_id: str | None = None
+    description: str = ""
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.id, "autonomy strategy id"),
+            (self.plugin_id, "autonomy strategy plugin_id"),
+            (self.version, "autonomy strategy version"),
+        ):
+            _require(value, name)
+        if self.cognition_route is CognitionRouteV1.SPECIALIST and not self.specialist_id:
+            raise ContractError("specialist cognition route requires specialist_id")
+        scoped = (
+            *self.capability_families,
+            *self.goal_template_ids,
+            *self.context_plugin_ids,
+        )
+        if any(_has_wildcard(item) for item in scoped):
+            raise ContractError("autonomy strategy scope cannot contain wildcards")
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "AutonomyStrategySpecV1":
+        return cls(
+            id=str(value["id"]),
+            plugin_id=str(value["plugin_id"]),
+            version=str(value.get("version", "1.0.0")),
+            cognition_route=CognitionRouteV1(
+                str(value.get("cognition_route", CognitionRouteV1.DETERMINISTIC.value))
+            ),
+            capability_families=tuple(
+                str(item) for item in value.get("capability_families", ())
+            ),
+            goal_template_ids=tuple(
+                str(item) for item in value.get("goal_template_ids", ())
+            ),
+            context_plugin_ids=tuple(
+                str(item) for item in value.get("context_plugin_ids", ())
+            ),
+            privacy_classes=tuple(
+                PrivacyClass(str(item)) for item in value.get("privacy_classes", ())
+            ),
+            specialist_id=(
+                str(value["specialist_id"])
+                if value.get("specialist_id") is not None
+                else None
+            ),
+            description=str(value.get("description", "")),
+        )
+
+    @property
+    def fingerprint(self) -> str:
+        return artifact_sha256(self)
+
+
+@dataclass(frozen=True)
+class GoalTemplateSpecV1:
+    """Owner-reviewable schema for creating an executable GoalSpecV2."""
+
+    id: str
+    plugin_id: str
+    version: str
+    mode: GoalModeV2
+    capability_families: tuple[str, ...]
+    parameter_schema: JsonObject
+    goal_schema: JsonObject
+    risk_class: RiskClass = RiskClass.LOW
+    description: str = ""
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.id, "goal template id"),
+            (self.plugin_id, "goal template plugin_id"),
+            (self.version, "goal template version"),
+        ):
+            _require(value, name)
+        if not self.capability_families:
+            raise ContractError("goal template requires capability families")
+        if any(_has_wildcard(item) for item in self.capability_families):
+            raise ContractError("goal template capability scope cannot contain wildcards")
+        if self.risk_class not in {RiskClass.READ_ONLY, RiskClass.LOW}:
+            raise ContractError("v1 goal templates cannot exceed low risk")
+        canonical_data(self.parameter_schema)
+        canonical_data(self.goal_schema)
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "GoalTemplateSpecV1":
+        return cls(
+            id=str(value["id"]),
+            plugin_id=str(value["plugin_id"]),
+            version=str(value.get("version", "1.0.0")),
+            mode=GoalModeV2(str(value.get("mode", GoalModeV2.ACHIEVE.value))),
+            capability_families=tuple(
+                str(item) for item in value.get("capability_families", ())
+            ),
+            parameter_schema=dict(value.get("parameter_schema", {})),
+            goal_schema=dict(value.get("goal_schema", {})),
+            risk_class=RiskClass(str(value.get("risk_class", RiskClass.LOW.value))),
+            description=str(value.get("description", "")),
+        )
+
+    @property
+    def fingerprint(self) -> str:
+        return artifact_sha256(self)
+
+
+@dataclass(frozen=True)
+class GoalCandidateV1:
+    """Inert request to instantiate one declared goal template."""
+
+    id: str
+    plugin_id: str
+    template_id: str
+    target_id: str
+    entity_ids: tuple[str, ...]
+    parameters: JsonObject
+    based_on_snapshot_id: str
+    based_on_world_revision: int
+    proposed_by: str
+    rationale: str = ""
+    evidence_ids: tuple[str, ...] = ()
+    created_at: str = field(default_factory=utc_now)
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.id, "goal candidate id"),
+            (self.plugin_id, "goal candidate plugin_id"),
+            (self.template_id, "goal candidate template_id"),
+            (self.target_id, "goal candidate target_id"),
+            (self.proposed_by, "goal candidate proposed_by"),
+        ):
+            _require(value, name)
+        if not self.entity_ids or any(_has_wildcard(item) for item in self.entity_ids):
+            raise ContractError("goal candidate requires exact entity ids")
+        if self.based_on_world_revision < 1:
+            raise ContractError("goal candidate world revision must be positive")
+        canonical_data(self.parameters)
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "GoalCandidateV1":
+        return cls(
+            id=str(value["id"]),
+            plugin_id=str(value["plugin_id"]),
+            template_id=str(value["template_id"]),
+            target_id=str(value["target_id"]),
+            entity_ids=tuple(str(item) for item in value.get("entity_ids", ())),
+            parameters=dict(value.get("parameters", {})),
+            based_on_snapshot_id=str(value["based_on_snapshot_id"]),
+            based_on_world_revision=int(value["based_on_world_revision"]),
+            proposed_by=str(value["proposed_by"]),
+            rationale=str(value.get("rationale", "")),
+            evidence_ids=tuple(str(item) for item in value.get("evidence_ids", ())),
+            created_at=str(value.get("created_at", utc_now())),
+        )
+
+
+@dataclass(frozen=True)
+class AutonomyEnrollmentV2:
+    """Immutable, revisioned owner grant; it never authorizes by itself."""
+
+    id: str
+    revision: int
+    plugin_id: str
+    strategy_id: str
+    goal_template_ids: tuple[str, ...]
+    target_ids: tuple[str, ...]
+    entity_ids: tuple[str, ...]
+    capability_families: tuple[str, ...]
+    context_plugin_ids: tuple[str, ...]
+    privacy_grants: tuple[PrivacyClass, ...]
+    cognition_route: CognitionRouteV1
+    risk_ceiling: RiskClass
+    limits: JsonObject
+    budget: JsonObject
+    expires_at: str
+    manifest_fingerprint: str
+    strategy_fingerprint: str
+    goal_template_fingerprints: JsonObject
+    enrolled_at: str
+    enrolled_by: str
+    control_existing_goals: bool = False
+    instantiate_goal_templates: bool = False
+    promote_proven_routines: bool = False
+    enabled: bool = True
+    revoked_at: str | None = None
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.id, "autonomy enrollment id"),
+            (self.plugin_id, "autonomy enrollment plugin_id"),
+            (self.strategy_id, "autonomy enrollment strategy_id"),
+            (self.manifest_fingerprint, "autonomy manifest fingerprint"),
+            (self.strategy_fingerprint, "autonomy strategy fingerprint"),
+            (self.enrolled_by, "autonomy enrolled_by"),
+        ):
+            _require(value, name)
+        if self.revision < 1:
+            raise ContractError("autonomy enrollment revision must be positive")
+        if not self.target_ids or not self.entity_ids or not self.capability_families:
+            raise ContractError("autonomy enrollment mutation scope cannot be empty")
+        scoped = (
+            *self.target_ids,
+            *self.entity_ids,
+            *self.capability_families,
+            *self.goal_template_ids,
+        )
+        if any(_has_wildcard(item) for item in scoped):
+            raise ContractError("autonomy enrollment scope cannot contain wildcards")
+        if self.risk_ceiling not in {RiskClass.READ_ONLY, RiskClass.LOW}:
+            raise ContractError("delegated v1 risk ceiling cannot exceed low")
+        if self.instantiate_goal_templates and not self.goal_template_ids:
+            raise ContractError("goal-template privilege requires exact templates")
+        if self.cognition_route is CognitionRouteV1.SPECIALIST and not self.strategy_id:
+            raise ContractError("specialist enrollment requires a strategy")
+        canonical_data(self.limits)
+        canonical_data(self.budget)
+        canonical_data(self.goal_template_fingerprints)
+        if set(self.goal_template_fingerprints) != set(self.goal_template_ids):
+            raise ContractError(
+                "goal template fingerprints must exactly match enrolled templates"
+            )
+        for values, name in (
+            (self.goal_template_ids, "goal template ids"),
+            (self.target_ids, "target ids"),
+            (self.entity_ids, "entity ids"),
+            (self.capability_families, "capability families"),
+            (self.context_plugin_ids, "context plugin ids"),
+            (self.privacy_grants, "privacy grants"),
+        ):
+            if len(values) != len(set(values)):
+                raise ContractError(f"autonomy enrollment {name} must be unique")
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "AutonomyEnrollmentV2":
+        return cls(
+            id=str(value["id"]),
+            revision=int(value.get("revision", 1)),
+            plugin_id=str(value["plugin_id"]),
+            strategy_id=str(value["strategy_id"]),
+            goal_template_ids=tuple(str(item) for item in value.get("goal_template_ids", ())),
+            target_ids=tuple(str(item) for item in value.get("target_ids", ())),
+            entity_ids=tuple(str(item) for item in value.get("entity_ids", ())),
+            capability_families=tuple(str(item) for item in value.get("capability_families", ())),
+            context_plugin_ids=tuple(str(item) for item in value.get("context_plugin_ids", ())),
+            privacy_grants=tuple(PrivacyClass(str(item)) for item in value.get("privacy_grants", ())),
+            cognition_route=CognitionRouteV1(str(value.get("cognition_route", "deterministic"))),
+            risk_ceiling=RiskClass(str(value.get("risk_ceiling", RiskClass.LOW.value))),
+            limits=dict(value.get("limits", {})),
+            budget=dict(value.get("budget", {})),
+            expires_at=str(value["expires_at"]),
+            manifest_fingerprint=str(value["manifest_fingerprint"]),
+            strategy_fingerprint=str(value["strategy_fingerprint"]),
+            goal_template_fingerprints=dict(value.get("goal_template_fingerprints", {})),
+            enrolled_at=str(value["enrolled_at"]),
+            enrolled_by=str(value["enrolled_by"]),
+            control_existing_goals=bool(value.get("control_existing_goals", False)),
+            instantiate_goal_templates=bool(value.get("instantiate_goal_templates", False)),
+            promote_proven_routines=bool(value.get("promote_proven_routines", False)),
+            enabled=bool(value.get("enabled", True)),
+            revoked_at=(str(value["revoked_at"]) if value.get("revoked_at") is not None else None),
+        )
+
+
+@dataclass(frozen=True)
 class AutonomyProfileV1:
     id: str
     plugin_id: str
@@ -835,6 +1168,7 @@ class CapabilitySpecV2:
     effect_measurements: tuple[str, ...] = ()
     recovery: str = "observe_and_defer"
     opaque: bool = False
+    conflict_domain: str = ""
 
     def __post_init__(self) -> None:
         _require(self.id, "capability id")
@@ -843,6 +1177,8 @@ class CapabilitySpecV2:
             raise ContractError("capability deadline must be positive")
         if self.opaque and self.control_layer is not ControlLayer.QUERY:
             raise ContractError("opaque capabilities must be query-only")
+        if self.conflict_domain and _has_wildcard(self.conflict_domain):
+            raise ContractError("capability conflict_domain must be an exact identity")
 
     def to_dict(self) -> JsonObject:
         return canonical_data(self)
@@ -863,6 +1199,7 @@ class ProposedActionV1:
     rationale: str = ""
     evidence_ids: tuple[str, ...] = ()
     created_at: str = field(default_factory=utc_now)
+    autonomy_binding: AutonomyBindingV1 | None = None
 
     def __post_init__(self) -> None:
         for value, name in (
@@ -891,6 +1228,11 @@ class ProposedActionV1:
             rationale=str(value.get("rationale", "")),
             evidence_ids=tuple(str(item) for item in value.get("evidence_ids", ())),
             created_at=str(value.get("created_at", utc_now())),
+            autonomy_binding=(
+                AutonomyBindingV1.from_dict(value["autonomy_binding"])
+                if isinstance(value.get("autonomy_binding"), Mapping)
+                else None
+            ),
         )
 
 
@@ -912,6 +1254,7 @@ class ActionRequestV1:
     idempotency_key: str | None
     deadline_at: str
     invocation_mode: InvocationModeV2 = InvocationModeV2.IMMEDIATE
+    autonomy_binding: AutonomyBindingV1 | None = None
 
     def __post_init__(self) -> None:
         for value, name in (
@@ -951,6 +1294,11 @@ class ActionRequestV1:
             invocation_mode=InvocationModeV2(
                 str(value.get("invocation_mode", InvocationModeV2.IMMEDIATE.value))
             ),
+            autonomy_binding=(
+                AutonomyBindingV1.from_dict(value["autonomy_binding"])
+                if isinstance(value.get("autonomy_binding"), Mapping)
+                else None
+            ),
         )
 
     @property
@@ -967,9 +1315,27 @@ class PolicyDecisionV1:
     policy_version: str
     mandate_id: str | None
     decided_at: str = field(default_factory=utc_now)
+    autonomy_binding: AutonomyBindingV1 | None = None
 
     def to_dict(self) -> JsonObject:
         return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "PolicyDecisionV1":
+        return cls(
+            id=str(value["id"]),
+            request_id=str(value["request_id"]),
+            outcome=PolicyOutcome(str(value["outcome"])),
+            reasons=tuple(str(item) for item in value.get("reasons", ())),
+            policy_version=str(value["policy_version"]),
+            mandate_id=(str(value["mandate_id"]) if value.get("mandate_id") is not None else None),
+            decided_at=str(value.get("decided_at", utc_now())),
+            autonomy_binding=(
+                AutonomyBindingV1.from_dict(value["autonomy_binding"])
+                if isinstance(value.get("autonomy_binding"), Mapping)
+                else None
+            ),
+        )
 
 
 @dataclass(frozen=True)
@@ -987,6 +1353,7 @@ class AuthorizationV1:
     issued_at: str
     expires_at: str
     issued_by: str = "engine.policy/v2"
+    autonomy_binding: AutonomyBindingV1 | None = None
 
     def to_dict(self) -> JsonObject:
         return canonical_data(self)
@@ -1007,6 +1374,11 @@ class AuthorizationV1:
             issued_at=str(value["issued_at"]),
             expires_at=str(value["expires_at"]),
             issued_by=str(value.get("issued_by", "engine.policy/v2")),
+            autonomy_binding=(
+                AutonomyBindingV1.from_dict(value["autonomy_binding"])
+                if isinstance(value.get("autonomy_binding"), Mapping)
+                else None
+            ),
         )
 
 
@@ -1126,6 +1498,319 @@ class SpecialistAdviceV1:
 
     def to_dict(self) -> JsonObject:
         return canonical_data(self)
+
+
+@dataclass(frozen=True)
+class CognitionRequestV1:
+    route: CognitionRouteV1
+    goal_id: str
+    query: JsonObject = field(default_factory=dict)
+    specialist_id: str | None = None
+    purpose: str = "autonomy_evaluation"
+
+    def __post_init__(self) -> None:
+        _require(self.goal_id, "cognition request goal_id")
+        if self.route not in {CognitionRouteV1.EXECUTIVE, CognitionRouteV1.SPECIALIST}:
+            raise ContractError("cognition request must select executive or specialist")
+        if self.route is CognitionRouteV1.SPECIALIST and not self.specialist_id:
+            raise ContractError("specialist cognition request requires specialist_id")
+        canonical_data(self.query)
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "CognitionRequestV1":
+        return cls(
+            route=CognitionRouteV1(str(value["route"])),
+            goal_id=str(value["goal_id"]),
+            query=dict(value.get("query", {})),
+            specialist_id=(str(value["specialist_id"]) if value.get("specialist_id") is not None else None),
+            purpose=str(value.get("purpose", "autonomy_evaluation")),
+        )
+
+
+@dataclass(frozen=True)
+class AutonomyDecisionV1:
+    kind: AutonomyDecisionKindV1
+    proposed_action: ProposedActionV1 | None = None
+    goal_candidate: GoalCandidateV1 | None = None
+    cognition_request: CognitionRequestV1 | None = None
+    rationale: str = ""
+    evidence_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        payload_count = sum(
+            item is not None
+            for item in (self.proposed_action, self.goal_candidate, self.cognition_request)
+        )
+        if self.kind is AutonomyDecisionKindV1.PROPOSE_EFFECT:
+            if self.proposed_action is None or payload_count != 1:
+                raise ContractError("PROPOSE_EFFECT requires only proposed_action")
+        elif self.kind is AutonomyDecisionKindV1.PROPOSE_GOAL_CANDIDATE:
+            if self.goal_candidate is None or payload_count != 1:
+                raise ContractError("PROPOSE_GOAL_CANDIDATE requires only goal_candidate")
+        elif self.kind in {
+            AutonomyDecisionKindV1.REQUEST_EXECUTIVE,
+            AutonomyDecisionKindV1.REQUEST_SPECIALIST,
+        }:
+            if self.cognition_request is None or payload_count != 1:
+                raise ContractError(f"{self.kind.value} requires only cognition_request")
+            expected = (
+                CognitionRouteV1.EXECUTIVE
+                if self.kind is AutonomyDecisionKindV1.REQUEST_EXECUTIVE
+                else CognitionRouteV1.SPECIALIST
+            )
+            if self.cognition_request.route is not expected:
+                raise ContractError("cognition request route differs from decision kind")
+        elif payload_count:
+            raise ContractError(f"{self.kind.value} cannot carry an operational payload")
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "AutonomyDecisionV1":
+        return cls(
+            kind=AutonomyDecisionKindV1(str(value["kind"])),
+            proposed_action=(
+                ProposedActionV1.from_dict(value["proposed_action"])
+                if isinstance(value.get("proposed_action"), Mapping)
+                else None
+            ),
+            goal_candidate=(
+                GoalCandidateV1.from_dict(value["goal_candidate"])
+                if isinstance(value.get("goal_candidate"), Mapping)
+                else None
+            ),
+            cognition_request=(
+                CognitionRequestV1.from_dict(value["cognition_request"])
+                if isinstance(value.get("cognition_request"), Mapping)
+                else None
+            ),
+            rationale=str(value.get("rationale", "")),
+            evidence_ids=tuple(str(item) for item in value.get("evidence_ids", ())),
+        )
+
+
+@dataclass(frozen=True)
+class AutonomyContextV1:
+    enrollment_id: str
+    enrollment_revision: int
+    mode: AutonomyModeV1
+    mode_epoch: int
+    previous_snapshot_id: str | None
+    current_snapshot_id: str
+    current_world_revision: int
+    projection: JsonObject
+    projection_sha256: str
+    created_at: str = field(default_factory=utc_now)
+
+    def __post_init__(self) -> None:
+        _require(self.enrollment_id, "autonomy context enrollment_id")
+        _require(self.current_snapshot_id, "autonomy context snapshot_id")
+        _require(self.projection_sha256, "autonomy context projection fingerprint")
+        if self.enrollment_revision < 1 or self.mode_epoch < 1:
+            raise ContractError("autonomy context revisions must be positive")
+        if artifact_sha256(self.projection) != self.projection_sha256:
+            raise ContractError("autonomy context projection fingerprint mismatch")
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "AutonomyContextV1":
+        return cls(
+            enrollment_id=str(value["enrollment_id"]),
+            enrollment_revision=int(value["enrollment_revision"]),
+            mode=AutonomyModeV1(str(value["mode"])),
+            mode_epoch=int(value["mode_epoch"]),
+            previous_snapshot_id=(str(value["previous_snapshot_id"]) if value.get("previous_snapshot_id") is not None else None),
+            current_snapshot_id=str(value["current_snapshot_id"]),
+            current_world_revision=int(value["current_world_revision"]),
+            projection=dict(value.get("projection", {})),
+            projection_sha256=str(value["projection_sha256"]),
+            created_at=str(value.get("created_at", utc_now())),
+        )
+
+
+@dataclass(frozen=True)
+class AutonomyEvaluationV1:
+    id: str
+    enrollment_id: str
+    enrollment_revision: int
+    strategy_id: str
+    mode: AutonomyModeV1
+    mode_epoch: int
+    context: AutonomyContextV1
+    decision: AutonomyDecisionV1
+    strategy_fingerprint: str
+    manifest_fingerprint: str
+    cognition_calls: int = 0
+    status: str = "evaluated"
+    created_at: str = field(default_factory=utc_now)
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.id, "autonomy evaluation id"),
+            (self.enrollment_id, "autonomy evaluation enrollment_id"),
+            (self.strategy_id, "autonomy evaluation strategy_id"),
+            (self.strategy_fingerprint, "autonomy evaluation strategy fingerprint"),
+            (self.manifest_fingerprint, "autonomy evaluation manifest fingerprint"),
+        ):
+            _require(value, name)
+        if self.cognition_calls not in {0, 1}:
+            raise ContractError("autonomy evaluation permits at most one cognition call")
+        if self.context.enrollment_id != self.enrollment_id:
+            raise ContractError("autonomy evaluation context enrollment mismatch")
+        if self.context.mode_epoch != self.mode_epoch:
+            raise ContractError("autonomy evaluation context mode epoch mismatch")
+        if self.context.mode is not self.mode:
+            raise ContractError("autonomy evaluation context mode mismatch")
+        if self.context.enrollment_revision != self.enrollment_revision:
+            raise ContractError("autonomy evaluation context revision mismatch")
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "AutonomyEvaluationV1":
+        return cls(
+            id=str(value["id"]),
+            enrollment_id=str(value["enrollment_id"]),
+            enrollment_revision=int(value["enrollment_revision"]),
+            strategy_id=str(value["strategy_id"]),
+            mode=AutonomyModeV1(str(value["mode"])),
+            mode_epoch=int(value["mode_epoch"]),
+            context=AutonomyContextV1.from_dict(value["context"]),
+            decision=AutonomyDecisionV1.from_dict(value["decision"]),
+            strategy_fingerprint=str(value["strategy_fingerprint"]),
+            manifest_fingerprint=str(value["manifest_fingerprint"]),
+            cognition_calls=int(value.get("cognition_calls", 0)),
+            status=str(value.get("status", "evaluated")),
+            created_at=str(value.get("created_at", utc_now())),
+        )
+
+
+@dataclass(frozen=True)
+class AutonomyBindingV1:
+    enrollment_id: str
+    enrollment_revision: int
+    evaluation_id: str
+    mode: AutonomyModeV1
+    mode_epoch: int
+    manifest_fingerprint: str
+    strategy_fingerprint: str
+    context_fingerprint: str
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.enrollment_id, "autonomy binding enrollment_id"),
+            (self.evaluation_id, "autonomy binding evaluation_id"),
+            (self.manifest_fingerprint, "autonomy binding manifest fingerprint"),
+            (self.strategy_fingerprint, "autonomy binding strategy fingerprint"),
+            (self.context_fingerprint, "autonomy binding context fingerprint"),
+        ):
+            _require(value, name)
+        if self.enrollment_revision < 1 or self.mode_epoch < 1:
+            raise ContractError("autonomy binding revisions must be positive")
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "AutonomyBindingV1":
+        return cls(
+            enrollment_id=str(value["enrollment_id"]),
+            enrollment_revision=int(value["enrollment_revision"]),
+            evaluation_id=str(value["evaluation_id"]),
+            mode=AutonomyModeV1(str(value["mode"])),
+            mode_epoch=int(value["mode_epoch"]),
+            manifest_fingerprint=str(value["manifest_fingerprint"]),
+            strategy_fingerprint=str(value["strategy_fingerprint"]),
+            context_fingerprint=str(value["context_fingerprint"]),
+        )
+
+
+@dataclass(frozen=True)
+class SuggestionV1:
+    """Non-operational model suggestion; no GoalSpec or mandate is implied."""
+
+    id: str
+    source: str
+    text: str
+    based_on_snapshot_id: str
+    metadata: JsonObject = field(default_factory=dict)
+    created_at: str = field(default_factory=utc_now)
+
+    def __post_init__(self) -> None:
+        _require(self.id, "suggestion id")
+        _require(self.source, "suggestion source")
+        _require(self.text, "suggestion text")
+        _require(self.based_on_snapshot_id, "suggestion snapshot_id")
+        canonical_data(self.metadata)
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "SuggestionV1":
+        return cls(
+            id=str(value["id"]), source=str(value["source"]), text=str(value["text"]),
+            based_on_snapshot_id=str(value["based_on_snapshot_id"]),
+            metadata=dict(value.get("metadata", {})),
+            created_at=str(value.get("created_at", utc_now())),
+        )
+
+
+@dataclass(frozen=True)
+class DispatchAttemptV1:
+    id: str
+    operation_key: str
+    request_id: str
+    authorization_id: str
+    target_id: str
+    entity_id: str
+    conflict_domain: str
+    state: DispatchAttemptStateV1
+    prepared_at: str
+    autonomy_binding: AutonomyBindingV1 | None = None
+    lease_fencing_token: str = "embedded"
+    receipt_id: str | None = None
+    effect_id: str | None = None
+    updated_at: str = field(default_factory=utc_now)
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.id, "dispatch attempt id"),
+            (self.operation_key, "dispatch operation key"),
+            (self.request_id, "dispatch request id"),
+            (self.authorization_id, "dispatch authorization id"),
+            (self.target_id, "dispatch target id"),
+            (self.entity_id, "dispatch entity id"),
+            (self.conflict_domain, "dispatch conflict domain"),
+            (self.lease_fencing_token, "dispatch lease fencing token"),
+        ):
+            _require(value, name)
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "DispatchAttemptV1":
+        return cls(
+            id=str(value["id"]), operation_key=str(value["operation_key"]),
+            request_id=str(value["request_id"]), authorization_id=str(value["authorization_id"]),
+            target_id=str(value["target_id"]), entity_id=str(value["entity_id"]),
+            conflict_domain=str(value["conflict_domain"]),
+            state=DispatchAttemptStateV1(str(value["state"])),
+            prepared_at=str(value["prepared_at"]),
+            autonomy_binding=(AutonomyBindingV1.from_dict(value["autonomy_binding"]) if isinstance(value.get("autonomy_binding"), Mapping) else None),
+            lease_fencing_token=str(value.get("lease_fencing_token", "embedded")),
+            receipt_id=(str(value["receipt_id"]) if value.get("receipt_id") is not None else None),
+            effect_id=(str(value["effect_id"]) if value.get("effect_id") is not None else None),
+            updated_at=str(value.get("updated_at", utc_now())),
+        )
 
 
 @dataclass(frozen=True)
@@ -1394,20 +2079,24 @@ class PluginManifestV2:
     preference_specs: tuple[PreferenceSpecV1, ...] = ()
     routine_compilers: tuple[str, ...] = ()
     routine_templates: tuple[RoutineTemplateSpecV1, ...] = ()
+    autonomy_strategies: tuple[AutonomyStrategySpecV1, ...] = ()
+    goal_template_compilers: tuple[str, ...] = ()
+    goal_templates: tuple[GoalTemplateSpecV1, ...] = ()
     network_needs: tuple[str, ...] = ()
     filesystem_needs: tuple[str, ...] = ()
     secret_needs: tuple[str, ...] = ()
     privacy_needs: tuple[str, ...] = ()
     store_identity: str = ""
     store_schema_version: int = 1
-    contract_version: str = PLUGIN_CONTRACT_VERSION
+    contract_version: str = "engine.plugin/v2"
 
     def __post_init__(self) -> None:
         _require(self.id, "plugin id")
         _require(self.version, "plugin version")
-        if self.contract_version != PLUGIN_CONTRACT_VERSION:
+        if self.contract_version not in SUPPORTED_PLUGIN_CONTRACT_VERSIONS:
             raise ContractError(
-                f"expected {PLUGIN_CONTRACT_VERSION}, got {self.contract_version}"
+                "expected one of "
+                f"{', '.join(SUPPORTED_PLUGIN_CONTRACT_VERSIONS)}, got {self.contract_version}"
             )
         families = [item.family for item in self.capabilities]
         if len(families) != len(set(families)):
@@ -1418,6 +2107,12 @@ class PluginManifestV2:
         routine_ids = [item.id for item in self.routine_templates]
         if len(routine_ids) != len(set(routine_ids)):
             raise ContractError("routine template ids must be unique per plugin")
+        strategy_ids = [item.id for item in self.autonomy_strategies]
+        if len(strategy_ids) != len(set(strategy_ids)):
+            raise ContractError("autonomy strategy ids must be unique per plugin")
+        goal_template_ids = [item.id for item in self.goal_templates]
+        if len(goal_template_ids) != len(set(goal_template_ids)):
+            raise ContractError("goal template ids must be unique per plugin")
 
     def to_dict(self) -> JsonObject:
         return canonical_data(self)
@@ -1425,3 +2120,10 @@ class PluginManifestV2:
     @property
     def fingerprint(self) -> str:
         return artifact_sha256(self)
+
+
+@dataclass(frozen=True)
+class PluginManifestV3(PluginManifestV2):
+    """Current manifest constructor; PluginManifestV2 retains its v2 default."""
+
+    contract_version: str = PLUGIN_CONTRACT_VERSION

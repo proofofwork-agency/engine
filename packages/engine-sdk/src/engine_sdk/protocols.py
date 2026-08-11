@@ -6,12 +6,17 @@ from typing import Protocol
 from .models import (
     ActionRequestV1,
     AuthorizationV1,
+    AutonomyContextV1,
+    AutonomyDecisionV1,
+    AutonomyStrategySpecV1,
+    BehaviorBatchV1,
     BrainDecisionV2,
     CapabilitySpecV2,
     EffectDeltaV1,
-    BehaviorBatchV1,
     ExecutionReceiptV2,
+    GoalCandidateV1,
     GoalSpecV2,
+    GoalTemplateSpecV1,
     LifecycleEventV1,
     PluginManifestV2,
     ProposedActionV1,
@@ -25,6 +30,9 @@ from .models import (
 
 
 class WorldProvider(Protocol):
+    @property
+    def id(self) -> str: ...
+
     @property
     def target_id(self) -> str: ...
 
@@ -48,6 +56,9 @@ class WorldProvider(Protocol):
 
 class DomainController(Protocol):
     @property
+    def id(self) -> str: ...
+
+    @property
     def plugin_id(self) -> str: ...
 
     @property
@@ -63,6 +74,9 @@ class DomainController(Protocol):
 
 class Executor(Protocol):
     @property
+    def id(self) -> str: ...
+
+    @property
     def plugin_id(self) -> str: ...
 
     def dispatch(
@@ -75,6 +89,9 @@ class Executor(Protocol):
 
 
 class EffectOracle(Protocol):
+    @property
+    def id(self) -> str: ...
+
     @property
     def plugin_id(self) -> str: ...
 
@@ -153,6 +170,41 @@ class LifecycleObserver(Protocol):
     def observe(self, events: tuple[LifecycleEventV1, ...]) -> None: ...
 
 
+class AutonomyStrategy(Protocol):
+    """One Heart-invoked evaluation; the strategy owns no runtime handles."""
+
+    @property
+    def id(self) -> str: ...
+
+    @property
+    def plugin_id(self) -> str: ...
+
+    @property
+    def spec(self) -> AutonomyStrategySpecV1: ...
+
+    def evaluate(self, context: AutonomyContextV1) -> AutonomyDecisionV1: ...
+
+
+class GoalTemplateCompiler(Protocol):
+    """Inert typed translation. Engine persists and authorizes the result."""
+
+    @property
+    def id(self) -> str: ...
+
+    @property
+    def plugin_id(self) -> str: ...
+
+    @property
+    def supported_templates(self) -> tuple[str, ...]: ...
+
+    def compile(
+        self,
+        template: GoalTemplateSpecV1,
+        candidate: GoalCandidateV1,
+        context: AutonomyContextV1,
+    ) -> GoalSpecV2: ...
+
+
 class WorldPluginV2(Protocol):
     @property
     def manifest(self) -> PluginManifestV2: ...
@@ -180,3 +232,11 @@ class WorldPluginV2(Protocol):
 
     @property
     def lifecycle_observers(self) -> tuple[LifecycleObserver, ...]: ...
+
+
+class WorldPluginV3(WorldPluginV2, Protocol):
+    @property
+    def autonomy_strategies(self) -> tuple[AutonomyStrategy, ...]: ...
+
+    @property
+    def goal_template_compilers(self) -> tuple[GoalTemplateCompiler, ...]: ...

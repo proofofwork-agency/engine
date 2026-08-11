@@ -1,5 +1,6 @@
 """Engine 0.1: a durable heart coordinating brains and world capabilities."""
 
+from .autonomy_v3 import AutonomyRuntimeV3
 from .brains import ModelExecutiveBrain, RuleExecutiveBrain
 from .brains_v2 import ModelExecutiveBrainV2
 from .catalog import Catalog, EnginePlugin
@@ -27,6 +28,7 @@ __all__ = [
     "RunResult",
     "RuntimePass",
     "DeterministicExecutiveBrainV2",
+    "AutonomyRuntimeV3",
     "ModelExecutiveBrainV2",
     "NaturalIntentCompilerV2",
     "PluginRegistryV2",

@@ -104,6 +104,7 @@ Both forms currently produce JSON. The result includes:
 - preference-learning candidates;
 - routines and routine candidates;
 - autonomy profiles;
+- autonomy mode, enrollments, evaluations, proposals, and dispatch attempts;
 - the executive brain ID.
 
 `status` does not acquire the mutating runtime lease and reads durable state.
@@ -141,34 +142,58 @@ uv run engine routines rollback <routine-id>
 untested or still-shadowing candidate. `rollback` makes the linked routine
 inoperative while retaining the audit trail.
 
+## `engine autonomy`
+
+```console
+uv run engine autonomy mode observe|supervised|delegated|paused
+uv run engine autonomy status
+uv run engine autonomy strategies list
+uv run engine autonomy strategies inspect <strategy-id>
+uv run engine autonomy enroll \
+  --plugin <plugin-id> \
+  --strategy <strategy-id> \
+  --target <target-id> \
+  --entity <entity-id> \
+  --capability <family> \
+  [--template <template-id>] \
+  [--context-plugin <plugin-id>] \
+  [--privacy public|local|sensitive|camera] \
+  [--cognition-route deterministic|executive|specialist|hybrid] \
+  [--limits '<json>'] [--budget '<json>'] [--expires-hours 24] \
+  [--control-existing-goals] [--instantiate-goal-templates] \
+  [--promote-proven-routines]
+uv run engine autonomy list
+uv run engine autonomy inspect <enrollment-id>
+uv run engine autonomy disable <enrollment-id>
+uv run engine autonomy proposals list
+uv run engine autonomy proposals inspect <evaluation-id>
+uv run engine autonomy proposals approve <evaluation-id>
+uv run engine autonomy proposals reject <evaluation-id> [--reason <text>]
+```
+
+Mode changes do not acquire the active runtime lease and therefore take effect
+while Heart is running. They grant no scope. `enroll` requires fresh exact
+targets and entities, declared v3 strategy/capability/template identities, a
+matching cognition route, at most low risk, explicit privileges, fingerprints,
+and non-overlapping conflict resources. Wildcards fail closed.
+
+`observe` is true shadow with zero dispatch. `supervised` stores a pending
+proposal and approval reobserves and reevaluates it. `delegated` admits only an
+enabled exact enrollment. `paused` allows observation, learning, and recovery
+but no new strategy, brain, or dispatch activity.
+
 ## `engine yolo`
 
 ```console
-uv run engine yolo enable --entity <exact-homey-zone-id>
+uv run engine yolo enable
 uv run engine yolo status
 uv run engine yolo disable
-uv run engine yolo disable --profile <profile-id>
 ```
 
-Additional `enable` options:
-
-| Option | Default | Note |
-| --- | --- | --- |
-| `--plugin` | `engine.homey` | Other plugins are rejected in this first tranche |
-| `--target` | automatic with exactly one target | Required when the plugin has multiple targets |
-| `--entity` | repeatable, optional | Exact zone IDs; wildcards are forbidden |
-| `--maximum-brightness` | `0.70` | Must be in `(0, 1]` |
-| `--maximum-power-w` | `20.0` | May not exceed 20 W |
-
-Despite its name, `yolo` does not mean unlimited autonomy. The command creates
-an owner-activated, persistent, exact, low-risk `AutonomyProfileV1` for three
-statically declared Homey lighting routines. Without this profile, a proven
-routine stops at `ready_for_approval`. A profile gives no authority to a model
-and does not bypass policy, authorization, or the oracle.
-
-Without `--entity`, the current implementation selects implicitly only when
-exactly one controllable zone is observed. With zero or multiple zones, the
-owner must provide exact zone IDs.
+`yolo` is only a global alias: enable selects `delegated`, disable selects
+`paused`, and status returns `engine autonomy status`. It creates no enrollment.
+The parser still recognizes old target-specific flags only to return a migration
+instruction; use `engine autonomy enroll` for exact plugin scope.
 
 ## `engine model canary`
 

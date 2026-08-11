@@ -3,17 +3,26 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Mapping
 
 from engine_sdk import (
     ActionRequestV1,
-    AutonomyProfileV1,
     AuthorizationV1,
+    AutonomyBindingStatusV1,
+    AutonomyBindingV1,
+    AutonomyDecisionV1,
+    AutonomyEnrollmentV2,
+    AutonomyEvaluationV1,
+    AutonomyModeV1,
+    AutonomyProfileV1,
     BehaviorBatchV1,
     BehaviorSignalV1,
     ConditionV1,
     DesiredEffectV1,
+    DispatchAttemptStateV1,
+    DispatchAttemptV1,
     EffectDeltaV1,
     EntityV1,
     EvidenceGrade,
@@ -34,13 +43,14 @@ from engine_sdk import (
     RoutineSpecV1,
     RoutineStatus,
     StandingMandateV1,
+    SuggestionV1,
     TargetObservationV2,
     WorldSnapshotV2,
     artifact_sha256,
     canonical_json,
 )
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 class WorldStore:
@@ -65,6 +75,7 @@ class WorldStore:
     def _create_schema(self) -> None:
         self.connection.executescript(
             """
+            BEGIN IMMEDIATE;
             CREATE TABLE IF NOT EXISTS schema_versions (
                 component TEXT PRIMARY KEY,
                 version INTEGER NOT NULL,
@@ -246,6 +257,76 @@ class WorldStore:
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(routine_id) REFERENCES routine_specs_v1(id)
             );
+            CREATE TABLE IF NOT EXISTS autonomy_mode_v1 (
+                singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+                mode TEXT NOT NULL,
+                epoch INTEGER NOT NULL,
+                changed_at TEXT NOT NULL,
+                changed_by TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS autonomy_enrollments_v2 (
+                id TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                plugin_id TEXT NOT NULL,
+                strategy_id TEXT NOT NULL,
+                enabled INTEGER NOT NULL,
+                current INTEGER NOT NULL DEFAULT 1,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(id,revision)
+            );
+            CREATE TABLE IF NOT EXISTS autonomy_enrollment_resources_v1 (
+                enrollment_id TEXT NOT NULL,
+                enrollment_revision INTEGER NOT NULL,
+                target_id TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                conflict_domain TEXT NOT NULL,
+                PRIMARY KEY(target_id,entity_id,conflict_domain),
+                FOREIGN KEY(enrollment_id,enrollment_revision)
+                    REFERENCES autonomy_enrollments_v2(id,revision)
+            );
+            CREATE TABLE IF NOT EXISTS autonomy_evaluations_v1 (
+                id TEXT PRIMARY KEY,
+                enrollment_id TEXT NOT NULL,
+                enrollment_revision INTEGER NOT NULL,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS autonomy_bindings_v1 (
+                evaluation_id TEXT PRIMARY KEY,
+                enrollment_id TEXT NOT NULL,
+                status TEXT NOT NULL,
+                proposal_id TEXT,
+                decision_json TEXT NOT NULL,
+                binding_json TEXT NOT NULL,
+                reason TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS suggestions_v1 (
+                id TEXT PRIMARY KEY,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS dispatch_attempts_v1 (
+                id TEXT PRIMARY KEY,
+                operation_key TEXT NOT NULL UNIQUE,
+                request_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                conflict_domain TEXT NOT NULL,
+                state TEXT NOT NULL,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        )
+        self.connection.execute(
+            """
+            INSERT INTO autonomy_mode_v1(singleton,mode,epoch,changed_at,changed_by)
+            VALUES(1,'observe',1,CURRENT_TIMESTAMP,'engine.migration/v3')
+            ON CONFLICT(singleton) DO NOTHING
             """
         )
         self.connection.execute(
@@ -514,6 +595,365 @@ class WorldStore:
         ).fetchall()
         return tuple(
             RoutineShadowEventV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def autonomy_mode(self) -> dict[str, Any]:
+        row = self.connection.execute(
+            "SELECT mode,epoch,changed_at,changed_by FROM autonomy_mode_v1 WHERE singleton=1"
+        ).fetchone()
+        if row is None:
+            raise RuntimeError("autonomy mode state is missing")
+        return {
+            "mode": AutonomyModeV1(str(row["mode"])),
+            "epoch": int(row["epoch"]),
+            "changed_at": str(row["changed_at"]),
+            "changed_by": str(row["changed_by"]),
+        }
+
+    def set_autonomy_mode(
+        self, mode: AutonomyModeV1, *, changed_at: str, changed_by: str
+    ) -> dict[str, Any]:
+        with self.connection:
+            row = self.connection.execute(
+                "SELECT mode,epoch FROM autonomy_mode_v1 WHERE singleton=1"
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("autonomy mode state is missing")
+            epoch = int(row["epoch"])
+            if str(row["mode"]) != mode.value:
+                epoch += 1
+            self.connection.execute(
+                "UPDATE autonomy_mode_v1 SET mode=?,epoch=?,changed_at=?,changed_by=? WHERE singleton=1",
+                (mode.value, epoch, changed_at, changed_by),
+            )
+            self._insert_event(
+                None, "autonomy_mode_changed", changed_by,
+                {"mode": mode.value, "epoch": epoch},
+            )
+        return self.autonomy_mode()
+
+    def save_autonomy_enrollment(
+        self,
+        enrollment: AutonomyEnrollmentV2,
+        *,
+        resource_keys: tuple[tuple[str, str, str], ...],
+    ) -> None:
+        resources = set(resource_keys)
+        if enrollment.enabled and not resources:
+            raise ValueError("enabled autonomy enrollment requires resources")
+        if any(not all(item) for item in resources):
+            raise ValueError("autonomy enrollment resources must be exact")
+        try:
+            with self.connection:
+                current = self.connection.execute(
+                    "SELECT revision FROM autonomy_enrollments_v2 WHERE id=? AND current=1",
+                    (enrollment.id,),
+                ).fetchone()
+                if current is not None:
+                    if enrollment.revision != int(current["revision"]) + 1:
+                        raise ValueError("enrollment updates require the next revision")
+                    self.connection.execute(
+                        "UPDATE autonomy_enrollments_v2 SET current=0 WHERE id=? AND current=1",
+                        (enrollment.id,),
+                    )
+                    self.connection.execute(
+                        "DELETE FROM autonomy_enrollment_resources_v1 WHERE enrollment_id=?",
+                        (enrollment.id,),
+                    )
+                elif enrollment.revision != 1:
+                    raise ValueError("new autonomy enrollment must start at revision one")
+                self.connection.execute(
+                    """
+                    INSERT INTO autonomy_enrollments_v2(
+                        id,revision,plugin_id,strategy_id,enabled,current,body_json
+                    ) VALUES(?,?,?,?,?,1,?)
+                    """,
+                    (
+                        enrollment.id, enrollment.revision, enrollment.plugin_id,
+                        enrollment.strategy_id, int(enrollment.enabled),
+                        canonical_json(enrollment),
+                    ),
+                )
+                if enrollment.enabled:
+                    self.connection.executemany(
+                        """
+                        INSERT INTO autonomy_enrollment_resources_v1(
+                            enrollment_id,enrollment_revision,target_id,entity_id,conflict_domain
+                        ) VALUES(?,?,?,?,?)
+                        """,
+                        (
+                            (enrollment.id, enrollment.revision, *resource)
+                            for resource in sorted(resources)
+                        ),
+                    )
+                self._insert_event(
+                    None, "autonomy_enrollment_saved", enrollment.enrolled_by,
+                    {
+                        "enrollment_id": enrollment.id,
+                        "revision": enrollment.revision,
+                        "plugin_id": enrollment.plugin_id,
+                        "enabled": enrollment.enabled,
+                        "resource_count": len(resources),
+                    },
+                )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError(
+                "autonomy enrollment overlaps an active target/entity/conflict_domain"
+            ) from exc
+
+    def autonomy_enrollments(
+        self, *, enabled_only: bool = False, include_history: bool = False
+    ) -> tuple[AutonomyEnrollmentV2, ...]:
+        clauses = [] if include_history else ["current=1"]
+        if enabled_only:
+            clauses.append("enabled=1")
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        rows = self.connection.execute(
+            "SELECT body_json FROM autonomy_enrollments_v2" + where + " ORDER BY id,revision"
+        ).fetchall()
+        return tuple(
+            AutonomyEnrollmentV2.from_dict(json.loads(row["body_json"]))
+            for row in rows
+        )
+
+    def get_autonomy_enrollment(
+        self, enrollment_id: str, revision: int | None = None
+    ) -> AutonomyEnrollmentV2:
+        if revision is None:
+            row = self.connection.execute(
+                "SELECT body_json FROM autonomy_enrollments_v2 WHERE id=? AND current=1",
+                (enrollment_id,),
+            ).fetchone()
+        else:
+            row = self.connection.execute(
+                "SELECT body_json FROM autonomy_enrollments_v2 WHERE id=? AND revision=?",
+                (enrollment_id, revision),
+            ).fetchone()
+        if row is None:
+            raise KeyError(enrollment_id)
+        return AutonomyEnrollmentV2.from_dict(json.loads(row["body_json"]))
+
+    def disable_autonomy_enrollment(
+        self, enrollment_id: str, *, revoked_at: str
+    ) -> AutonomyEnrollmentV2:
+        current = self.get_autonomy_enrollment(enrollment_id)
+        if not current.enabled:
+            return current
+        disabled = replace(
+            current, revision=current.revision + 1,
+            enabled=False, revoked_at=revoked_at,
+        )
+        self.save_autonomy_enrollment(disabled, resource_keys=())
+        return disabled
+
+    def expire_autonomy_enrollments(
+        self, *, boundary: str
+    ) -> tuple[AutonomyEnrollmentV2, ...]:
+        now = _as_utc(boundary)
+        expired = tuple(
+            item
+            for item in self.autonomy_enrollments(enabled_only=True)
+            if _as_utc(item.expires_at) <= now
+        )
+        return tuple(
+            self.disable_autonomy_enrollment(item.id, revoked_at=boundary)
+            for item in expired
+        )
+
+    def save_autonomy_evaluation(self, evaluation: AutonomyEvaluationV1) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO autonomy_evaluations_v1(
+                id,enrollment_id,enrollment_revision,body_json
+            ) VALUES(?,?,?,?)
+            """,
+            (
+                evaluation.id, evaluation.enrollment_id,
+                evaluation.enrollment_revision, canonical_json(evaluation),
+            ),
+        )
+        self.connection.commit()
+
+    def autonomy_evaluations(
+        self, enrollment_id: str | None = None
+    ) -> tuple[AutonomyEvaluationV1, ...]:
+        if enrollment_id is None:
+            rows = self.connection.execute(
+                "SELECT body_json FROM autonomy_evaluations_v1 ORDER BY rowid"
+            ).fetchall()
+        else:
+            rows = self.connection.execute(
+                "SELECT body_json FROM autonomy_evaluations_v1 WHERE enrollment_id=? ORDER BY rowid",
+                (enrollment_id,),
+            ).fetchall()
+        return tuple(
+            AutonomyEvaluationV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def get_autonomy_evaluation(self, evaluation_id: str) -> AutonomyEvaluationV1:
+        row = self.connection.execute(
+            "SELECT body_json FROM autonomy_evaluations_v1 WHERE id=?", (evaluation_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(evaluation_id)
+        return AutonomyEvaluationV1.from_dict(json.loads(row["body_json"]))
+
+    def save_autonomy_binding(
+        self,
+        binding: AutonomyBindingV1,
+        decision: AutonomyDecisionV1,
+        *,
+        status: AutonomyBindingStatusV1,
+        proposal_id: str | None = None,
+        reason: str = "",
+    ) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO autonomy_bindings_v1(
+                evaluation_id,enrollment_id,status,proposal_id,decision_json,
+                binding_json,reason
+            ) VALUES(?,?,?,?,?,?,?)
+            """,
+            (
+                binding.evaluation_id, binding.enrollment_id, status.value,
+                proposal_id, canonical_json(decision), canonical_json(binding), reason,
+            ),
+        )
+        self.connection.commit()
+
+    def autonomy_bindings(
+        self, *, statuses: tuple[AutonomyBindingStatusV1, ...] = ()
+    ) -> tuple[dict[str, Any], ...]:
+        parameters = tuple(item.value for item in statuses)
+        where = ""
+        if parameters:
+            where = " WHERE status IN (" + ",".join("?" for _ in parameters) + ")"
+        rows = self.connection.execute(
+            """
+            SELECT status,proposal_id,decision_json,binding_json,reason,
+                   created_at,updated_at FROM autonomy_bindings_v1
+            """ + where + " ORDER BY rowid",
+            parameters,
+        ).fetchall()
+        return tuple(self._autonomy_binding_row(row) for row in rows)
+
+    def get_autonomy_binding(self, evaluation_id: str) -> dict[str, Any]:
+        row = self.connection.execute(
+            """
+            SELECT status,proposal_id,decision_json,binding_json,reason,
+                   created_at,updated_at FROM autonomy_bindings_v1
+            WHERE evaluation_id=?
+            """,
+            (evaluation_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(evaluation_id)
+        return self._autonomy_binding_row(row)
+
+    def set_autonomy_binding_status(
+        self, evaluation_id: str, status: AutonomyBindingStatusV1, *, reason: str = ""
+    ) -> dict[str, Any]:
+        cursor = self.connection.execute(
+            """
+            UPDATE autonomy_bindings_v1
+            SET status=?,reason=?,updated_at=CURRENT_TIMESTAMP WHERE evaluation_id=?
+            """,
+            (status.value, reason, evaluation_id),
+        )
+        if cursor.rowcount != 1:
+            raise KeyError(evaluation_id)
+        self.connection.commit()
+        return self.get_autonomy_binding(evaluation_id)
+
+    def set_autonomy_binding_proposal(
+        self, evaluation_id: str, proposal_id: str
+    ) -> None:
+        cursor = self.connection.execute(
+            """
+            UPDATE autonomy_bindings_v1
+            SET proposal_id=?,updated_at=CURRENT_TIMESTAMP WHERE evaluation_id=?
+            """,
+            (proposal_id, evaluation_id),
+        )
+        if cursor.rowcount != 1:
+            raise KeyError(evaluation_id)
+        self.connection.commit()
+
+    @staticmethod
+    def _autonomy_binding_row(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "status": AutonomyBindingStatusV1(str(row["status"])),
+            "proposal_id": str(row["proposal_id"]) if row["proposal_id"] is not None else None,
+            "decision": AutonomyDecisionV1.from_dict(json.loads(row["decision_json"])),
+            "binding": AutonomyBindingV1.from_dict(json.loads(row["binding_json"])),
+            "reason": str(row["reason"]),
+            "created_at": str(row["created_at"]),
+            "updated_at": str(row["updated_at"]),
+        }
+
+    def save_suggestion(self, suggestion: SuggestionV1) -> None:
+        self.connection.execute(
+            "INSERT INTO suggestions_v1(id,body_json) VALUES(?,?)",
+            (suggestion.id, canonical_json(suggestion)),
+        )
+        self.connection.commit()
+
+    def suggestions(self) -> tuple[SuggestionV1, ...]:
+        rows = self.connection.execute(
+            "SELECT body_json FROM suggestions_v1 ORDER BY rowid"
+        ).fetchall()
+        return tuple(SuggestionV1.from_dict(json.loads(row["body_json"])) for row in rows)
+
+    def save_dispatch_attempt(self, attempt: DispatchAttemptV1) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO dispatch_attempts_v1(
+                id,operation_key,request_id,target_id,entity_id,conflict_domain,
+                state,body_json
+            ) VALUES(?,?,?,?,?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET state=excluded.state,
+                body_json=excluded.body_json,updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                attempt.id, attempt.operation_key, attempt.request_id,
+                attempt.target_id, attempt.entity_id, attempt.conflict_domain,
+                attempt.state.value, canonical_json(attempt),
+            ),
+        )
+        self.connection.commit()
+
+    def dispatch_attempt_for_operation(
+        self, operation_key: str
+    ) -> DispatchAttemptV1 | None:
+        row = self.connection.execute(
+            "SELECT body_json FROM dispatch_attempts_v1 WHERE operation_key=?",
+            (operation_key,),
+        ).fetchone()
+        return DispatchAttemptV1.from_dict(json.loads(row["body_json"])) if row else None
+
+    def dispatch_attempt_for_request(self, request_id: str) -> DispatchAttemptV1 | None:
+        row = self.connection.execute(
+            "SELECT body_json FROM dispatch_attempts_v1 WHERE request_id=? ORDER BY rowid DESC LIMIT 1",
+            (request_id,),
+        ).fetchone()
+        return DispatchAttemptV1.from_dict(json.loads(row["body_json"])) if row else None
+
+    def dispatch_attempts(self, *, open_only: bool = False) -> tuple[DispatchAttemptV1, ...]:
+        where = ""
+        parameters: tuple[str, ...] = ()
+        if open_only:
+            parameters = (
+                DispatchAttemptStateV1.PREPARED.value,
+                DispatchAttemptStateV1.RECOVERY_REQUIRED.value,
+            )
+            where = " WHERE state IN (?,?,?)"
+            parameters = (*parameters, DispatchAttemptStateV1.RECEIPT_RECORDED.value)
+        rows = self.connection.execute(
+            "SELECT body_json FROM dispatch_attempts_v1" + where + " ORDER BY rowid",
+            parameters,
+        ).fetchall()
+        return tuple(
+            DispatchAttemptV1.from_dict(json.loads(row["body_json"])) for row in rows
         )
 
     def save_autonomy_profile(self, profile: AutonomyProfileV1) -> None:
@@ -1405,6 +1845,11 @@ def _target_observation(value: Mapping[str, Any]) -> TargetObservationV2:
         available=value.get("available"),
         errors=tuple(str(item) for item in value.get("errors", ())),
     )
+
+
+def _as_utc(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value)
+    return parsed.astimezone(UTC) if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
 def _world_snapshot(value: Mapping[str, Any]) -> WorldSnapshotV2:

@@ -1,8 +1,8 @@
 [plugin]
 id = "engine.homey"
 version = "0.2.0"
-engine_api = ">=2.0,<3"
-contract_version = "engine.plugin/v2"
+engine_api = ">=3.0,<4"
+contract_version = "engine.plugin/v3"
 description = "Homey whole-world provider and typed domain controllers"
 
 [declarations]
@@ -16,6 +16,10 @@ routine_compilers = ["homey-routine-compiler"]
 entity_types = ["homey.home", "homey.zone", "homey.device", "homey.camera"]
 relation_types = ["contains", "located_in", "measures", "illuminates"]
 observation_types = ["on", "brightness", "illuminance_lux", "power_w", "presence", "presence.inactive_seconds", "lighting.any_on", "temperature_c", "thermostat_target_c", "cover_position", "camera.detection"]
+
+[autonomy]
+strategies = ["homey.enrolled-lighting-state/v1"]
+goal_template_compilers = ["homey-goal-template-compiler"]
 
 [needs]
 network = ["local-homey-http", "local-homey-socketio"]
@@ -40,6 +44,7 @@ idempotent = true
 deadline_ms = 10000
 effect_measurements = ["illuminance_lux", "power_w"]
 recovery = "observe_and_reconcile"
+conflict_domain = "homey.lighting"
 input_schema = {type = "object", required = ["alias", "on", "brightness"], properties = {alias = {type = "string"}, on = {type = "boolean"}, brightness = {type = "number", minimum = 0.01, maximum = 1.0}}, additionalProperties = false}
 effect_schema = {type = "object", required = ["minimum_lux", "maximum_lux", "max_power_w", "brightness_max"], properties = {minimum_lux = {type = "number", minimum = 0}, maximum_lux = {type = "number", minimum = 0}, max_power_w = {type = "number", minimum = 0}, brightness_max = {type = "number", minimum = 0.01, maximum = 1.0}}, additionalProperties = false}
 limits = {brightness = {min = 0.01, max = 1.0}}
@@ -65,6 +70,7 @@ idempotent = true
 deadline_ms = 10000
 effect_measurements = ["lighting.any_on"]
 recovery = "observe_and_repeat_one_lamp"
+conflict_domain = "homey.lighting"
 input_schema = {type = "object", required = ["alias", "on"], properties = {alias = {type = "string"}, on = {type = "boolean"}}, additionalProperties = false}
 effect_schema = {type = "object", required = ["on"], properties = {on = {type = "boolean"}}, additionalProperties = false}
 
@@ -120,6 +126,7 @@ idempotent = true
 deadline_ms = 10000
 effect_measurements = ["on"]
 recovery = "observe_and_reconcile"
+conflict_domain = "homey.switch"
 input_schema = {type = "object", required = ["alias", "on"], properties = {alias = {type = "string"}, on = {type = "boolean"}}, additionalProperties = false}
 effect_schema = {type = "object", required = ["on"], properties = {on = {type = "boolean"}}, additionalProperties = false}
 
@@ -136,6 +143,7 @@ idempotent = true
 deadline_ms = 10000
 effect_measurements = ["cover_position"]
 recovery = "observe_and_reconcile"
+conflict_domain = "homey.cover"
 input_schema = {type = "object", required = ["alias", "position"], properties = {alias = {type = "string"}, position = {type = "number", minimum = 0.0, maximum = 1.0}}, additionalProperties = false}
 effect_schema = {type = "object", required = ["position"], properties = {position = {type = "number", minimum = 0.0, maximum = 1.0}}, additionalProperties = false}
 limits = {position = {min = 0.0, max = 1.0}}
@@ -153,6 +161,27 @@ idempotent = true
 deadline_ms = 10000
 effect_measurements = ["thermostat_target_c", "temperature_c"]
 recovery = "observe_and_reconcile"
+conflict_domain = "homey.climate"
 input_schema = {type = "object", required = ["alias", "temperature_c"], properties = {alias = {type = "string"}, temperature_c = {type = "number", minimum = 5.0, maximum = 35.0}}, additionalProperties = false}
 effect_schema = {type = "object", required = ["temperature_c"], properties = {temperature_c = {type = "number", minimum = 5.0, maximum = 35.0}}, additionalProperties = false}
 limits = {temperature_c = {min = 5.0, max = 35.0}}
+
+[[autonomy_strategies]]
+id = "homey.enrolled-lighting-state/v1"
+version = "1.0.0"
+cognition_route = "deterministic"
+capability_families = ["homey.lighting.zone-state"]
+goal_template_ids = ["homey.lighting-zone-state/v1"]
+context_plugin_ids = ["engine.context"]
+privacy_classes = []
+description = "Maintain an explicitly enrolled zone on/off state from fresh Homey observations"
+
+[[goal_templates]]
+id = "homey.lighting-zone-state/v1"
+version = "1.0.0"
+mode = "maintain"
+capability_families = ["homey.lighting.zone-state"]
+risk_class = "low"
+description = "Maintain one exact enrolled Homey lighting zone in an owner-selected on/off state"
+parameter_schema = {type = "object", required = ["on"], properties = {on = {type = "boolean"}}, additionalProperties = false}
+goal_schema = {type = "object"}

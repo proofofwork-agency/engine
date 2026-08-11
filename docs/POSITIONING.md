@@ -64,6 +64,9 @@ menselijk doel
 - Generiek pluginleren is fake-world bewezen in zowel Homey als de
   warehouse-reference: dezelfde cursor/evidence/shadow/GoalSpec/rollback-route,
   met verschillende domeinbetekenis.
+- Generieke pluginautonomie is fake-world bewezen met dezelfde Heart-owned
+  enrollment/scheduling/authority/recovery-route voor Homey-verlichting en
+  warehouse-reserve, zonder targetbranches in core.
 - Eerlijke evidence discipline (token-cuts gemeten; multi-brain pilot deels `INCONCLUSIVE`).
 
 ---
@@ -124,7 +127,11 @@ Engine is what you need when OpenClaw-class agents are the wrong abstraction for
 | 0.2 | Installable world plugins + conformance | Certification, hard-realtime control |
 | 1.x | Operator product around maintain-goals | Replacement of PLCs / flight stacks |
 
-Moat is niet “meer tools”. Moat is **typed multi-world lifecycle + observed truth + living goals**, plus de discipline om dat niet te verwateren tot chat-harness feature parity.
+Moat is niet “plugins”, persistentie, learning, specialisten of autonomie op
+zichzelf; die bestaan elders ook. Het onderscheid is **typed world state +
+goal/effectbinding + targetrevisions + requestgebonden autorisatie + verse
+effectverificatie**, plus de discipline om dat niet te verwateren tot
+chat-harness feature parity.
 
 ---
 

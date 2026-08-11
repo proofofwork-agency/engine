@@ -462,6 +462,7 @@ class _RetryingLifecycleObserver:
 
 
 class _AckOnlyExecutor:
+    id = "warehouse-task-executor"
     plugin_id = PLUGIN_ID
 
     def __init__(self) -> None:

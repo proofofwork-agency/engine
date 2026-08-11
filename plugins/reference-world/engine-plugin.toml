@@ -1,8 +1,8 @@
 [plugin]
 id = "engine.reference-world"
 version = "0.2.0"
-engine_api = ">=2.0,<3"
-contract_version = "engine.plugin/v2"
+engine_api = ">=3.0,<4"
+contract_version = "engine.plugin/v3"
 description = "Deterministic non-house warehouse/grid reference world"
 
 [declarations]
@@ -15,6 +15,10 @@ experience_providers = ["warehouse-experience"]
 entity_types = ["warehouse.grid", "warehouse.bin"]
 relation_types = ["contains"]
 observation_types = ["bin.count"]
+
+[autonomy]
+strategies = ["warehouse.reserve-maintainer/v1"]
+goal_template_compilers = ["warehouse-goal-template-compiler"]
 
 [needs]
 network = []
@@ -39,9 +43,30 @@ idempotent = true
 deadline_ms = 5000
 effect_measurements = ["bin.count"]
 recovery = "poll_task_then_observe"
+conflict_domain = "warehouse.inventory"
 input_schema = {type = "object", required = ["from", "to", "count"], properties = {from = {type = "string", const = "incoming"}, to = {type = "string", const = "reserve"}, count = {type = "integer", minimum = 1, maximum = 10}}, additionalProperties = false}
 effect_schema = {type = "object", required = ["minimum_count"], properties = {minimum_count = {type = "integer", minimum = 1, maximum = 10}}, additionalProperties = false}
 limits = {count = {min = 1, max = 10}}
+
+[[autonomy_strategies]]
+id = "warehouse.reserve-maintainer/v1"
+version = "1.0.0"
+cognition_route = "deterministic"
+capability_families = ["warehouse.transfer-bin"]
+goal_template_ids = ["warehouse.reserve-minimum/v1"]
+context_plugin_ids = []
+privacy_classes = []
+description = "Create a typed reserve-minimum goal only when an enrolled threshold is violated"
+
+[[goal_templates]]
+id = "warehouse.reserve-minimum/v1"
+version = "1.0.0"
+mode = "maintain"
+capability_families = ["warehouse.transfer-bin"]
+risk_class = "low"
+description = "Maintain an exact warehouse reserve bin above an enrolled minimum"
+parameter_schema = {type = "object", required = ["minimum_count"], properties = {minimum_count = {type = "integer", minimum = 1, maximum = 10}}, additionalProperties = false}
+goal_schema = {type = "object"}
 
 [[preferences]]
 id = "engine.reference-world.preference.reserve-target-band/v1"

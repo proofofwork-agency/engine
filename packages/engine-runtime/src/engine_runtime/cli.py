@@ -50,14 +50,66 @@ def build_parser() -> argparse.ArgumentParser:
     rollback = learning_sub.add_parser("rollback")
     rollback.add_argument("--candidate", required=True)
 
+    autonomy = top.add_parser("autonomy")
+    autonomy_sub = autonomy.add_subparsers(dest="autonomy_command", required=True)
+    autonomy_mode = autonomy_sub.add_parser("mode")
+    autonomy_mode.add_argument(
+        "mode", choices=("observe", "supervised", "delegated", "paused")
+    )
+    autonomy_sub.add_parser("status")
+    strategies = autonomy_sub.add_parser("strategies")
+    strategies_sub = strategies.add_subparsers(
+        dest="autonomy_strategies_command", required=True
+    )
+    strategies_sub.add_parser("list")
+    strategy_inspect = strategies_sub.add_parser("inspect")
+    strategy_inspect.add_argument("id")
+    enroll = autonomy_sub.add_parser("enroll")
+    enroll.add_argument("--plugin", required=True)
+    enroll.add_argument("--strategy", required=True)
+    enroll.add_argument("--target", action="append", required=True)
+    enroll.add_argument("--entity", action="append", required=True)
+    enroll.add_argument("--capability", action="append", required=True)
+    enroll.add_argument("--template", action="append", default=[])
+    enroll.add_argument("--context-plugin", action="append", default=[])
+    enroll.add_argument("--privacy", action="append", default=[])
+    enroll.add_argument(
+        "--cognition-route",
+        choices=("deterministic", "executive", "specialist", "hybrid"),
+    )
+    enroll.add_argument("--risk-ceiling", default="low", choices=("read_only", "low"))
+    enroll.add_argument("--limits", default="{}", help="JSON parameter/action limits")
+    enroll.add_argument("--budget", default="{}", help="JSON evaluation budget")
+    enroll.add_argument("--expires-hours", type=float, default=24.0)
+    enroll.add_argument("--control-existing-goals", action="store_true")
+    enroll.add_argument("--instantiate-goal-templates", action="store_true")
+    enroll.add_argument("--promote-proven-routines", action="store_true")
+    autonomy_sub.add_parser("list")
+    enrollment_inspect = autonomy_sub.add_parser("inspect")
+    enrollment_inspect.add_argument("id")
+    enrollment_disable = autonomy_sub.add_parser("disable")
+    enrollment_disable.add_argument("id")
+    proposals = autonomy_sub.add_parser("proposals")
+    proposals_sub = proposals.add_subparsers(
+        dest="autonomy_proposals_command", required=True
+    )
+    proposals_sub.add_parser("list")
+    proposal_inspect = proposals_sub.add_parser("inspect")
+    proposal_inspect.add_argument("id")
+    proposal_approve = proposals_sub.add_parser("approve")
+    proposal_approve.add_argument("id")
+    proposal_reject = proposals_sub.add_parser("reject")
+    proposal_reject.add_argument("id")
+    proposal_reject.add_argument("--reason", default="local owner rejected proposal")
+
     yolo = top.add_parser("yolo")
     yolo_sub = yolo.add_subparsers(dest="yolo_command", required=True)
     enable = yolo_sub.add_parser("enable")
-    enable.add_argument("--plugin", default="engine.homey")
+    enable.add_argument("--plugin")
     enable.add_argument("--target")
     enable.add_argument("--entity", action="append", default=[])
-    enable.add_argument("--maximum-brightness", type=float, default=0.70)
-    enable.add_argument("--maximum-power-w", type=float, default=20.0)
+    enable.add_argument("--maximum-brightness", type=float)
+    enable.add_argument("--maximum-power-w", type=float)
     yolo_sub.add_parser("status")
     disable = yolo_sub.add_parser("disable")
     disable.add_argument("--profile")
@@ -154,29 +206,90 @@ def main(argv: list[str] | None = None) -> int:
                             )
                         )
                 return 0
-            if args.command == "yolo":
-                if args.yolo_command == "status":
-                    _print(canonical_data(app.yolo_status()))
+            if args.command == "autonomy":
+                if args.autonomy_command == "mode":
+                    _print(app.autonomy_mode(args.mode))
                     return 0
-                with app.lease():
-                    if args.yolo_command == "enable":
+                if args.autonomy_command == "status":
+                    _print(app.autonomy_status())
+                    return 0
+                if args.autonomy_command == "strategies":
+                    if args.autonomy_strategies_command == "list":
                         _print(
-                            canonical_data(
-                                app.yolo_enable(
-                                    plugin_id=args.plugin,
-                                    target_id=args.target,
-                                    entity_ids=tuple(args.entity),
-                                    maximum_brightness=args.maximum_brightness,
-                                    maximum_power_w=args.maximum_power_w,
-                                )
-                            )
+                            [canonical_data(item) for item in app.autonomy_strategies()]
                         )
                     else:
-                        _print(
-                            canonical_data(
-                                app.yolo_disable(profile_id=args.profile)
-                            )
+                        _print(app.autonomy_strategy_inspect(args.id))
+                    return 0
+                if args.autonomy_command == "enroll":
+                    with app.lease():
+                        value = app.autonomy_enroll(
+                            plugin_id=args.plugin,
+                            strategy_id=args.strategy,
+                            target_ids=tuple(args.target),
+                            entity_ids=tuple(args.entity),
+                            capability_families=tuple(args.capability),
+                            goal_template_ids=tuple(args.template),
+                            context_plugin_ids=tuple(args.context_plugin),
+                            privacy_grants=tuple(args.privacy),
+                            cognition_route=args.cognition_route,
+                            risk_ceiling=args.risk_ceiling,
+                            limits=json.loads(args.limits),
+                            budget=json.loads(args.budget),
+                            expires_hours=args.expires_hours,
+                            control_existing_goals=args.control_existing_goals,
+                            instantiate_goal_templates=args.instantiate_goal_templates,
+                            promote_proven_routines=args.promote_proven_routines,
                         )
+                    _print(canonical_data(value))
+                    return 0
+                if args.autonomy_command == "list":
+                    _print(
+                        [canonical_data(item) for item in app.store.autonomy_enrollments()]
+                    )
+                    return 0
+                if args.autonomy_command == "inspect":
+                    _print(app.autonomy_enrollment_inspect(args.id))
+                    return 0
+                if args.autonomy_command == "disable":
+                    _print(canonical_data(app.autonomy_enrollment_disable(args.id)))
+                    return 0
+                if args.autonomy_command == "proposals":
+                    if args.autonomy_proposals_command == "list":
+                        _print(app.autonomy_proposals())
+                    elif args.autonomy_proposals_command == "inspect":
+                        _print(app.autonomy_proposal_inspect(args.id))
+                    elif args.autonomy_proposals_command == "approve":
+                        with app.lease():
+                            _print(canonical_data(app.autonomy_proposal_approve(args.id)))
+                    else:
+                        _print(
+                            app.autonomy_proposal_reject(args.id, reason=args.reason)
+                        )
+                    return 0
+            if args.command == "yolo":
+                if args.yolo_command == "status":
+                    _print(app.autonomy_status())
+                    return 0
+                if args.yolo_command == "enable":
+                    legacy = (
+                        args.plugin is not None
+                        or args.target is not None
+                        or bool(args.entity)
+                        or args.maximum_brightness is not None
+                        or args.maximum_power_w is not None
+                    )
+                    if legacy:
+                        raise ValueError(
+                            "target-specific YOLO flags were removed; use `engine autonomy enroll` first, then `engine autonomy mode delegated`"
+                        )
+                    _print(app.yolo_alias_enable())
+                else:
+                    if args.profile is not None:
+                        raise ValueError(
+                            "--profile is legacy; use `engine autonomy disable <enrollment-id>`"
+                        )
+                    _print(app.yolo_alias_disable())
                 return 0
             if args.command == "routines":
                 if args.routines_command == "list":

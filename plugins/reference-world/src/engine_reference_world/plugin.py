@@ -12,14 +12,24 @@ from uuid import uuid4
 from engine_sdk import (
     ActionRequestV1,
     AuthorizationV1,
+    AutonomyContextV1,
+    AutonomyDecisionKindV1,
+    AutonomyDecisionV1,
+    AutonomyStrategySpecV1,
     BehaviorBatchV1,
     BehaviorSignalV1,
     CapabilitySpecV2,
+    ConditionV1,
+    DesiredEffectV1,
     EffectDeltaV1,
     EntityV1,
     EvidenceGrade,
     ExecutionReceiptV2,
     ExecutionStateV2,
+    GoalCandidateV1,
+    GoalModeV2,
+    GoalSpecV2,
+    GoalTemplateSpecV1,
     ObservationV1,
     PluginManifestV2,
     ProposedActionV1,
@@ -27,6 +37,7 @@ from engine_sdk import (
     SpecialistAdviceV1,
     TargetObservationV2,
     WorldSnapshotV2,
+    artifact_sha256,
     canonical_json,
     load_static_manifest,
     locate_distribution_manifest,
@@ -229,6 +240,7 @@ class LazyWarehouseStore:
 
 
 class WarehouseProvider:
+    id = "warehouse-grid"
     plugin_id = PLUGIN_ID
     target_id = TARGET_ID
     poll_interval_seconds = 2.0
@@ -275,6 +287,7 @@ class WarehouseProvider:
 
 
 class WarehouseController:
+    id = "warehouse-controller"
     plugin_id = PLUGIN_ID
     supported_families = (FAMILY,)
 
@@ -301,6 +314,7 @@ class WarehouseController:
 
 
 class WarehouseExecutor:
+    id = "warehouse-task-executor"
     plugin_id = PLUGIN_ID
 
     def __init__(self, store: LazyWarehouseStore):
@@ -377,6 +391,7 @@ class WarehouseExecutor:
 
 
 class WarehouseOracle:
+    id = "warehouse-effect-oracle"
     plugin_id = PLUGIN_ID
     supported_families = (FAMILY,)
 
@@ -435,6 +450,7 @@ class WarehouseExperienceProvider:
 
 class WarehouseSpecialist:
     id = "engine.reference-world.warehouse-specialist/v1"
+    plugin_id = PLUGIN_ID
     supported_families = (FAMILY,)
 
     def advise(
@@ -473,6 +489,110 @@ class WarehouseSpecialist:
         return SpecialistAdviceV1(self.id, True, proposal, "Typed warehouse preference")
 
 
+class WarehouseReserveStrategyV1:
+    id = "warehouse.reserve-maintainer/v1"
+    plugin_id = PLUGIN_ID
+
+    def __init__(self, spec: AutonomyStrategySpecV1):
+        self.spec = spec
+
+    def evaluate(self, context: AutonomyContextV1) -> AutonomyDecisionV1:
+        enrollment = context.projection.get("enrollment", {})
+        world = context.projection.get("world", {})
+        if not isinstance(enrollment, dict) or not isinstance(world, dict):
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER, rationale="bounded projection is malformed"
+            )
+        limits = enrollment.get("limits", {})
+        minimum = limits.get("reserve_minimum_count") if isinstance(limits, dict) else None
+        if isinstance(minimum, bool) or not isinstance(minimum, int) or not 1 <= minimum <= 10:
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER,
+                rationale="enrollment lacks reserve_minimum_count in [1,10]",
+            )
+        observations = world.get("observations", ())
+        current = next(
+            (
+                item for item in observations
+                if isinstance(item, dict)
+                and item.get("entity_id") == "warehouse:bin:reserve"
+                and item.get("property") == "bin.count"
+            ),
+            None,
+        )
+        if current is None or isinstance(current.get("value"), bool):
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER,
+                rationale="fresh reserve count is unavailable",
+            )
+        if int(current["value"]) >= minimum:
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.NOOP,
+                rationale="reserve already satisfies the enrolled minimum",
+                evidence_ids=(str(current.get("id", "")),),
+            )
+        candidate = GoalCandidateV1(
+            id="goal-candidate:" + uuid4().hex,
+            plugin_id=PLUGIN_ID,
+            template_id="warehouse.reserve-minimum/v1",
+            target_id=TARGET_ID,
+            entity_ids=("warehouse:bin:reserve",),
+            parameters={"minimum_count": minimum},
+            based_on_snapshot_id=context.current_snapshot_id,
+            based_on_world_revision=context.current_world_revision,
+            proposed_by=self.id,
+            rationale="fresh observed reserve count is below the enrolled threshold",
+            evidence_ids=(str(current.get("id", "")),),
+        )
+        return AutonomyDecisionV1(
+            AutonomyDecisionKindV1.PROPOSE_GOAL_CANDIDATE,
+            goal_candidate=candidate,
+            rationale=candidate.rationale,
+            evidence_ids=candidate.evidence_ids,
+        )
+
+
+class WarehouseGoalTemplateCompilerV1:
+    id = "warehouse-goal-template-compiler"
+    plugin_id = PLUGIN_ID
+    supported_templates = ("warehouse.reserve-minimum/v1",)
+
+    def compile(
+        self,
+        template: GoalTemplateSpecV1,
+        candidate: GoalCandidateV1,
+        context: AutonomyContextV1,
+    ) -> GoalSpecV2:
+        del context
+        minimum = int(candidate.parameters["minimum_count"])
+        digest = artifact_sha256(
+            {
+                "template": template.id,
+                "target": candidate.target_id,
+                "entities": candidate.entity_ids,
+                "minimum_count": minimum,
+            }
+        )[:24]
+        effect = DesiredEffectV1(
+            id="reserve-minimum",
+            capability_family=FAMILY,
+            entity_selector={"entity_ids": list(candidate.entity_ids)},
+            condition=ConditionV1(
+                "gte", path="observation:bin.count", value=minimum, unit="crate"
+            ),
+            parameters={"minimum_count": minimum},
+            description="Maintain the enrolled reserve minimum",
+        )
+        return GoalSpecV2(
+            id="goal:autonomy:" + digest,
+            source_intent="Typed warehouse reserve-minimum template",
+            mode=GoalModeV2.MAINTAIN,
+            entity_scope={"target_ids": [candidate.target_id]},
+            desired_effects=(effect,),
+            priority=50,
+        )
+
+
 @dataclass(frozen=True)
 class WarehousePlugin:
     manifest: PluginManifestV2
@@ -482,6 +602,8 @@ class WarehousePlugin:
     oracles: tuple[Any, ...]
     specialists: tuple[Any, ...] = ()
     experience_providers: tuple[Any, ...] = ()
+    autonomy_strategies: tuple[Any, ...] = ()
+    goal_template_compilers: tuple[Any, ...] = ()
 
 
 def create_plugin(path: str | Path = ":memory:") -> WarehousePlugin:
@@ -498,6 +620,10 @@ def create_plugin(path: str | Path = ":memory:") -> WarehousePlugin:
             )
     manifest = load_static_manifest(manifest_path)
     store = LazyWarehouseStore(path)
+    strategy_spec = next(
+        item for item in manifest.autonomy_strategies
+        if item.id == WarehouseReserveStrategyV1.id
+    )
     return WarehousePlugin(
         manifest,
         (WarehouseProvider(store, manifest),),
@@ -506,6 +632,8 @@ def create_plugin(path: str | Path = ":memory:") -> WarehousePlugin:
         (WarehouseOracle(),),
         (WarehouseSpecialist(),),
         (WarehouseExperienceProvider(store),),
+        (WarehouseReserveStrategyV1(strategy_spec),),
+        (WarehouseGoalTemplateCompilerV1(),),
     )
 
 

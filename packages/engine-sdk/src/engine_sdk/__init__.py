@@ -1,4 +1,4 @@
-"""Public Engine Plugin v2 contracts; intentionally independent of engine-heart."""
+"""Public Engine Plugin v2/v3 contracts; independent of engine-heart."""
 
 from . import models as _models
 from .conformance import check_plugin
@@ -10,28 +10,34 @@ from .manifest import (
 )
 from .models import *  # noqa: F403 - the SDK intentionally re-exports contract types
 from .protocols import (
+    AutonomyStrategy,
     DomainController,
     EffectOracle,
     ExecutiveBrainV2,
-    ExperienceProvider,
     Executor,
-    RoutineCompiler,
+    ExperienceProvider,
+    GoalTemplateCompiler,
     LifecycleObserver,
+    RoutineCompiler,
     SpecialistBrainV2,
     WorldPluginV2,
+    WorldPluginV3,
     WorldProvider,
 )
 
 __all__ = [
+    "AutonomyStrategy",
     "DomainController",
     "EffectOracle",
     "ExecutiveBrainV2",
     "ExperienceProvider",
     "Executor",
+    "GoalTemplateCompiler",
     "RoutineCompiler",
     "LifecycleObserver",
     "SpecialistBrainV2",
     "WorldPluginV2",
+    "WorldPluginV3",
     "WorldProvider",
     "check_plugin",
     "compare_manifests",

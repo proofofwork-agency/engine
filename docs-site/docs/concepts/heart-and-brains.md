@@ -66,6 +66,13 @@ The Heart never accepts completion on the brain's word alone. Only observed goal
 
 At composition time, the runtime selects exactly one of these executives. There is no automatic “council of LLMs.” An application could build its own composite executive behind the same protocol, but Engine does not currently define canonical identity, arbitration, cost, timeout, or conflict semantics for one.
 
+`engine.plugin/v3` does not change that ownership. An enrolled strategy may
+handle a known typed situation deterministically or ask Heart for at most one
+executive or specialist call through its declared cognition route. It receives
+the same bounded context projection as that cognition call and cannot schedule,
+authorize, or dispatch. A Cell may later implement a specialist, but never a
+second Heart or executive runtime.
+
 ## Specialist brains
 
 A specialist declares:

@@ -50,6 +50,12 @@ promotion gate is needed before inferred behavior affects an active goal.
 12. Learning cannot add targets, entities, capability families, risk, privacy
     permission, mandate duration or execution authority.
 
+ADR-0008 supersedes the generic-authority part of item 10. New generic routine
+promotion must use the separate `promote_proven_routines` privilege on an exact
+enabled v3 enrollment and the Heart-owned authority lifecycle. Legacy
+`AutonomyProfileV1` rows remain compatibility/audit state and `yolo` no longer
+creates them; the v3 automatic-promotion binding is not enabled by mode alone.
+
 ## Alternatives considered
 
 ### Treat repeated behavior as implicit consent

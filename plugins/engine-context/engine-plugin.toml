@@ -1,8 +1,8 @@
 [plugin]
 id = "engine.context"
 version = "0.2.0"
-engine_api = ">=2.0,<3"
-contract_version = "engine.plugin/v2"
+engine_api = ">=3.0,<4"
+contract_version = "engine.plugin/v3"
 description = "Local time, explicit location and permissioned weather observations"
 
 [declarations]
@@ -14,6 +14,10 @@ specialists = []
 entity_types = ["context.local", "context.location", "context.weather"]
 relation_types = ["located_at", "weather_for"]
 observation_types = ["time.iso8601", "time.hour", "time.minute_of_day", "time.weekday", "location.latitude", "location.longitude", "weather.temperature_c", "weather.cloud_cover_pct", "weather.precipitation_mm"]
+
+[autonomy]
+strategies = []
+goal_template_compilers = []
 
 [needs]
 network = ["configured-weather-provider-only"]

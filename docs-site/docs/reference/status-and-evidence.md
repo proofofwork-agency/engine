@@ -82,6 +82,11 @@ post-observation and an `EffectDeltaV1`. If an exception occurs around dispatch,
 the Heart stores an `unknown` receipt instead of assuming that nothing happened;
 dispatching again could duplicate a physical effect.
 
+Before external I/O the v3 Heart persists a `DispatchAttemptV1` with a stable
+operation key, lease generation, authorization expiry, resource identity, and
+autonomy binding. After a crash, a still-prepared attempt becomes
+`RECOVERY_REQUIRED`: Heart observes first and never blindly redispatches it.
+
 ## `EffectDeltaV1`
 
 An effect delta binds:
@@ -146,6 +151,21 @@ Active routines use:
 | `rejected` | The candidate or routine was rejected |
 | `rolled_back` | The routine, goal, and sub-mandate were reversed/revoked exactly |
 
+## Generic autonomy states
+
+The global mode is `observe`, `supervised`, `delegated`, or `paused` and carries
+a monotonically increasing epoch. Enrollment revisions are separate. Durable
+proposal bindings use `shadow`, `pending_approval`, `approved`, `dispatched`,
+`rejected`, `deferred`, or `superseded`.
+
+`shadow` means zero dispatch. `pending_approval` is not frozen authority:
+approval first reobserves and reruns the strategy. Only a fresh matching
+proposal can become approved. Autonomous dispatch requires current delegated
+mode plus an enabled exact enrollment; supervised dispatch requires the explicit
+owner approval route. In both cases current mode/enrollment, fingerprints,
+lease fence, request hash, and authorization expiry are checked again before
+executor I/O.
+
 ## Snapshot and provenance
 
 `TargetObservationV2` has a target revision. `WorldSnapshotV2` stores that
@@ -169,6 +189,11 @@ The current deterministic tests and reference plugins cover, among other things:
 - exactly-once experience import and bounded learning;
 - routine guards, shadow without dispatch, conflict, and rollback;
 - bounded, post-persistence lifecycle observers whose delivery failures are isolated and non-authoritative;
+- v3 manifest/runtime conformance for empty and non-empty autonomy roles;
+- observe shadow, supervised reapproval, delegated template instantiation, and paused recovery;
+- deterministic zero-brain routing plus bounded single-hop cognition failure/defer;
+- enrollment overlap rejection, in-flight resource reservation, lease/revocation/expiry pre-I/O gates, and crash-no-redispatch reconstruction;
+- the same generic autonomous route with Homey lighting and warehouse reserve semantics and no target identity in core autonomy modules;
 - one executive interface with deterministic and model-backed implementations.
 
 This is software and simulation evidence. The repository does not thereby claim

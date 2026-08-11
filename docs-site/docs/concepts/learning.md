@@ -113,18 +113,25 @@ plugin behavior signals
   -> only real trigger opportunities count
   -> at least 3 closed opportunities
   -> at least 80% later observed agreement
-  -> ready_for_approval OR auto-promotion inside exact YOLO profile
+  -> ready_for_approval OR promotion inside exact delegated privilege
   -> active routine + goal + mandate
   -> observe/act/oracle through the normal v2 lifecycle
 ```
 
 A missing opportunity does not count as agreement. An uncertain guard fails closed. Conflicts, cooldowns, recurrence, and rate limits are deterministic and durable.
 
-## Normal promotion and bounded YOLO
+## Normal promotion and delegated privilege
 
-Without an autonomy profile, a successful routine can only become `ready_for_approval`. The owner activates it explicitly.
+Without explicit promotion privilege, a successful routine can only become
+`ready_for_approval`. The owner activates it explicitly.
 
-With `engine yolo enable`, the owner delegates a narrow Homey lighting envelope in advance. Automatic promotion is allowed only after the same shadow gates and cannot expand scope. The profile freezes exact entities, templates, capability families, manifest fingerprint, risk ceiling, and limits. Derived mandates last 24 hours and may only be renewed exactly.
+`engine.plugin/v3` stores `promote_proven_routines` separately from privileges
+to control existing goals or instantiate goal templates. Any generic automatic
+promotion must still require `DELEGATED`, an enabled exact enrollment, the same
+real shadow gates, plugin-owned low-risk scope, and a fresh lifecycle binding.
+The current legacy `AutonomyProfileV1` records are retained for audit and
+compatibility; `engine yolo` now changes only the global mode and never creates
+one. Mode alone therefore cannot promote a routine.
 
 An external opposing change temporarily receives actuator ownership. An explicit conflict, or three opposing changes within seven days, rolls back the routine, linked goal, and mandate.
 

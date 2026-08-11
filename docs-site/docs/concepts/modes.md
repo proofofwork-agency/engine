@@ -1,14 +1,15 @@
 ---
 title: All modes and statuses
 sidebar_position: 5
-description: Current Engine v2 taxonomies for goals, cognition, invocation, policy, evidence, learning, routines, and Homey.
+description: Engine taxonomies for autonomy, goals, cognition, invocation, policy, evidence, learning, routines, and Homey.
 ---
 
 # All modes and statuses
 
 “Mode” is often used conversationally for several different things. Engine keeps them separate: goal behavior, cognitive decisions, invocation duration, execution status, control layer, risk, privacy, policy, evidence, learning, routines, and a plugin kill switch are distinct axes.
 
-> **Status:** the enums and status values below come from the current v2 SDK/runtime unless explicitly marked as legacy or roadmap.
+> **Status:** action lifecycle values remain v2 contracts; generic autonomy uses
+> `engine.plugin/v3`. Values below are current unless marked legacy or roadmap.
 
 ## 1. Goal mode: `GoalModeV2`
 
@@ -175,21 +176,34 @@ In practice, the current generic route starts at `shadow` once the evidence gate
 | `rejected` | Routine was rejected |
 | `rolled_back` | Routine, linked goal, and mandate were rolled back |
 
-## 15. Normal approval versus `yolo`
+## 15. Global autonomy mode: `AutonomyModeV1`
 
-`yolo` is not a general SDK enum or an “everything is allowed” switch. It is the CLI name for a **persistent, owner-enrolled `AutonomyProfileV1`**. The first implementation is deliberately limited to:
+| Mode | Meaning |
+| --- | --- |
+| `observe` | Run enrolled strategies as durable shadow; dispatch count is exactly zero |
+| `supervised` | Persist proposals for owner approval; approval reobserves and reevaluates before dispatch |
+| `delegated` | Permit enabled exact enrollments to instantiate templates and execute at most low-risk work |
+| `paused` | Continue observation, learning, and in-flight recovery; start no strategy, brain, or dispatch work |
 
-- plugin `engine.homey`;
-- an exact target and exact zone IDs, without wildcards;
-- three statically declared lighting routine templates;
-- two lighting capability families;
-- risk ceiling `low`, local privacy, and fixed brightness/power/rate limits.
+Mode is global and revisioned by an epoch. It grants no target authority by
+itself. An enabled `AutonomyEnrollmentV2` separately freezes exact strategy,
+templates, targets, entities, capabilities, context/privacy, cognition route,
+limits, budget, expiry, privileges, and fingerprints.
 
-Without such a profile, a proven routine stops at `ready_for_approval`. With a profile, only a routine that already passed the real shadow gates may promote automatically inside that exact envelope. `engine yolo disable` durably revokes the profile, linked routines, and derived mandates.
+`yolo` is only a CLI alias: enable selects `delegated`, disable selects `paused`,
+and status shows generic autonomy status. It creates no enrollment. Legacy
+`AutonomyProfileV1` rows remain audit data and grant no v3 authority. See
+[Generic plugin autonomy](./plugin-autonomy.md).
 
-**Fake/simulation-tested:** scope freeze, promotion, disable, and kill switches. **Roadmap:** live Homey actuation and physical effect evidence.
+## 16. Autonomy decision and cognition route
 
-## 16. Homey transport mode
+An `AutonomyDecisionV1` is one of `NOOP`, `DEFER`, `PROPOSE_EFFECT`,
+`PROPOSE_GOAL_CANDIDATE`, `REQUEST_EXECUTIVE`, or `REQUEST_SPECIALIST`.
+`deterministic` makes zero brain calls; `executive` and `specialist` admit only
+their declared destination; `hybrid` runs the strategy first and admits at most
+one requested cognition call. None of these decisions is authority.
+
+## 17. Homey transport mode
 
 The Homey plugin also has an operational configuration value:
 
@@ -200,7 +214,7 @@ The Homey plugin also has an operational configuration value:
 
 `act` is therefore only a transport kill switch. It bypasses no Engine policy. Do not confuse `observe`/`act` with `ACHIEVE`/`MAINTAIN` or `IMMEDIATE`/`TASK`/`STREAM`.
 
-## 17. CLI preview versus activation
+## 18. CLI preview versus activation
 
 `engine setup` is preview-only by default. `--activate` writes the goal and mandate. This is a mutation choice in the CLI, not a persistent runtime mode.
 

@@ -216,9 +216,24 @@ Telegram-adapters, ClawHub-achtige marketplaces, user-modeling personalization �
 5. **Engine wint of verliest** niet op ClawHub-skills of Telegram-adapters, maar op: **één hart, brein+specialisten, duurzame world state, twee heterogene werelden, oracle — zonder mens per stap** (`GOAL.md`).
 6. **Gebruik ze als concurrentie-bewustzijn en optionele brain/channel-adapters**, niet als herdefinitie van Engine en niet als excuus om alleen software-assistant te blijven.
 
+## 8. Autonomie is geen zelfstandig onderscheid
+
+Een plugincontract, always-on persistentie, learning, specialisten en delegated
+autonomie zijn inmiddels marktvoorwaarden, geen verdedigbare claim op zichzelf.
+Engine moet daarom niet positioneren op “wij hebben plugins/agents/cells”. De
+relevante combinatie blijft: getypeerde world state, goal/effectbinding,
+monotone targetrevisions, exact requestgebonden authorization en verse
+effectverificatie door een onafhankelijke oracle. `engine.plugin/v3` maakt deze
+grens generiek; het vervangt haar niet.
+
+Een vrije pluginagentloop, zelfgemaakte permissions, direct toolgebruik of een
+Cell als tweede executive zou Engine juist terugduwen naar de harnesscategorie.
+Toekomstige cross-plugin workflows horen daarom Engine-owned te zijn en moeten
+dezelfde lifecycle en authoritybinding behouden.
+
 ---
 
-## 8. Praktische leesregel
+## 9. Praktische leesregel
 
 | Als je denkt… | Check |
 | --- | --- |
@@ -230,7 +245,7 @@ Telegram-adapters, ClawHub-achtige marketplaces, user-modeling personalization �
 
 ---
 
-## 9. Uitvoerbare anti-clonepoort voor World Plugin v2
+## 10. Uitvoerbare anti-clonepoort voor World Plugin v2
 
 Positionering telt vanaf v2 alleen wanneer deze criteria als tests of bewaarde
 run-artifacts aantoonbaar zijn. Een groene tool-call-demo is geen vervanging.
@@ -269,7 +284,7 @@ world proof.
 
 ---
 
-## 10. Gerelateerde docs
+## 11. Gerelateerde docs
 
 | Bestand | Rol |
 | --- | --- |

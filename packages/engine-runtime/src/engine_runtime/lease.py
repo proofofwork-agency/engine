@@ -33,6 +33,7 @@ class RuntimeLease:
         self._thread: threading.Thread | None = None
         self._on_lost = on_lost
         self._lost = threading.Event()
+        self.generation = 0
 
     @property
     def lost(self) -> bool:
@@ -47,34 +48,46 @@ class RuntimeLease:
             CREATE TABLE IF NOT EXISTS runtime_leases_v1(
                 lease_name TEXT PRIMARY KEY,
                 owner_token TEXT NOT NULL,
+                generation INTEGER NOT NULL DEFAULT 0,
                 acquired_at TEXT NOT NULL,
                 expires_at TEXT NOT NULL
             )
             """
         )
+        columns = {
+            str(row["name"])
+            for row in connection.execute("PRAGMA table_info(runtime_leases_v1)")
+        }
+        if "generation" not in columns:
+            with connection:
+                connection.execute(
+                    "ALTER TABLE runtime_leases_v1 ADD COLUMN generation INTEGER NOT NULL DEFAULT 0"
+                )
         now = datetime.now(UTC)
         expires = now + timedelta(seconds=self.ttl_seconds)
         try:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
-                "SELECT owner_token,expires_at FROM runtime_leases_v1 WHERE lease_name='engine-runtime'"
+                "SELECT owner_token,generation,expires_at FROM runtime_leases_v1 WHERE lease_name='engine-runtime'"
             ).fetchone()
             if row is not None and _datetime(str(row["expires_at"])) > now:
                 connection.rollback()
                 raise LeaseHeldError(
                     f"Engine store already has an active runtime lease until {row['expires_at']}"
                 )
+            self.generation = (int(row["generation"]) if row is not None else 0) + 1
             connection.execute(
                 """
                 INSERT INTO runtime_leases_v1(
-                    lease_name,owner_token,acquired_at,expires_at
-                ) VALUES('engine-runtime',?,?,?)
+                    lease_name,owner_token,generation,acquired_at,expires_at
+                ) VALUES('engine-runtime',?,?,?,?)
                 ON CONFLICT(lease_name) DO UPDATE SET
                     owner_token=excluded.owner_token,
+                    generation=excluded.generation,
                     acquired_at=excluded.acquired_at,
                     expires_at=excluded.expires_at
                 """,
-                (self.token, now.isoformat(), expires.isoformat()),
+                (self.token, self.generation, now.isoformat(), expires.isoformat()),
             )
             connection.commit()
         except Exception:
@@ -96,12 +109,40 @@ class RuntimeLease:
             cursor = connection.execute(
                 """
                 UPDATE runtime_leases_v1 SET expires_at=?
-                WHERE lease_name='engine-runtime' AND owner_token=?
+                WHERE lease_name='engine-runtime' AND owner_token=? AND generation=?
                 """,
-                (expires.isoformat(), self.token),
+                (expires.isoformat(), self.token, self.generation),
             )
             if cursor.rowcount != 1:
                 raise LeaseHeldError("runtime lease ownership was lost")
+
+    @property
+    def fencing_token(self) -> str:
+        if self._connection is None or self.generation < 1:
+            raise RuntimeError("lease is not acquired")
+        return f"{self.token}:g{self.generation}"
+
+    def assert_current(self) -> str:
+        connection = self._connection
+        if connection is None or self._lost.is_set():
+            raise LeaseHeldError("runtime lease is not current")
+        now = datetime.now(UTC)
+        with self._lock:
+            row = connection.execute(
+                """
+                SELECT owner_token,generation,expires_at FROM runtime_leases_v1
+                WHERE lease_name='engine-runtime'
+                """
+            ).fetchone()
+        if (
+            row is None
+            or str(row["owner_token"]) != self.token
+            or int(row["generation"]) != self.generation
+            or _datetime(str(row["expires_at"])) <= now
+        ):
+            self._lost.set()
+            raise LeaseHeldError("runtime lease fencing check failed")
+        return self.fencing_token
 
     def close(self) -> None:
         self._stop.set()
@@ -112,8 +153,11 @@ class RuntimeLease:
         if connection is not None:
             with self._lock, connection:
                 connection.execute(
-                    "DELETE FROM runtime_leases_v1 WHERE lease_name='engine-runtime' AND owner_token=?",
-                    (self.token,),
+                    """
+                    UPDATE runtime_leases_v1 SET expires_at=?
+                    WHERE lease_name='engine-runtime' AND owner_token=? AND generation=?
+                    """,
+                    (datetime.now(UTC).isoformat(), self.token, self.generation),
                 )
             connection.close()
 
@@ -145,12 +189,13 @@ def lease_status(path: str | Path) -> dict[str, str] | None:
         if exists is None:
             return None
         row = connection.execute(
-            "SELECT owner_token,acquired_at,expires_at FROM runtime_leases_v1 WHERE lease_name='engine-runtime'"
+            "SELECT owner_token,generation,acquired_at,expires_at FROM runtime_leases_v1 WHERE lease_name='engine-runtime'"
         ).fetchone()
         if row is None:
             return None
         return {
             "owner_token": str(row["owner_token"]),
+            "generation": str(row["generation"]),
             "acquired_at": str(row["acquired_at"]),
             "expires_at": str(row["expires_at"]),
         }

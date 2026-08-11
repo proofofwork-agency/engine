@@ -1,6 +1,6 @@
 ---
 title: Plugin checklist
-description: Enrollment and review checklist for an engine.plugin/v2 plugin.
+description: Enrollment and review checklist for an engine.plugin/v3 plugin.
 sidebar_position: 6
 ---
 
@@ -12,7 +12,8 @@ there is code and appropriate evidence; a manifest claim alone is insufficient.
 ## Identity and packaging
 
 - [ ] `plugin.id` is stable, dotted, lowercase, and not derived from free text.
-- [ ] `version`, `engine_api`, and `contract_version = "engine.plugin/v2"` are set.
+- [ ] `version`, Engine API 3.x, and `contract_version = "engine.plugin/v3"` are set.
+- [ ] `[autonomy]` is explicit, even when strategy and compiler lists are empty.
 - [ ] `pyproject.toml` declares exactly one appropriate `engine.plugins` entry point.
 - [ ] `engine-plugin.toml` is present in both wheel and editable installation.
 - [ ] Import and factory invocation are inert: no network, mutation, or background thread.
@@ -52,6 +53,7 @@ these open gaps as completed security controls in the plugin README.
 - [ ] Units, preconditions, deadlines, limits, and recovery are explicit.
 - [ ] Idempotency is honest: use `false` if retrying may duplicate an effect.
 - [ ] `effect_measurements` name the observations that can support success.
+- [ ] Every mutating v3 family declares a stable generic `conflict_domain`.
 - [ ] Dynamically unknown families remain opaque and read-only.
 
 ## Mutation path
@@ -87,6 +89,23 @@ claim stream production readiness based on the enum alone.
 - [ ] Model output is schema-validated as untrusted data.
 - [ ] Provider/model ID, projection hash, latency, and output are recorded for audit.
 - [ ] Core correctness and the safe fallback work without a model provider.
+
+## Generic autonomy
+
+- [ ] Every strategy has a static `AutonomyStrategySpecV1` and an exact runtime match.
+- [ ] Strategy output is proposal-only and uses only the six allowed decision kinds.
+- [ ] The strategy owns no executor, authorization, policy, registry, or model handle.
+- [ ] Goal creation names a declared typed template; a compiler cannot create authority.
+- [ ] Compiler output cannot expand plugin, target, entity, capability, privacy, risk, or limits.
+- [ ] Deterministic routing makes zero brain calls; hybrid makes at most one requested call.
+- [ ] Strategy, executive, and specialist receive the same bounded context projection.
+- [ ] Missing privacy, stale context, model failure, or unsupported scope produces `DEFER`.
+- [ ] `OBSERVE` dispatches nothing; `SUPERVISED` reobserves on approval.
+- [ ] Only enabled exact `DELEGATED` enrollment performs autonomous dispatch.
+- [ ] Revocation, pause, lease loss, or authorization expiry before I/O yields zero executor calls.
+- [ ] Crash injection never blindly redispatches an ambiguous prepared attempt.
+- [ ] Overlapping `(target, entity, conflict_domain)` enrollments fail closed.
+- [ ] Core autonomy modules contain no plugin, brand, room, or target identity branches.
 
 ## Experience and routines
 
@@ -124,4 +143,3 @@ claim stream production readiness based on the enum alone.
 - [ ] Unimplemented marketplace, signing, sandboxing, or stream E2E remains documented as a gap.
 - [ ] Plugin semantics do not leak into the Heart or runtime as a special branch.
 - [ ] A lifecycle, authority, or adapter-contract change has the required ADR.
-

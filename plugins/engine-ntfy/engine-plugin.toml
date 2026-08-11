@@ -1,8 +1,8 @@
 [plugin]
 id = "engine.ntfy"
 version = "0.1.0"
-engine_api = ">=2.0,<3"
-contract_version = "engine.plugin/v2"
+engine_api = ">=3.0,<4"
+contract_version = "engine.plugin/v3"
 description = "Bounded outbound ntfy notifications for Engine lifecycle milestones"
 
 [declarations]
@@ -17,6 +17,10 @@ routine_compilers = []
 entity_types = []
 relation_types = []
 observation_types = []
+
+[autonomy]
+strategies = []
+goal_template_compilers = []
 
 [needs]
 network = ["configured-ntfy-https-endpoint"]

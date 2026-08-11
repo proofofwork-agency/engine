@@ -35,6 +35,8 @@ class PluginRegistryV2:
         self._lifecycle_observers: dict[str, Any] = {}
         self._experience_providers: dict[str, Any] = {}
         self._routine_compilers: dict[str, Any] = {}
+        self._autonomy_strategies: dict[str, Any] = {}
+        self._goal_template_compilers: dict[str, Any] = {}
         self._discovery_failures: dict[str, str] = {}
 
     def register(self, plugin: Any, static_manifest_path: str | Path) -> None:
@@ -48,6 +50,8 @@ class PluginRegistryV2:
         if static.id in self._plugins:
             raise ValueError(f"duplicate plugin id: {static.id}")
         providers = tuple(plugin.providers)
+        if static.contract_version == "engine.plugin/v3":
+            self._validate_v3_roles(plugin, static)
         for provider in providers:
             if provider.target_id in self._targets:
                 raise ValueError(f"duplicate target id: {provider.target_id}")
@@ -86,6 +90,41 @@ class PluginRegistryV2:
                 raise ValueError("routine compiler exposes an undeclared template")
             if compiler.id in self._routine_compilers:
                 raise ValueError(f"duplicate routine compiler id: {compiler.id}")
+        autonomy_strategies = tuple(getattr(plugin, "autonomy_strategies", ()))
+        declared_strategies = {item.id: item for item in static.autonomy_strategies}
+        if {str(item.id) for item in autonomy_strategies} != set(declared_strategies):
+            raise ValueError("loaded autonomy strategies differ from static manifest")
+        for strategy in autonomy_strategies:
+            if strategy.plugin_id != static.id:
+                raise ValueError("autonomy strategy plugin identity mismatch")
+            if strategy.spec.to_dict() != declared_strategies[str(strategy.id)].to_dict():
+                raise ValueError("loaded autonomy strategy spec differs from static manifest")
+            if strategy.id in self._autonomy_strategies:
+                raise ValueError(f"duplicate autonomy strategy id: {strategy.id}")
+        goal_template_compilers = tuple(
+            getattr(plugin, "goal_template_compilers", ())
+        )
+        if {str(item.id) for item in goal_template_compilers} != set(
+            static.goal_template_compilers
+        ):
+            raise ValueError("loaded goal template compilers differ from static manifest")
+        declared_goal_templates = {item.id for item in static.goal_templates}
+        compiled_goal_templates: list[str] = []
+        for compiler in goal_template_compilers:
+            if compiler.plugin_id != static.id:
+                raise ValueError("goal template compiler plugin identity mismatch")
+            if not set(compiler.supported_templates) <= declared_goal_templates:
+                raise ValueError("goal template compiler exposes an undeclared template")
+            if compiler.id in self._goal_template_compilers:
+                raise ValueError(f"duplicate goal template compiler id: {compiler.id}")
+            compiled_goal_templates.extend(str(item) for item in compiler.supported_templates)
+        if (
+            set(compiled_goal_templates) != declared_goal_templates
+            or len(compiled_goal_templates) != len(set(compiled_goal_templates))
+        ):
+            raise ValueError(
+                "goal template compilers must cover every declared template exactly once"
+            )
         self._plugins[static.id] = RegisteredPluginV2(plugin, static, True)
         self._targets.update({provider.target_id: provider for provider in providers})
         self._lifecycle_observers.update(
@@ -97,6 +136,28 @@ class PluginRegistryV2:
         self._routine_compilers.update(
             {compiler.id: compiler for compiler in routine_compilers}
         )
+        self._autonomy_strategies.update(
+            {strategy.id: strategy for strategy in autonomy_strategies}
+        )
+        self._goal_template_compilers.update(
+            {compiler.id: compiler for compiler in goal_template_compilers}
+        )
+
+    @staticmethod
+    def _validate_v3_roles(plugin: Any, manifest: PluginManifestV2) -> None:
+        roles = (
+            ("world providers", tuple(plugin.providers), manifest.world_providers),
+            ("controllers", tuple(plugin.controllers), manifest.controllers),
+            ("executors", tuple(plugin.executors), manifest.executors),
+            ("effect oracles", tuple(plugin.oracles), manifest.effect_oracles),
+            ("specialists", tuple(plugin.specialists), manifest.specialists),
+        )
+        for label, loaded, declared in roles:
+            loaded_ids = tuple(str(getattr(item, "id", "")) for item in loaded)
+            if set(loaded_ids) != set(declared) or len(loaded_ids) != len(set(loaded_ids)):
+                raise ValueError(f"loaded {label} differ from static manifest")
+            if any(getattr(item, "plugin_id", None) != manifest.id for item in loaded):
+                raise ValueError(f"loaded {label} contain another plugin identity")
 
     def register_v1_observe_only(self, plugin: Any) -> None:
         """Compatibility bridge: v1 facts are visible, v1 execute is never exposed."""
@@ -116,6 +177,7 @@ class PluginRegistryV2:
             entity_types=("engine.v1.target",), relation_types=(),
             observation_types=("legacy.state",), capabilities=(),
             store_identity=f"{plugin_id}.v1-bridge",
+            contract_version="engine.plugin/v2",
         )
         bridged = _BridgedPlugin(manifest, providers)
         self._plugins[plugin_id] = RegisteredPluginV2(bridged, manifest, False)
@@ -139,7 +201,9 @@ class PluginRegistryV2:
                 static = load_static_manifest(static_path)
                 factory = entry_point.load()
                 plugin = factory()
-                if getattr(plugin.manifest, "contract_version", None) != "engine.plugin/v2":
+                if getattr(plugin.manifest, "contract_version", None) not in {
+                    "engine.plugin/v2", "engine.plugin/v3"
+                }:
                     continue
                 if static.id in self._plugins:
                     continue
@@ -182,6 +246,20 @@ class PluginRegistryV2:
         )
 
     @property
+    def autonomy_strategies(self) -> tuple[Any, ...]:
+        return tuple(
+            self._autonomy_strategies[key]
+            for key in sorted(self._autonomy_strategies)
+        )
+
+    @property
+    def goal_template_compilers(self) -> tuple[Any, ...]:
+        return tuple(
+            self._goal_template_compilers[key]
+            for key in sorted(self._goal_template_compilers)
+        )
+
+    @property
     def discovery_failures(self) -> dict[str, str]:
         return dict(self._discovery_failures)
 
@@ -213,6 +291,34 @@ class PluginRegistryV2:
         return next(
             (
                 item for item in self._routine_compilers.values()
+                if item.plugin_id == plugin_id
+                and template_id in item.supported_templates
+            ),
+            None,
+        )
+
+    def autonomy_strategy(self, plugin_id: str, strategy_id: str) -> Any | None:
+        strategy = self._autonomy_strategies.get(strategy_id)
+        if strategy is None or strategy.plugin_id != plugin_id:
+            return None
+        return strategy
+
+    def goal_template(self, plugin_id: str, template_id: str) -> Any | None:
+        registered = self._plugins.get(plugin_id)
+        if registered is None:
+            return None
+        return next(
+            (
+                item for item in registered.static_manifest.goal_templates
+                if item.id == template_id
+            ),
+            None,
+        )
+
+    def goal_template_compiler(self, plugin_id: str, template_id: str) -> Any | None:
+        return next(
+            (
+                item for item in self._goal_template_compilers.values()
                 if item.plugin_id == plugin_id
                 and template_id in item.supported_templates
             ),
@@ -364,3 +470,6 @@ class _BridgedPlugin:
     specialists: tuple[Any, ...] = ()
     experience_providers: tuple[Any, ...] = ()
     routine_compilers: tuple[Any, ...] = ()
+    lifecycle_observers: tuple[Any, ...] = ()
+    autonomy_strategies: tuple[Any, ...] = ()
+    goal_template_compilers: tuple[Any, ...] = ()

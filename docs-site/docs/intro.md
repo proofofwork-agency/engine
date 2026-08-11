@@ -55,7 +55,7 @@ A brain may choose and propose. The Heart maintains the cycle, state, and causal
 
 | Status | Meaning in this documentation |
 | --- | --- |
-| **Implemented** | Present in the current v2 code and public contracts |
+| **Implemented** | Present in the current action lifecycle and v3 plugin contracts |
 | **Fake/simulation-tested** | Proved automatically, but not evidence of physical safety |
 | **Live read-only** | Observed against a real target without mutation |
 | **Roadmap** | A direction or hypothesis, not a feature available today |
@@ -63,7 +63,7 @@ A brain may choose and propose. The Heart maintains the cycle, state, and causal
 The current repository contains:
 
 - `engine-heart`, with the Heart, durable world store, policy, learning, and routines;
-- `engine-sdk`, with `engine.plugin/v2`, scaffolding, and conformance tooling;
+- `engine-sdk`, with `engine.plugin/v3`, v2 compatibility, scaffolding, and conformance tooling;
 - `engine-runtime`, with the composition root, discovery, lease, and the `engine` CLI;
 - a warehouse reference plugin, context plugin, Homey plugin, and opt-in bounded ntfy lifecycle observer;
 - tests for reconstruction, stale/denied/malformed cases, immediate and task lifecycles, and bounded learning.
@@ -89,7 +89,7 @@ The current evidence boundary is deliberately narrower than the vision: Homey ob
 ### I want to build
 
 1. [Quickstart](developers/quickstart.md)
-2. [Plugin interface v2](developers/plugin-interface.md)
+2. [Plugin interface v3](developers/plugin-interface.md)
 3. [SDK reference](developers/sdk.md)
 4. [CLI reference](developers/cli.md)
 5. [Multiple plugins and brains](developers/multiple-plugins-and-brains.md)

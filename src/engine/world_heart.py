@@ -9,9 +9,14 @@ from uuid import uuid4
 
 import jsonschema
 from engine_sdk import (
+    AutonomyBindingStatusV1,
+    AutonomyBindingV1,
+    AutonomyModeV1,
     BehaviorBatchV1,
     BrainDecisionV2,
     DecisionKindV2,
+    DispatchAttemptStateV1,
+    DispatchAttemptV1,
     EffectDeltaV1,
     EvidenceGrade,
     ExecutionReceiptV2,
@@ -20,6 +25,7 @@ from engine_sdk import (
     GoalSpecV2,
     PolicyOutcome,
     ProposedActionV1,
+    RiskClass,
     SpecialistAdviceV1,
     WorldSnapshotV2,
     artifact_sha256,
@@ -159,6 +165,29 @@ class WorldHeartV2:
         self.routine_learner = RoutineLearnerV1(
             store, registry, clock=self._clock
         )
+        self._dispatch_guard: Any | None = None
+        self._cycle_mutation_resources: set[tuple[str, str, str]] | None = None
+        from .autonomy_v3 import AutonomyRuntimeV3
+
+        self.autonomy = AutonomyRuntimeV3(store, registry, self, clock=self._clock)
+
+    def set_dispatch_guard(self, guard: Any | None) -> None:
+        """Install the active runtime lease fence used immediately before I/O."""
+        self._dispatch_guard = guard
+
+    def run_autonomy_proposal(
+        self,
+        goal_id: str,
+        proposal: ProposedActionV1,
+        binding: AutonomyBindingV1,
+        snapshot: WorldSnapshotV2,
+    ) -> WorldPassV2:
+        return self._run_goal_once(
+            goal_id,
+            snapshot=snapshot,
+            previous_snapshot=self.store.latest_world_snapshot(),
+            proposal_override=replace(proposal, autonomy_binding=binding),
+        )
 
     def run_once(
         self,
@@ -222,6 +251,7 @@ class WorldHeartV2:
         refresh_targets: set[str] | None = None,
         snapshot: WorldSnapshotV2 | None = None,
         previous_snapshot: WorldSnapshotV2 | None = None,
+        proposal_override: ProposedActionV1 | None = None,
     ) -> WorldPassV2:
         goal = self.store.get_goal(goal_id)
         supplied_snapshot = snapshot is not None
@@ -240,6 +270,7 @@ class WorldHeartV2:
         pending_task = self.store.pending_task(goal.id)
         if pending_task is not None:
             return self._resume_task(goal, pending_task, snapshot)
+        mandate = self._mandate(goal)
         if _all_true(results):
             status = "completed" if goal.mode is GoalModeV2.ACHIEVE else "monitoring"
             self.store.set_goal_status(goal.id, status)
@@ -249,6 +280,30 @@ class WorldHeartV2:
                 "brain_calls": 0,
             })
             return WorldPassV2(goal.id, status, snapshot.id, False, False, reason="all desired effects are observed")
+        mode = self.store.autonomy_mode()["mode"]
+        if mode is AutonomyModeV1.PAUSED and proposal_override is None:
+            self.store.set_goal_status(goal.id, "waiting")
+            return WorldPassV2(
+                goal.id,
+                "paused",
+                snapshot.id,
+                False,
+                False,
+                reason="global autonomy mode is paused; observation and recovery continue",
+            )
+        if (
+            mandate is not None
+            and mandate.activated_by.startswith("autonomy-enrollment:")
+            and proposal_override is None
+        ):
+            return WorldPassV2(
+                goal.id,
+                "paused" if mode is AutonomyModeV1.PAUSED else "waiting",
+                snapshot.id,
+                False,
+                False,
+                reason="autonomy-created goals can mutate only through their enrolled strategy",
+            )
         if (
             not supplied_snapshot
             and refresh_targets is not None
@@ -280,13 +335,15 @@ class WorldHeartV2:
         mandate = self._mandate(goal)
         cached = None
         cache_allowed = len(selected) == 1
-        if cache_allowed and plugin_id and mandate is not None:
+        if proposal_override is None and cache_allowed and plugin_id and mandate is not None:
             cached = self.store.load_plan(
                 cache_key, self.registry.manifest_fingerprint(plugin_id), mandate.id
             )
         brain_called = False
         specialist_called = False
-        if cached is not None:
+        if proposal_override is not None:
+            proposal = proposal_override
+        elif cached is not None:
             proposal = ProposedActionV1(
                 id="proposal:" + uuid4().hex,
                 goal_id=goal.id,
@@ -343,6 +400,8 @@ class WorldHeartV2:
             jsonschema.validate(proposal.semantic_parameters, capability.effect_schema)
             controller = self.registry.controller(capability.plugin_id, capability.family)
             request = controller.concretize(proposal, snapshot, capability)
+            if proposal.autonomy_binding is not None:
+                request = replace(request, autonomy_binding=proposal.autonomy_binding)
             self._validate_request(request, proposal, capability, snapshot)
         except Exception as exc:
             reason = f"request validation failed: {type(exc).__name__}: {exc}"
@@ -369,6 +428,36 @@ class WorldHeartV2:
         self.store.save_authorization(authorization)
         requested_at = self._clock().isoformat()
         try:
+            attempt = self._prepare_dispatch_attempt(
+                request, decision, authorization, capability
+            )
+        except Exception as exc:
+            reason = f"dispatch gate deferred: {type(exc).__name__}: {exc}"
+            self.store.append_event(
+                goal.id,
+                "dispatch_deferred",
+                "heart.v3",
+                {"request_id": request.id, "reason": reason},
+            )
+            self.store.set_goal_status(goal.id, "waiting")
+            if proposal.autonomy_binding is not None:
+                self.store.set_autonomy_binding_status(
+                    proposal.autonomy_binding.evaluation_id,
+                    AutonomyBindingStatusV1.DEFERRED,
+                    reason=reason,
+                )
+            return WorldPassV2(
+                goal.id,
+                "waiting",
+                snapshot.id,
+                brain_called,
+                specialist_called,
+                proposal.id,
+                request.id,
+                decision.outcome,
+                reason=reason,
+            )
+        try:
             receipt = self.registry.executor(capability.plugin_id).dispatch(request, authorization)
             self._validate_receipt(receipt, request, authorization.id)
         except Exception as exc:
@@ -386,6 +475,14 @@ class WorldHeartV2:
                 adapter_version=registered.static_manifest.version,
             )
         self.store.save_receipt(receipt)
+        self.store.save_dispatch_attempt(
+            replace(
+                attempt,
+                state=DispatchAttemptStateV1.RECEIPT_RECORDED,
+                receipt_id=receipt.id,
+                updated_at=self._clock().isoformat(),
+            )
+        )
         post_state = self.observe_world(goal, refresh_targets=None)
         try:
             effect = self.registry.oracle(capability.plugin_id, capability.family).reconcile(
@@ -403,6 +500,22 @@ class WorldHeartV2:
                 observed_at=post_state.observed_at,
             )
         self.store.save_effect(effect)
+        if receipt.state not in {ExecutionStateV2.ACCEPTED, ExecutionStateV2.RUNNING}:
+            self.store.save_dispatch_attempt(
+                replace(
+                    attempt,
+                    state=DispatchAttemptStateV1.EFFECT_RECONCILED,
+                    receipt_id=receipt.id,
+                    effect_id=effect.id,
+                    updated_at=self._clock().isoformat(),
+                )
+            )
+        if proposal.autonomy_binding is not None:
+            self.store.set_autonomy_binding_status(
+                proposal.autonomy_binding.evaluation_id,
+                AutonomyBindingStatusV1.DISPATCHED,
+                reason=f"request {request.id} entered the execution lifecycle",
+            )
         post_results = evaluate_effects(goal, post_state, previous=snapshot)
         if _all_true(post_results):
             status = "completed" if goal.mode is GoalModeV2.ACHIEVE else "monitoring"
@@ -456,6 +569,8 @@ class WorldHeartV2:
         now = self._clock()
         deadline = _datetime(request.deadline_at)
         try:
+            if self._dispatch_guard is not None:
+                self._dispatch_guard()
             receipt = (
                 executor.cancel(handle)
                 if now >= deadline
@@ -508,6 +623,22 @@ class WorldHeartV2:
                 observed_at=post_state.observed_at,
             )
         self.store.save_effect(effect)
+        attempt = self.store.dispatch_attempt_for_request(request.id)
+        if attempt is not None:
+            attempt_state = (
+                DispatchAttemptStateV1.RECEIPT_RECORDED
+                if receipt.state in {ExecutionStateV2.ACCEPTED, ExecutionStateV2.RUNNING}
+                else DispatchAttemptStateV1.EFFECT_RECONCILED
+            )
+            self.store.save_dispatch_attempt(
+                replace(
+                    attempt,
+                    state=attempt_state,
+                    receipt_id=receipt.id,
+                    effect_id=(effect.id if attempt_state is DispatchAttemptStateV1.EFFECT_RECONCILED else None),
+                    updated_at=self._clock().isoformat(),
+                )
+            )
         results = evaluate_effects(goal, post_state, previous=observed_snapshot)
         if receipt.state in {ExecutionStateV2.ACCEPTED, ExecutionStateV2.RUNNING}:
             status = "waiting"
@@ -664,43 +795,54 @@ class WorldHeartV2:
         refresh_targets: set[str] | None = None,
     ) -> tuple[WorldPassV2, ...]:
         """Run one plugin-neutral world boundary and every due durable concern."""
-        previous = self.store.latest_world_snapshot()
-        snapshot = self.observe_connected_world(refresh_targets=refresh_targets)
-        self._import_experience(snapshot)
-        self._advance_learning(snapshot)
-        due_wakes = self.store.due_wakes(self._clock().isoformat())
-        passes: list[WorldPassV2] = []
-        current_snapshot = self.store.latest_world_snapshot() or snapshot
-        for goal in self.store.live_goals():
-            try:
-                result = self.run_once(
-                    goal.id,
-                    snapshot=current_snapshot,
-                    previous_snapshot=previous,
-                )
-            except Exception as exc:
-                reason = f"isolated goal failure: {type(exc).__name__}: {exc}"
-                self.store.append_event(
-                    goal.id,
-                    "goal_cycle_failed",
-                    "heart.v2",
-                    {"snapshot_id": current_snapshot.id, "reason": reason},
-                )
-                self.store.set_goal_status(goal.id, "degraded")
-                result = WorldPassV2(
-                    goal.id,
-                    "degraded",
-                    current_snapshot.id,
-                    False,
-                    False,
-                    reason=reason,
-                )
-            passes.append(result)
+        if self._cycle_mutation_resources is not None:
+            raise RuntimeError("nested Heart cycles are not allowed")
+        self._cycle_mutation_resources = set()
+        try:
+            previous = self.store.latest_world_snapshot()
+            snapshot = self.observe_connected_world(refresh_targets=refresh_targets)
+            self._recover_dispatch_attempts(snapshot)
+            self._import_experience(snapshot)
+            self._advance_learning(snapshot)
+            due_wakes = self.store.due_wakes(self._clock().isoformat())
+            passes: list[WorldPassV2] = []
+            current_snapshot = self.store.latest_world_snapshot() or snapshot
+            autonomy_handled = self.autonomy.evaluate_cycle(previous, current_snapshot)
             current_snapshot = self.store.latest_world_snapshot() or current_snapshot
-            previous = current_snapshot
-        self.store.mark_wakes_handled(tuple(str(item["id"]) for item in due_wakes))
-        self.notify_lifecycle_observers()
-        return tuple(passes)
+            for goal in self.store.live_goals():
+                if goal.id in autonomy_handled:
+                    continue
+                try:
+                    result = self.run_once(
+                        goal.id,
+                        snapshot=current_snapshot,
+                        previous_snapshot=previous,
+                    )
+                except Exception as exc:
+                    reason = f"isolated goal failure: {type(exc).__name__}: {exc}"
+                    self.store.append_event(
+                        goal.id,
+                        "goal_cycle_failed",
+                        "heart.v2",
+                        {"snapshot_id": current_snapshot.id, "reason": reason},
+                    )
+                    self.store.set_goal_status(goal.id, "degraded")
+                    result = WorldPassV2(
+                        goal.id,
+                        "degraded",
+                        current_snapshot.id,
+                        False,
+                        False,
+                        reason=reason,
+                    )
+                passes.append(result)
+                current_snapshot = self.store.latest_world_snapshot() or current_snapshot
+                previous = current_snapshot
+            self.store.mark_wakes_handled(tuple(str(item["id"]) for item in due_wakes))
+            self.notify_lifecycle_observers()
+            return tuple(passes)
+        finally:
+            self._cycle_mutation_resources = None
 
     def notify_lifecycle_observers(self) -> None:
         """Deliver new audit milestones without granting observers authority."""
@@ -1060,11 +1202,234 @@ class WorldHeartV2:
             raise ValueError("request is not bound to current world snapshot")
         if request.target_revision != int(snapshot.target_revisions.get(request.target_id, -1)):
             raise ValueError("request target revision is stale")
+        if request.autonomy_binding != proposal.autonomy_binding:
+            raise ValueError("controller changed or dropped autonomy binding")
         jsonschema.validate(request.parameters, capability.input_schema)
         for condition in (*capability.preconditions, *request.preconditions):
             result = evaluate_condition(condition, snapshot, selector={"entity_ids": [request.entity_id]})
             if result.value is not True:
                 raise ValueError(f"precondition is not true: {result.reason}")
+
+    def _prepare_dispatch_attempt(
+        self, request: Any, decision: Any, authorization: Any, capability: Any
+    ) -> DispatchAttemptV1:
+        now = self._clock()
+        if _datetime(authorization.expires_at) <= now:
+            raise PermissionError("authorization expired before dispatch")
+        if authorization.request_id != request.id or authorization.request_sha256 != request.sha256:
+            raise PermissionError("authorization is not bound to the exact request")
+        if (
+            decision.request_id != request.id
+            or decision.outcome is not PolicyOutcome.ALLOW
+            or authorization.policy_decision_id != decision.id
+            or authorization.mandate_id != decision.mandate_id
+        ):
+            raise PermissionError("authorization is not bound to the allowing policy decision")
+        if (
+            authorization.target_id != request.target_id
+            or authorization.entity_id != request.entity_id
+            or authorization.capability_id != request.capability_id
+            or authorization.snapshot_id != request.snapshot_id
+        ):
+            raise PermissionError("authorization scope differs from the exact request")
+        if authorization.autonomy_binding != request.autonomy_binding:
+            raise PermissionError("authorization changed or dropped autonomy binding")
+        if decision.autonomy_binding != request.autonomy_binding:
+            raise PermissionError("policy changed or dropped autonomy binding")
+        self._validate_dispatch_snapshot(request)
+        if request.autonomy_binding is not None:
+            self._validate_current_autonomy_binding(
+                request.autonomy_binding, request, capability, now
+            )
+        fencing_token = "embedded"
+        if self._dispatch_guard is not None:
+            fencing_token = str(self._dispatch_guard())
+        conflict_domain = capability.conflict_domain or capability.family
+        resource = (request.target_id, request.entity_id, conflict_domain)
+        if (
+            self._cycle_mutation_resources is not None
+            and resource in self._cycle_mutation_resources
+        ):
+            raise RuntimeError("resource already mutated in this Heart cycle")
+        for existing in self.store.dispatch_attempts(open_only=True):
+            if (
+                existing.target_id,
+                existing.entity_id,
+                existing.conflict_domain,
+            ) == (request.target_id, request.entity_id, conflict_domain):
+                raise RuntimeError(
+                    "resource is reserved by an unresolved dispatch attempt"
+                )
+        operation_key = artifact_sha256(
+            {
+                "request": request.to_dict(),
+                "authorization_id": authorization.id,
+                "conflict_domain": conflict_domain,
+            }
+        )
+        existing = self.store.dispatch_attempt_for_operation(operation_key)
+        if existing is not None:
+            raise RuntimeError("dispatch operation already has a durable attempt")
+        attempt = DispatchAttemptV1(
+            id="dispatch-attempt:" + uuid4().hex,
+            operation_key=operation_key,
+            request_id=request.id,
+            authorization_id=authorization.id,
+            target_id=request.target_id,
+            entity_id=request.entity_id,
+            conflict_domain=conflict_domain,
+            state=DispatchAttemptStateV1.PREPARED,
+            prepared_at=now.isoformat(),
+            autonomy_binding=request.autonomy_binding,
+            lease_fencing_token=fencing_token,
+            updated_at=now.isoformat(),
+        )
+        self.store.save_dispatch_attempt(attempt)
+        try:
+            final_boundary = self._clock()
+            if _datetime(authorization.expires_at) <= final_boundary:
+                raise PermissionError(
+                    "authorization expired after durable attempt and before I/O"
+                )
+            if request.autonomy_binding is not None:
+                self._validate_current_autonomy_binding(
+                    request.autonomy_binding,
+                    request,
+                    capability,
+                    final_boundary,
+                )
+            self._validate_dispatch_snapshot(request)
+            if self._dispatch_guard is not None:
+                self._dispatch_guard()
+        except Exception:
+            self.store.save_dispatch_attempt(
+                replace(
+                    attempt,
+                    state=DispatchAttemptStateV1.ABORTED_BEFORE_IO,
+                    updated_at=self._clock().isoformat(),
+                )
+            )
+            raise
+        if self._cycle_mutation_resources is not None:
+            self._cycle_mutation_resources.add(resource)
+        return attempt
+
+    def _validate_dispatch_snapshot(self, request: Any) -> None:
+        latest = self.store.latest_world_snapshot()
+        if (
+            latest is None
+            or latest.id != request.snapshot_id
+            or latest.revision != request.world_revision
+            or int(latest.target_revisions.get(request.target_id, -1))
+            != request.target_revision
+        ):
+            raise PermissionError("request observation became stale before dispatch")
+
+    def _validate_current_autonomy_binding(
+        self,
+        binding: AutonomyBindingV1,
+        request: Any,
+        capability: Any,
+        now: datetime,
+    ) -> None:
+        mode = self.store.autonomy_mode()
+        if mode["epoch"] != binding.mode_epoch or binding.mode is not mode["mode"]:
+            raise PermissionError("autonomy mode epoch changed before dispatch")
+        if mode["mode"] is AutonomyModeV1.SUPERVISED:
+            record = self.store.get_autonomy_binding(binding.evaluation_id)
+            if record["status"] is not AutonomyBindingStatusV1.APPROVED:
+                raise PermissionError("supervised dispatch requires durable owner approval")
+        elif mode["mode"] is not AutonomyModeV1.DELEGATED:
+            raise PermissionError("autonomy dispatch requires DELEGATED or approved SUPERVISED mode")
+        enrollment = self.store.get_autonomy_enrollment(binding.enrollment_id)
+        if not enrollment.enabled or enrollment.revision != binding.enrollment_revision:
+            raise PermissionError("autonomy enrollment changed or was revoked")
+        if _datetime(enrollment.expires_at) <= now:
+            raise PermissionError("autonomy enrollment expired before dispatch")
+        registered = self.registry.plugin(enrollment.plugin_id)
+        strategy = self.registry.autonomy_strategy(
+            enrollment.plugin_id, enrollment.strategy_id
+        )
+        if strategy is None:
+            raise PermissionError("autonomy strategy is no longer installed")
+        declared_strategy = next(
+            (
+                item
+                for item in registered.static_manifest.autonomy_strategies
+                if item.id == enrollment.strategy_id
+            ),
+            None,
+        )
+        if declared_strategy is None or strategy.spec.to_dict() != declared_strategy.to_dict():
+            raise PermissionError("loaded autonomy strategy differs from its manifest")
+        if (
+            registered.static_manifest.fingerprint != binding.manifest_fingerprint
+            or strategy.spec.fingerprint != binding.strategy_fingerprint
+            or enrollment.manifest_fingerprint != binding.manifest_fingerprint
+            or enrollment.strategy_fingerprint != binding.strategy_fingerprint
+        ):
+            raise PermissionError("autonomy fingerprints changed before dispatch")
+        evaluation = self.store.get_autonomy_evaluation(binding.evaluation_id)
+        if (
+            evaluation.enrollment_id != binding.enrollment_id
+            or evaluation.enrollment_revision != binding.enrollment_revision
+            or evaluation.mode is not binding.mode
+            or evaluation.mode_epoch != binding.mode_epoch
+            or evaluation.manifest_fingerprint != binding.manifest_fingerprint
+            or evaluation.strategy_fingerprint != binding.strategy_fingerprint
+            or evaluation.context.projection_sha256 != binding.context_fingerprint
+            or evaluation.context.current_snapshot_id != request.snapshot_id
+            or evaluation.context.current_world_revision != request.world_revision
+        ):
+            raise PermissionError("autonomy context fingerprint mismatch")
+        record = self.store.get_autonomy_binding(binding.evaluation_id)
+        if record["binding"] != binding:
+            raise PermissionError("durable autonomy binding differs from request")
+        if record["status"] is not AutonomyBindingStatusV1.APPROVED:
+            raise PermissionError("autonomy binding is not approved for dispatch")
+        if request.plugin_id != enrollment.plugin_id:
+            raise PermissionError("cross-plugin autonomy mutation is not allowed in v1")
+        if request.target_id not in enrollment.target_ids:
+            raise PermissionError("autonomy request target expands enrollment")
+        if request.entity_id not in enrollment.entity_ids:
+            raise PermissionError("autonomy request entity expands enrollment")
+        if request.capability_family not in enrollment.capability_families:
+            raise PermissionError("autonomy request capability expands enrollment")
+        if capability.risk_class not in {RiskClass.READ_ONLY, RiskClass.LOW}:
+            raise PermissionError("delegated risk cannot exceed low")
+        risk_rank = {RiskClass.READ_ONLY: 0, RiskClass.LOW: 1}
+        if risk_rank[capability.risk_class] > risk_rank[enrollment.risk_ceiling]:
+            raise PermissionError("autonomy request risk exceeds enrollment ceiling")
+        from .autonomy_v3 import _parameter_limits_error
+
+        limit_error = _parameter_limits_error(request.parameters, enrollment.limits)
+        if limit_error is not None:
+            raise PermissionError(limit_error)
+
+    def _recover_dispatch_attempts(self, snapshot: WorldSnapshotV2) -> None:
+        for attempt in self.store.dispatch_attempts(open_only=True):
+            if attempt.state is not DispatchAttemptStateV1.PREPARED:
+                continue
+            recovered = replace(
+                attempt,
+                state=DispatchAttemptStateV1.RECOVERY_REQUIRED,
+                updated_at=self._clock().isoformat(),
+            )
+            self.store.save_dispatch_attempt(recovered)
+            self.store.append_event(
+                None,
+                "dispatch_recovery_required",
+                "heart.v3",
+                {
+                    "attempt_id": attempt.id,
+                    "request_id": attempt.request_id,
+                    "target_id": attempt.target_id,
+                    "entity_id": attempt.entity_id,
+                    "conflict_domain": attempt.conflict_domain,
+                    "observed_snapshot_id": snapshot.id,
+                    "redispatched": False,
+                },
+            )
 
     @staticmethod
     def _validate_receipt(receipt: ExecutionReceiptV2, request: Any, authorization_id: str) -> None:

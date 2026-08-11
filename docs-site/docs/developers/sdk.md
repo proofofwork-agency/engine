@@ -8,7 +8,8 @@ sidebar_position: 3
 
 `engine-sdk` is the dependency-light public contract layer. A plugin does not
 need to import the Heart, SQLite store, model adapter, or runtime CLI. In this
-repository, contract version `engine.plugin/v2` is paired with Engine API 2.x.
+repository, contract version `engine.plugin/v3` is paired with Engine API 3.x;
+v2 remains supported for plugins without generic autonomy.
 
 Use the SDK from the uv workspace; this documentation does not claim that the
 packages are already available as public PyPI releases.
@@ -25,8 +26,9 @@ packages are already available as public PyPI releases.
 | cognition | `BrainDecisionV2`, `SpecialistAdviceV1`, `DecisionKindV2` | Typed, untrusted decision output |
 | learning | `PreferenceSpecV1`, `BehaviorSignalV1`, `BehaviorBatchV1`, `LearningCandidateV1` | Bounded preference evidence and promotion |
 | routines | `RoutineTemplateSpecV1`, `RoutineSpecV1`, `RoutineCandidateV1`, `AutonomyProfileV1` | Guards, shadow, approval, and exact delegated scope |
+| autonomy | `AutonomyModeV1`, `AutonomyStrategySpecV1`, `GoalTemplateSpecV1`, `AutonomyEnrollmentV2`, `AutonomyContextV1`, `AutonomyDecisionV1`, `AutonomyEvaluationV1`, `AutonomyBindingV1`, `DispatchAttemptV1`, `SuggestionV1` | Proposal-only strategy evaluation, exact enrollment, crash-safe dispatch intent, and inert suggestions |
 | lifecycle observation | `LifecycleEventV1`, `LifecycleObserver` | Plugin-declared, non-authoritative reaction to durable Engine milestones |
-| manifest | `PluginManifestV2`, `load_static_manifest`, `validate_manifest`, `compare_manifests` | Static enrollment and drift detection |
+| manifest | `PluginManifestV2`, `PluginManifestV3`, `load_static_manifest`, `validate_manifest`, `compare_manifests` | Static enrollment and drift detection |
 | conformance | `check_plugin` (root export) and additional helpers in `engine_sdk.conformance` | Dependency-light structural checks |
 
 All contract values are frozen dataclasses or enums. They are data; possession
@@ -44,8 +46,11 @@ of a `ProposedActionV1` does not grant execution rights.
 - `SpecialistBrainV2`
 - `ExperienceProvider`
 - `RoutineCompiler`
+- `AutonomyStrategy`
+- `GoalTemplateCompiler`
 - `LifecycleObserver`
 - `WorldPluginV2`
+- `WorldPluginV3`
 
 Structural typing keeps plugins independent of a concrete base class. At
 registration time, the runtime also checks identities and agreement with the
@@ -111,11 +116,12 @@ The validator checks, among other things:
 
 - a stable dotted lowercase plugin ID;
 - `engine_api` and the contract version;
-- unique capability, preference, and routine IDs;
+- unique capability, preference, routine, autonomy strategy, and goal template IDs;
 - plugin ownership of declarations;
 - preference and routine binding to a declared capability family;
 - the required experience provider and routine compiler;
 - provider + controller + executor + oracle for every mutating plugin;
+- explicit `[autonomy]`, exact strategy/compiler roles, and `conflict_domain` for v3 mutation;
 - a positive store schema version.
 
 The version range is stored as a declaration in this slice; there is no complete

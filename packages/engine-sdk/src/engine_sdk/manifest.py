@@ -9,12 +9,17 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from .models import (
+    AutonomyStrategySpecV1,
     CapabilitySpecV2,
+    CognitionRouteV1,
     ConditionV1,
     ContractError,
     ControlLayer,
+    GoalModeV2,
+    GoalTemplateSpecV1,
     InvocationModeV2,
     PluginManifestV2,
+    PluginManifestV3,
     PreferencePromotionMode,
     PreferenceSpecV1,
     PrivacyClass,
@@ -75,6 +80,10 @@ def manifest_from_dict(raw: Mapping[str, Any]) -> PluginManifestV2:
     declarations = _table(raw, "declarations", required=False)
     needs = _table(raw, "needs", required=False)
     store = _table(raw, "store", required=False)
+    contract_version = str(plugin.get("contract_version", ""))
+    if contract_version == "engine.plugin/v3" and "autonomy" not in raw:
+        raise ContractError("engine.plugin/v3 requires an [autonomy] table")
+    autonomy = _table(raw, "autonomy", required=False)
     capability_rows = raw.get("capability_families", [])
     if not isinstance(capability_rows, list):
         raise ContractError("capability_families must be an array of tables")
@@ -91,12 +100,34 @@ def manifest_from_dict(raw: Mapping[str, Any]) -> PluginManifestV2:
     routines = tuple(
         _routine(item, str(plugin.get("id", ""))) for item in routine_rows
     )
-    manifest = PluginManifestV2(
+    strategy_rows = raw.get("autonomy_strategies", [])
+    if not isinstance(strategy_rows, list):
+        raise ContractError("autonomy_strategies must be an array of tables")
+    strategies = tuple(
+        _autonomy_strategy(item, str(plugin.get("id", "")))
+        for item in strategy_rows
+    )
+    goal_template_rows = raw.get("goal_templates", [])
+    if not isinstance(goal_template_rows, list):
+        raise ContractError("goal_templates must be an array of tables")
+    goal_templates = tuple(
+        _goal_template(item, str(plugin.get("id", "")))
+        for item in goal_template_rows
+    )
+    declared_strategies = _strings(autonomy, "strategies")
+    if set(declared_strategies) != {item.id for item in strategies}:
+        raise ContractError("[autonomy].strategies must exactly match autonomy_strategies")
+    manifest_type = (
+        PluginManifestV3
+        if contract_version == "engine.plugin/v3"
+        else PluginManifestV2
+    )
+    manifest = manifest_type(
         id=str(plugin.get("id", "")),
         version=str(plugin.get("version", "")),
         engine_api=str(plugin.get("engine_api", "")),
         description=str(plugin.get("description", "")),
-        contract_version=str(plugin.get("contract_version", "")),
+        contract_version=contract_version,
         world_providers=_strings(declarations, "world_providers"),
         controllers=_strings(declarations, "controllers"),
         executors=_strings(declarations, "executors"),
@@ -111,6 +142,9 @@ def manifest_from_dict(raw: Mapping[str, Any]) -> PluginManifestV2:
         preference_specs=preferences,
         routine_compilers=_strings(declarations, "routine_compilers"),
         routine_templates=routines,
+        autonomy_strategies=strategies,
+        goal_template_compilers=_strings(autonomy, "goal_template_compilers"),
+        goal_templates=goal_templates,
         network_needs=_strings(needs, "network"),
         filesystem_needs=_strings(needs, "filesystem"),
         secret_needs=_strings(needs, "secrets"),
@@ -131,9 +165,11 @@ def validate_manifest(manifest: PluginManifestV2) -> None:
         not manifest.world_providers
         and not manifest.specialists
         and not manifest.lifecycle_observers
+        and not manifest.autonomy_strategies
     ):
         raise ContractError(
-            "plugin must declare a world provider, specialist or lifecycle observer"
+            "plugin must declare a world provider, specialist, lifecycle observer "
+            "or autonomy strategy"
         )
     if manifest.capabilities and not manifest.world_providers:
         raise ContractError("capability families require a world provider")
@@ -156,6 +192,23 @@ def validate_manifest(manifest: PluginManifestV2) -> None:
         raise ContractError("routine templates require a routine compiler")
     if manifest.routine_templates and not manifest.experience_providers:
         raise ContractError("routine templates require an experience provider")
+    for strategy in manifest.autonomy_strategies:
+        if strategy.plugin_id != manifest.id:
+            raise ContractError("autonomy strategy plugin_id must match plugin.id")
+        if not set(strategy.capability_families) <= declared_families:
+            raise ContractError("autonomy strategy capability family must be declared")
+        declared_goal_templates = {item.id for item in manifest.goal_templates}
+        if not set(strategy.goal_template_ids) <= declared_goal_templates:
+            raise ContractError("autonomy strategy references an unknown goal template")
+        if strategy.specialist_id and strategy.specialist_id not in manifest.specialists:
+            raise ContractError("autonomy strategy specialist_id must be declared")
+    for template in manifest.goal_templates:
+        if template.plugin_id != manifest.id:
+            raise ContractError("goal template plugin_id must match plugin.id")
+        if not set(template.capability_families) <= declared_families:
+            raise ContractError("goal template capability family must be declared")
+    if manifest.goal_templates and not manifest.goal_template_compilers:
+        raise ContractError("goal templates require a goal template compiler")
     actuating = [
         item for item in manifest.capabilities
         if item.control_layer is not ControlLayer.QUERY
@@ -164,6 +217,10 @@ def validate_manifest(manifest: PluginManifestV2) -> None:
         raise ContractError(
             "mutable capability families require controller, executor and effect oracle"
         )
+    if manifest.contract_version == "engine.plugin/v3" and any(
+        not item.conflict_domain for item in actuating
+    ):
+        raise ContractError("v3 mutable capability families require conflict_domain")
     if manifest.store_schema_version < 1:
         raise ContractError("store schema version must be positive")
 
@@ -177,6 +234,7 @@ def compare_manifests(
         "controllers", "executors", "effect_oracles", "specialists",
         "entity_types", "relation_types", "observation_types",
         "lifecycle_observers", "experience_providers", "routine_compilers",
+        "goal_template_compilers",
     )
     for name in exact_fields:
         if getattr(static, name) != getattr(loaded, name):
@@ -193,6 +251,14 @@ def compare_manifests(
     loaded_routines = {item.id: item.to_dict() for item in loaded.routine_templates}
     if static_routines != loaded_routines:
         mismatches.append("routines")
+    static_strategies = {item.id: item.to_dict() for item in static.autonomy_strategies}
+    loaded_strategies = {item.id: item.to_dict() for item in loaded.autonomy_strategies}
+    if static_strategies != loaded_strategies:
+        mismatches.append("autonomy_strategies")
+    static_templates = {item.id: item.to_dict() for item in static.goal_templates}
+    loaded_templates = {item.id: item.to_dict() for item in loaded.goal_templates}
+    if static_templates != loaded_templates:
+        mismatches.append("goal_templates")
     return tuple(mismatches)
 
 
@@ -222,6 +288,7 @@ def _capability(raw: object, plugin_id: str) -> CapabilitySpecV2:
         effect_measurements=tuple(str(item) for item in raw.get("effect_measurements", ())),
         recovery=str(raw.get("recovery", "observe_and_defer")),
         opaque=bool(raw.get("opaque", False)),
+        conflict_domain=str(raw.get("conflict_domain", "")),
     )
 
 
@@ -266,6 +333,48 @@ def _routine(raw: object, plugin_id: str) -> RoutineTemplateSpecV1:
             raw.get("minimum_shadow_agreement", 0.80)
         ),
         trigger_window_seconds=int(raw.get("trigger_window_seconds", 1800)),
+        description=str(raw.get("description", "")),
+    )
+
+
+def _autonomy_strategy(raw: object, plugin_id: str) -> AutonomyStrategySpecV1:
+    if not isinstance(raw, Mapping):
+        raise ContractError("autonomy strategy must be a table")
+    return AutonomyStrategySpecV1(
+        id=str(raw.get("id", "")),
+        plugin_id=plugin_id,
+        version=str(raw.get("version", "1.0.0")),
+        cognition_route=CognitionRouteV1(
+            str(raw.get("cognition_route", CognitionRouteV1.DETERMINISTIC.value))
+        ),
+        capability_families=tuple(
+            str(item) for item in raw.get("capability_families", ())
+        ),
+        goal_template_ids=tuple(str(item) for item in raw.get("goal_template_ids", ())),
+        context_plugin_ids=tuple(str(item) for item in raw.get("context_plugin_ids", ())),
+        privacy_classes=tuple(
+            PrivacyClass(str(item)) for item in raw.get("privacy_classes", ())
+        ),
+        specialist_id=(str(raw["specialist_id"]) if raw.get("specialist_id") is not None else None),
+        description=str(raw.get("description", "")),
+    )
+
+
+def _goal_template(raw: object, plugin_id: str) -> GoalTemplateSpecV1:
+    if not isinstance(raw, Mapping):
+        raise ContractError("goal template must be a table")
+    for name in ("parameter_schema", "goal_schema"):
+        if not isinstance(raw.get(name, {}), Mapping):
+            raise ContractError(f"goal template {name} must be a table")
+    return GoalTemplateSpecV1(
+        id=str(raw.get("id", "")),
+        plugin_id=plugin_id,
+        version=str(raw.get("version", "1.0.0")),
+        mode=GoalModeV2(str(raw.get("mode", GoalModeV2.ACHIEVE.value))),
+        capability_families=tuple(str(item) for item in raw.get("capability_families", ())),
+        parameter_schema=dict(raw.get("parameter_schema", {})),
+        goal_schema=dict(raw.get("goal_schema", {})),
+        risk_class=RiskClass(str(raw.get("risk_class", RiskClass.LOW.value))),
         description=str(raw.get("description", "")),
     )
 

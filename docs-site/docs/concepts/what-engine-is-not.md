@@ -21,7 +21,10 @@ The difference is subtle but important:
 
 ## Not an “LLM plus tools” harness
 
-A tool call in a transcript is not yet an Engine action. In v2, model output first becomes a `ProposedActionV1`, then potentially an exact `ActionRequestV1`, a `PolicyDecisionV1`, an `AuthorizationV1`, an `ExecutionReceiptV2`, and only after fresh observation an `EffectDeltaV1`.
+A tool call in a transcript is not yet an Engine action. Model or v3 strategy
+output first becomes a `ProposedActionV1`, then potentially an exact
+`ActionRequestV1`, a `PolicyDecisionV1`, an `AuthorizationV1`, an
+`ExecutionReceiptV2`, and only after fresh observation an `EffectDeltaV1`.
 
 The model:
 

@@ -19,6 +19,12 @@ def check_plugin(plugin: WorldPluginV2) -> tuple[str, ...]:
     lifecycle_observers = tuple(getattr(plugin, "lifecycle_observers", ()))
     experience_providers = tuple(getattr(plugin, "experience_providers", ()))
     routine_compilers = tuple(getattr(plugin, "routine_compilers", ()))
+    autonomy_strategies = tuple(getattr(plugin, "autonomy_strategies", ()))
+    goal_template_compilers = tuple(
+        getattr(plugin, "goal_template_compilers", ())
+    )
+    if manifest.contract_version == "engine.plugin/v3":
+        _check_v3_roles(plugin, manifest, failures)
     if {str(item.id) for item in lifecycle_observers} != set(
         manifest.lifecycle_observers
     ):
@@ -48,6 +54,36 @@ def check_plugin(plugin: WorldPluginV2) -> tuple[str, ...]:
             failures.append(f"routine compiler {compiler.id} has wrong plugin_id")
         if not set(compiler.supported_templates) <= declared_templates:
             failures.append(f"routine compiler {compiler.id} exposes undeclared templates")
+    declared_strategies = {item.id: item for item in manifest.autonomy_strategies}
+    if {str(item.id) for item in autonomy_strategies} != set(declared_strategies):
+        failures.append("loaded autonomy strategies differ from manifest")
+    for strategy in autonomy_strategies:
+        if strategy.plugin_id != manifest.id:
+            failures.append(f"autonomy strategy {strategy.id} has wrong plugin_id")
+        declared = declared_strategies.get(str(strategy.id))
+        if declared is not None and strategy.spec.to_dict() != declared.to_dict():
+            failures.append(f"autonomy strategy {strategy.id} spec differs from manifest")
+    if {str(item.id) for item in goal_template_compilers} != set(
+        manifest.goal_template_compilers
+    ):
+        failures.append("loaded goal template compilers differ from manifest")
+    declared_goal_templates = {item.id for item in manifest.goal_templates}
+    compiled_goal_templates: list[str] = []
+    for compiler in goal_template_compilers:
+        if compiler.plugin_id != manifest.id:
+            failures.append(f"goal template compiler {compiler.id} has wrong plugin_id")
+        if not set(compiler.supported_templates) <= declared_goal_templates:
+            failures.append(
+                f"goal template compiler {compiler.id} exposes undeclared templates"
+            )
+        compiled_goal_templates.extend(str(item) for item in compiler.supported_templates)
+    if (
+        set(compiled_goal_templates) != declared_goal_templates
+        or len(compiled_goal_templates) != len(set(compiled_goal_templates))
+    ):
+        failures.append(
+            "goal template compilers must cover every declared template exactly once"
+        )
     if not plugin.providers and manifest.world_providers:
         failures.append("manifest declares providers but plugin loaded none")
     provider_targets: set[str] = set()
@@ -75,6 +111,29 @@ def check_plugin(plugin: WorldPluginV2) -> tuple[str, ...]:
                 f"provider exposes undeclared mutable families: {sorted(discovered - declared)}"
             )
     return tuple(failures)
+
+
+def _check_v3_roles(
+    plugin: WorldPluginV2,
+    manifest: PluginManifestV2,
+    failures: list[str],
+) -> None:
+    roles = (
+        ("world providers", tuple(plugin.providers), manifest.world_providers),
+        ("controllers", tuple(plugin.controllers), manifest.controllers),
+        ("executors", tuple(plugin.executors), manifest.executors),
+        ("effect oracles", tuple(plugin.oracles), manifest.effect_oracles),
+        ("specialists", tuple(plugin.specialists), manifest.specialists),
+    )
+    for label, loaded, declared in roles:
+        loaded_ids = tuple(str(getattr(item, "id", "")) for item in loaded)
+        if set(loaded_ids) != set(declared) or len(loaded_ids) != len(set(loaded_ids)):
+            failures.append(f"loaded {label} differ from manifest")
+        for item in loaded:
+            if getattr(item, "plugin_id", None) != manifest.id:
+                failures.append(
+                    f"{label.removesuffix('s')} {getattr(item, 'id', '')} has wrong plugin_id"
+                )
 
 
 def assert_authorization_matches(

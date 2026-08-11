@@ -5,7 +5,7 @@
 > Positionering: `docs/POSITIONING.md`. Concurrentie: `threath.md`.  
 > Datum: 2026-08-10.
 
-> Canonieke-padcorrectie: Engine v2 is de productie-route. De generieke
+> Canonieke-padcorrectie: de v2-actielifecycle plus `engine.plugin/v3` is de productie-route. De generieke
 > `engine-runtime` runner en de pluginneutrale learning-lifecycle vormen samen
 > de afgeronde verticale softwaretranche; de resterende beslissende gate is de
 > vooraf begrensde fysieke Homey-proef met onafhankelijke lux- en wattmeting.
@@ -72,7 +72,8 @@ en herstel, maar gelden niet als fysiek bewijs.
 | Learning | ADR-0004: optionele `ExperienceProvider` → durable evidence → candidate → shadow → nieuwe `GoalSpec`-versie |
 | General brain | deterministic voor bekende stabiele situaties; ieder OpenAI-compatibel model alleen bij novelty, conflict of ambiguïteit |
 
-Nieuwe features gaan uitsluitend via v2-contracten. Een derde wereld wordt
+Nieuwe action-lifecycle features gaan via de v2-contracten; pluginautonomie gaat
+uitsluitend via `engine.plugin/v3`. Een derde wereld wordt
 toegevoegd door installatie, manifest en protocollen, zonder wijziging aan
 Heart of runtime.
 
@@ -97,6 +98,8 @@ Heart of runtime.
 ### Week 1 anti-patterns
 
 - Domeinsemantiek aan Heart of runtime toevoegen in plaats van aan een plugin.
+- Een plugin, model of Cell een vrije agentloop, eigen permissions of direct
+  executor-/toolgebruik geven.
 - “Improving” policy/auth instead of oracle/restart tests.
 - Rewriting `GOAL.md`.
 
@@ -150,6 +153,27 @@ Heart of runtime.
 | 30 | Retrospective: what was cut, what OpenClaw-creep was refused, next 30d hypothesis | Short note |
 
 **Exit:** 0.1 sealed or honest fail with cuts.
+
+## Autonomy v3 vervolgvolgorde
+
+De owner-volgorde na deze generieke softwaretranche is:
+
+1. runtime authority, lease-fencing, crash recovery en resource-reservering
+   blijven hardenen;
+2. `engine.plugin/v3` en de generieke autonomycontracten stabiel houden;
+3. de reference-world closed loop als deterministische referentie onderhouden;
+4. iedere ingebouwde plugin exact v3-conform houden, ook met lege autonomyrollen;
+5. pas daarna live pluginrollouts en fysieke claims uitbreiden.
+
+Provider-subscriptions, eventbronnen en executorworkers blijven toegestaan als
+Heart hun lifecycle bezit en zij niet zelf doelen of acties kiezen. Hogere
+risicoklassen, overlappende enrollment-arbitrage, Engine-owned cross-plugin
+workflows, procesisolatie en meerdere cognition-hops vereisen nieuw ownerbesluit,
+ADR en bewijs.
+
+Engine Cell blijft post-autonomy: eerst een gemeten tekort van een
+deterministische/klassieke baseline, daarna één lokale runner, held-out
+evaluatie, resource envelope, specialistadapter en authorityloze shadow.
 
 ---
 

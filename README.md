@@ -20,7 +20,7 @@ chat or API      model/planner     durable     software, home,
 
 The boundaries between these layers are deliberate. An interaction product can collect intent. A general model, classical planner, or specialist can propose a next step. Engine determines whether the exact action is valid and authorized against a fresh view of the world. The target-specific executor and controller perform it.
 
-> **Status:** experimental. The v2 contracts, SDK, runtime, reference world, context plugin, and bounded ntfy lifecycle observer are **Implemented**; their closed software loops and the Homey mutation path are **Fake/simulation-tested**. Homey observation is also **Live read-only**. This is not a production platform, a safety certification, or evidence of broad physical autonomy.
+> **Status:** experimental. The v2 action lifecycle and `engine.plugin/v3` autonomy contracts, SDK, runtime, reference world, context plugin, and bounded ntfy lifecycle observer are **Implemented**; the generic autonomy route is **Fake/simulation-tested** with two semantically different plugins. Homey observation is also **Live read-only**. This is not a production platform, a safety certification, or evidence of broad physical autonomy.
 
 ## A living cycle, not a longer model session
 
@@ -62,7 +62,8 @@ ENGINE
     ├── domain controllers and executors
     ├── effect oracles
     ├── optional experience and routine providers
-    └── optional lifecycle observers
+    ├── optional lifecycle observers
+    └── proposal-only autonomy strategies and typed goal templates
 ```
 
 The general executive chooses the next cognitive step. Specialists provide bounded domain advice. A Claude model, GPT model, local model, or classical planner could fill a brain role behind the relevant typed interface; none becomes operational state or authority by doing so. The current runtime selects exactly one active general executive. It does not implement a council, vote, swarm, or automatic multi-model failover. Multiple plugins, targets, and specialists are supported.
@@ -121,7 +122,7 @@ Run the deterministic test suite:
 uv run --with pytest pytest -q
 ```
 
-The publication gate for this repository is `138 passed, 2 skipped, 34 subtests passed`. The skips are explicitly configured live-model canaries; core correctness does not require a live model.
+The current publication gate for this repository is `163 passed, 2 skipped, 34 subtests passed`. The skips are explicitly configured live-model canaries; core correctness does not require a live model.
 
 ## Create a plugin
 
@@ -145,7 +146,35 @@ Templates:
 - `specialist`: a bounded specialist brain only;
 - `full`: world plus specialist.
 
-A v2 plugin provides a static `engine-plugin.toml` and a Python entry point in the `engine.plugins` group. Dynamically discovered but undeclared capabilities become opaque/read-only; Engine does not trust them for mutation.
+A v3 plugin provides a static `engine-plugin.toml`, including an explicit
+`[autonomy]` table, and a Python entry point in the `engine.plugins` group. It
+may declare proposal-only strategies and typed goal templates. A v2 plugin
+without autonomy remains loadable. Dynamically discovered but undeclared
+capabilities become opaque/read-only; Engine does not trust them for mutation.
+
+Generic autonomy is opt-in twice: select a mode and create an exact enrollment.
+Delegated mode by itself grants no target or capability scope:
+
+```bash
+engine autonomy strategies list
+engine autonomy mode observe
+engine autonomy enroll \
+  --plugin engine.reference-world \
+  --strategy warehouse.reserve-maintainer/v1 \
+  --target engine.reference-world.warehouse \
+  --entity warehouse:bin:reserve \
+  --capability warehouse.transfer-bin \
+  --template warehouse.reserve-minimum/v1 \
+  --instantiate-goal-templates \
+  --limits '{"reserve_minimum_count": 8}'
+engine autonomy status
+```
+
+`OBSERVE` is real shadow evaluation with zero dispatch. `SUPERVISED` requires
+approval after fresh re-observation and strategy revalidation. `DELEGATED`
+admits only enabled, exact, low-risk enrollments. `PAUSED` starts no new
+strategy, brain, or dispatch work while observation, learning, and recovery
+continue. `engine yolo` is only a global mode alias and creates no enrollment.
 
 The optional `engine.ntfy` plugin publishes a deliberately narrow set of
 durable lifecycle milestones: a GoalSpec was added, a learning or routine
@@ -167,6 +196,10 @@ engine run
 engine status [--json]
 engine learning status|correct|rollback
 engine routines list|inspect|approve|reject|rollback
+engine autonomy mode|status
+engine autonomy strategies list|inspect
+engine autonomy enroll|list|inspect|disable
+engine autonomy proposals list|inspect|approve|reject
 engine yolo enable|status|disable
 engine model canary
 ```
@@ -194,6 +227,7 @@ Documentation includes:
 - [what Engine is](docs-site/docs/concepts/what-is-engine.md) and [what it is not](docs-site/docs/concepts/what-engine-is-not.md);
 - [Heart and brains](docs-site/docs/concepts/heart-and-brains.md);
 - [all modes and state machines](docs-site/docs/concepts/modes.md);
+- [generic plugin autonomy](docs-site/docs/concepts/plugin-autonomy.md);
 - [how Engine learns—and how it does not](docs-site/docs/concepts/learning.md);
 - [plugin interface, SDK, and CLI](docs-site/docs/developers/plugin-interface.md);
 - [an honest comparison with other projects](docs-site/docs/reference/comparison.md);

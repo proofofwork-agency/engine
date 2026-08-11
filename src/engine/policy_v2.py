@@ -104,6 +104,7 @@ class MandatePolicyV1:
             snapshot_id=request.snapshot_id,
             issued_at=datetime.now(UTC).isoformat(),
             expires_at=min(request_deadline, mandate_deadline).isoformat(),
+            autonomy_binding=request.autonomy_binding,
         )
 
     def _decision(
@@ -120,6 +121,7 @@ class MandatePolicyV1:
             reasons=reasons,
             policy_version=self.version,
             mandate_id=mandate_id,
+            autonomy_binding=request.autonomy_binding,
         )
 
 
@@ -150,4 +152,3 @@ def _limits_error(
         if limits.get("max") is not None and value > limits["max"]:
             return f"parameter {name} exceeds enrolled maximum"
     return None
-

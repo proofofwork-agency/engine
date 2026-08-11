@@ -1,22 +1,26 @@
 ---
-title: Plugin interface v2
-description: The static manifest, runtime protocols, and boundary between world semantics and Engine.
+title: Plugin interface v3
+description: Static manifests, world and autonomy protocols, and the boundary between plugin semantics and Engine.
 sidebar_position: 2
 ---
 
-# Plugin interface v2
+# Plugin interface v3
 
-`engine.plugin/v2` is the public boundary between Engine and a world. A plugin
+`engine.plugin/v3` is the current public boundary between Engine and a world. A plugin
 may observe one or more targets and provide typed capabilities, controllers,
 executors, effect oracles, specialists, experience providers, and bounded
-lifecycle observers. Engine remains
+lifecycle observers. It may also provide proposal-only autonomy strategies and
+typed goal templates. Engine remains
 responsible for the generic lifecycle, policy, authorization, and audit.
+
+V3 extends the v2 action lifecycle. A v2 plugin with no autonomy roles remains
+loadable, but only a v3 plugin can be generically enrolled.
 
 A plugin always has two sides:
 
 1. a static `engine-plugin.toml`, readable before import;
 2. a Python factory in the `engine.plugins` entry point group that returns an
-   object with the `WorldPluginV2` surface.
+   object with the `WorldPluginV3` surface.
 
 Import and factory invocation should be inert: do not connect, mutate a target,
 or start a background process. Connections begin only in an explicit provider
@@ -36,6 +40,12 @@ compares the static manifest with `plugin.manifest`. A mismatch in identity,
 roles, capabilities, preferences, or routines blocks registration. Duplicate
 plugin and target IDs are also rejected.
 
+Every loaded v3 provider, controller, executor, oracle, and specialist exposes a
+stable `id` plus the owning `plugin_id`. The loaded IDs must cover their static
+declaration exactly once. The same exact-coverage rule applies to observers,
+experience providers, routine compilers, autonomy strategies, and goal-template
+compilers.
+
 Engine does not currently have a marketplace. Installation and distribution
 choices use normal Python packaging and remain under local operator control.
 
@@ -47,8 +57,8 @@ A mutating capability needs more information than a tool name:
 [plugin]
 id = "example.warehouse"
 version = "0.1.0"
-engine_api = ">=2.0,<3"
-contract_version = "engine.plugin/v2"
+engine_api = ">=3.0,<4"
+contract_version = "engine.plugin/v3"
 description = "Bounded warehouse world"
 
 [declarations]
@@ -63,6 +73,10 @@ relation_types = []
 observation_types = ["bin.count"]
 experience_providers = []
 routine_compilers = []
+
+[autonomy]
+strategies = []
+goal_template_compilers = []
 
 [needs]
 network = []
@@ -90,6 +104,7 @@ effect_schema = {type = "object", required = ["minimum_count"]}
 effect_measurements = ["bin.count"]
 limits = {count = {min = 1, max = 10}}
 recovery = "poll_task_then_observe"
+conflict_domain = "warehouse.inventory"
 ```
 
 The manifest declares needs; it does not enforce those needs by itself. The
@@ -139,6 +154,26 @@ A specialist declares supported capability families and returns typed
 `SpecialistAdviceV1`. It may provide a proposal, but cannot authorize, dispatch,
 or establish its own success.
 
+### `AutonomyStrategy`
+
+A v3 strategy receives only a bounded `AutonomyContextV1` and returns one
+proposal-only `AutonomyDecisionV1`. It has no executor, policy, authorization,
+model, registry, or plugin handle and cannot start its own loop. Its only
+decisions are `NOOP`, `DEFER`, `PROPOSE_EFFECT`, `PROPOSE_GOAL_CANDIDATE`,
+`REQUEST_EXECUTIVE`, and `REQUEST_SPECIALIST`.
+
+The static `AutonomyStrategySpecV1` declares exact capability, template,
+context/privacy, cognition-route, and specialist needs. Static and runtime
+strategy declarations must match exactly.
+
+### `GoalTemplateCompiler`
+
+A compiler turns a `GoalCandidateV1` naming a declared `GoalTemplateSpecV1`
+into inert `GoalSpecV2` data. Heart checks the result against the enrollment and
+template, creates any exact mandate, and runs the normal action lifecycle. The
+compiler cannot authorize or dispatch, and the first release permits exactly
+one desired effect per compiled goal.
+
 ### `ExperienceProvider`
 
 An experience provider publishes cursor-based `BehaviorBatchV1` values from
@@ -180,7 +215,8 @@ families can enter the mutating path. An unknown family is projected as
 device therefore cannot create new authority automatically.
 
 For mutating capabilities, the manifest validator requires at least a provider,
-controller, executor, and effect oracle. A v1 plugin may remain visible through
+controller, executor, effect oracle, and in v3 a non-empty `conflict_domain`.
+A v1 plugin may remain visible through
 the compatibility bridge, but is observe-only in the v2 world runtime.
 
 ## Mutation lifecycle
@@ -216,6 +252,7 @@ runs the generated `unittest` suite. `engine_sdk.check_plugin()` checks identiti
 duplicate targets, provider observations, declarations, and undeclared families,
 among other structural properties.
 
-That proves contract shape and fake behavior. It does not prove network
+V3 conformance also checks exact strategy/template/compiler roles at static and
+runtime boundaries. That proves contract shape and fake behavior. It does not prove network
 isolation, artifact signing, a physical safe state, timing guarantees, or
 certification.

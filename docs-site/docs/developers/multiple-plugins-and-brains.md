@@ -34,6 +34,12 @@ Plugins may not share a target ID. Registration fails if two plugins claim the
 same target. An entity ID must likewise be stable and canonical; free-form names
 or embeddings are not persistence keys.
 
+An autonomy enrollment may project explicitly listed context from another
+plugin, but its strategy can propose mutations only through capabilities owned
+by its own plugin. Overlapping `(target, entity, conflict_domain)` enrollments
+are rejected in the first release. This is context composition, not shared
+authority or a cross-plugin workflow engine.
+
 ## Current executive selection
 
 Without model configuration, `engine-runtime` composes:

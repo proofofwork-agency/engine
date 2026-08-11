@@ -10,7 +10,7 @@ Engine is a local-first runtime that connects persistent goals to typed observat
 
 > **Status labels used in this documentation**
 >
-> - **Implemented** — present in the current v2 code and public contracts.
+> - **Implemented** — present in the current action lifecycle and v3 plugin contracts.
 > - **Fake/simulation-tested** — proven through automation or preserved experiments, but not automatically proven on real hardware.
 > - **Live read-only** — observed against a real target without mutation.
 > - **Roadmap** — direction or hypothesis; do not present it as a current product capability.
@@ -61,13 +61,13 @@ When the desired world is demonstrably true, a maintained goal becomes quiet. Wh
 | **Heart** | Keeps goals, world state, attention, cycles, experience, and recovery alive | **Implemented** |
 | **General brain** | Selects the next cognitive step, specialist, or semantic effect | **Implemented**: deterministic or model-backed |
 | **Specialist brains** | Provide bounded, domain-specific advice and optionally a typed proposal | **Implemented**; multiple specialists can be registered at once |
-| **World plugins** | Observe targets and translate Engine contracts into domain-specific semantics | **Implemented** through `engine.plugin/v2` |
+| **World plugins** | Observe targets, provide domain semantics, and optionally provide proposal-only autonomy | **Implemented** through `engine.plugin/v3`; v2 remains compatible without autonomy |
 | **Policy and authorization** | Decide outside every brain whether an exact request may execute | **Implemented** as deny-by-default mandate policy |
 | **Executor and effect oracle** | Execute an authorized request and verify its effect against fresh state | **Implemented** |
 | **Learning/routines** | Process explicit corrections and bounded behavior signals without expanding authority | **Implemented**, primarily **Fake/simulation-tested** |
 | **Hard-realtime controller and safety hardware** | Enforce timing, interlocks, watchdogs, and physical limits | Belongs to the target; **not** the deliberative Heart loop |
 
-Read [Heart and brains](./heart-and-brains.md) for the exact division of responsibility and [Architecture](./architecture.md) for the full v2 chain.
+Read [Heart and brains](./heart-and-brains.md) for the exact division of responsibility, [Architecture](./architecture.md) for the mutation chain, and [Generic plugin autonomy](./plugin-autonomy.md) for modes and enrollment.
 
 ## Two kinds of goals
 
@@ -126,7 +126,7 @@ Plugins may also register specialist brains. Every brain produces untrusted, typ
 - durably record the complete proposal-to-effect lifecycle;
 - handle immediate actions and durable tasks with polling, cancellation, and restart;
 - process explicit preference corrections and bounded routine/preference candidates;
-- scaffold new v2 plugins with the SDK and discover them through entry points.
+- scaffold new v3 plugins with the SDK and discover them through entry points.
 
 ### It cannot yet claim broadly
 

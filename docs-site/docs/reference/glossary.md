@@ -11,6 +11,29 @@ prediction/observation, and state/weights must not be used as synonyms.
 
 ## A
 
+### Autonomy binding
+
+`AutonomyBindingV1`: immutable mode epoch, enrollment revision, evaluation,
+context, and artifact fingerprints carried by proposal, request, policy, and
+authorization. It preserves provenance but is not authority by itself.
+
+### Autonomy enrollment
+
+`AutonomyEnrollmentV2`: exact owner-created scope for a v3 strategy, templates,
+privileges, targets, entities, capabilities, context/privacy, cognition route,
+risk, limits, budget, expiry, and fingerprints. Wildcards and overlapping
+resources are forbidden in the first release.
+
+### Autonomy mode
+
+Global `AutonomyModeV1`: `observe`, `supervised`, `delegated`, or `paused`.
+Mode grants no scope without an enabled enrollment.
+
+### Autonomy strategy
+
+Proposal-only v3 plugin role evaluated by Heart from `AutonomyContextV1`. It
+cannot authorize, dispatch, start a loop, or own executor/model/registry handles.
+
 ### `ACHIEVE`
 
 Goal mode in which a goal becomes `completed` after its fulfilment has been
@@ -37,10 +60,9 @@ capability, limits, snapshot, mandate, and policy decision.
 
 ### `AutonomyProfileV1`
 
-Low-risk delegation that the owner has activated explicitly for exact entities,
-capability families, routine templates, and limits. In the current first tranche,
-this is specific to Homey lighting. The profile is not a general “anything goes”
-mode.
+Legacy Homey-specific low-risk routine-delegation record. It remains typed audit
+and compatibility data but does not grant generic v3 authority. New generic
+scope uses `AutonomyEnrollmentV2`; `yolo` creates no profile.
 
 ## B
 
@@ -159,6 +181,16 @@ layer as current state, model weights, or temporary context.
 `GoalSpecV2`: declarative desired result with scope, desired effects,
 preferences, constraints, budgets, stop conditions, mode, and mandate binding.
 
+### Goal candidate
+
+`GoalCandidateV1`: non-authoritative request to instantiate one statically
+declared goal template inside exact enrollment scope. It is not a free GoalSpec.
+
+### Goal template
+
+`GoalTemplateSpecV1`: versioned typed executable-goal schema owned by a v3
+plugin. Its inert compiler cannot mint a mandate or authorization.
+
 ## H
 
 ### Heart
@@ -175,6 +207,13 @@ data. The Heart is not an LLM or a hard-realtime controller.
 Key that allows a target or executor to recognize that the same logical request
 has been submitted again. This requires honest target semantics; the field alone
 does not make a non-idempotent physical action safe.
+
+### Dispatch attempt
+
+`DispatchAttemptV1`: durable pre-I/O record with a stable operation key,
+resource identity, lease fence, authorization expiry, and optional autonomy
+binding. An ambiguous prepared attempt is observed/reconciled after restart and
+is never blindly redispatched.
 
 ### Imagined state
 
@@ -243,9 +282,9 @@ family is installed and enrolled.
 
 ### Plugin
 
-Installable `engine.plugin/v2` package with a static manifest and runtime
-factory. A plugin owns domain semantics and adapters, not Engine's generic
-authority.
+Installable `engine.plugin/v3` package with a static manifest, explicit
+`[autonomy]`, and runtime factory. V2 remains loadable without generic autonomy.
+A plugin owns domain semantics and adapters, not Engine's generic authority.
 
 ### Policy decision
 
@@ -290,7 +329,13 @@ Engine does not assume that rollback or stop succeeded.
 
 Counterfactual evaluation phase without dispatch. A real opportunity exists only
 when the guard is true and the desired effect is demonstrably false; absence is
-not agreement.
+not agreement. In autonomy `OBSERVE`, shadow is a real persisted strategy
+evaluation that structurally cannot dispatch. Neither form grants authority.
+
+### Suggestion
+
+`SuggestionV1`: free-form, non-operational model output. It cannot create a
+mandate, goal, proposal, request, authorization, or dispatch.
 
 ### Specialist brain
 

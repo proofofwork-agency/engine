@@ -1,9 +1,14 @@
 # ADR-0006 — Owner-delegated low-risk routine authority
 
-- Status: accepted by explicit owner implementation direction
+- Status: superseded by ADR-0008
 - Date: 2026-08-10
 - Owner: project owner
 - Scope: persistent YOLO profile, derived mandates, revocation and Homey tranche
+
+This ADR records the earlier target-specific tranche. New authority is no longer
+created through this route: `yolo` is a global mode alias, and generic authority
+requires an exact `AutonomyEnrollmentV2`. Existing profile rows remain typed
+legacy audit and compatibility data.
 
 ## Context
 
@@ -84,4 +89,3 @@ unchanged. Candidate evidence remains available when YOLO is disabled.
 
 Disable is immediate and durable. Exact rollback records remain in candidate and
 routine state; audit receipts and negative shadow outcomes are retained.
-

@@ -11,8 +11,11 @@ from uuid import uuid4
 
 import jsonschema
 from engine_sdk import (
-    AutonomyProfileV1,
+    AutonomyEnrollmentV2,
+    AutonomyModeV1,
+    CognitionRouteV1,
     GoalSpecV2,
+    PrivacyClass,
     RiskClass,
     StandingMandateV1,
     canonical_data,
@@ -26,6 +29,7 @@ from engine import (
     WorldHeartV2,
     WorldStore,
 )
+from engine.autonomy_v3 import enrollment_resource_keys
 from engine.learning_v2 import BoundedPreferenceLearner
 
 from .discovery import load_registry
@@ -211,112 +215,208 @@ class EngineApplication:
             "autonomy_profiles": [
                 canonical_data(item) for item in self.store.autonomy_profiles()
             ],
+            "autonomy": self.autonomy_status(),
             "brain": self.heart.brain.id,
         }
 
-    def yolo_enable(
+    def autonomy_mode(self, mode: str) -> dict[str, Any]:
+        return canonical_data(
+            self.store.set_autonomy_mode(
+                AutonomyModeV1(mode),
+                changed_at=datetime.now(UTC).isoformat(),
+                changed_by="local-owner-cli",
+            )
+        )
+
+    def autonomy_status(self) -> dict[str, Any]:
+        mode = self.store.autonomy_mode()
+        return {
+            "mode": canonical_data(mode),
+            "enrollments": [
+                canonical_data(item) for item in self.store.autonomy_enrollments()
+            ],
+            "proposals": [
+                _binding_data(item) for item in self.store.autonomy_bindings()
+            ],
+            "evaluations": len(self.store.autonomy_evaluations()),
+            "dispatch_attempts": [
+                canonical_data(item) for item in self.store.dispatch_attempts()
+            ],
+            "legacy_profiles": [
+                canonical_data(item) for item in self.store.autonomy_profiles()
+            ],
+        }
+
+    def autonomy_strategies(self) -> tuple[Any, ...]:
+        return tuple(
+            item
+            for manifest in self.registry.manifests
+            for item in manifest.autonomy_strategies
+        )
+
+    def autonomy_strategy_inspect(self, strategy_id: str) -> Any:
+        strategy = next(
+            (item for item in self.autonomy_strategies() if item.id == strategy_id),
+            None,
+        )
+        if strategy is None:
+            raise KeyError(strategy_id)
+        return canonical_data(strategy)
+
+    def autonomy_enroll(
         self,
         *,
-        plugin_id: str = "engine.homey",
-        target_id: str | None = None,
-        entity_ids: tuple[str, ...] = (),
-        maximum_brightness: float = 0.70,
-        maximum_power_w: float = 20.0,
-    ) -> AutonomyProfileV1:
-        if plugin_id != "engine.homey":
-            raise PermissionError("the first autonomy profile supports engine.homey only")
+        plugin_id: str,
+        strategy_id: str,
+        target_ids: tuple[str, ...],
+        entity_ids: tuple[str, ...],
+        capability_families: tuple[str, ...],
+        goal_template_ids: tuple[str, ...] = (),
+        context_plugin_ids: tuple[str, ...] = (),
+        privacy_grants: tuple[str, ...] = (),
+        cognition_route: str | None = None,
+        risk_ceiling: str = "low",
+        limits: dict[str, Any] | None = None,
+        budget: dict[str, Any] | None = None,
+        expires_hours: float = 24.0,
+        control_existing_goals: bool = False,
+        instantiate_goal_templates: bool = False,
+        promote_proven_routines: bool = False,
+    ) -> AutonomyEnrollmentV2:
+        if expires_hours <= 0:
+            raise ValueError("autonomy enrollment expiry must be positive")
         snapshot = self.observe()
         registered = self.registry.plugin(plugin_id)
-        providers = tuple(
-            item for item in self.registry.providers if item.plugin_id == plugin_id
-        )
-        if target_id is None:
-            if len(providers) != 1:
-                raise ValueError("--target is required when a plugin has multiple targets")
-            target_id = providers[0].target_id
-        if target_id not in {item.target_id for item in providers}:
-            raise ValueError("selected target does not belong to the Homey plugin")
-        allowed_templates = {
-            "lighting.daily-off/v1",
-            "lighting.presence-dark-on/v1",
-            "lighting.presence-absent-off/v1",
-        }
-        declared = {item.id for item in registered.static_manifest.routine_templates}
-        if not allowed_templates <= declared:
-            raise RuntimeError("installed Homey manifest lacks the fixed lighting templates")
-        selected = tuple(dict.fromkeys(entity_ids))
-        if not selected:
-            controllable_zones = {
-                str(item.attributes["zone_entity_id"])
-                for item in snapshot.entities
-                if item.target_id == target_id
-                and item.entity_type == "homey.device"
-                and item.attributes.get("kind") == "light"
-                and item.attributes.get("control_allowed") is True
-                and isinstance(item.attributes.get("zone_entity_id"), str)
-            }
-            if len(controllable_zones) != 1:
-                raise ValueError(
-                    "select exact --entity zone ids; implicit enrollment is allowed only for one configured zone"
-                )
-            selected = tuple(sorted(controllable_zones))
-        observed = {
-            item.id for item in snapshot.entities
-            if item.target_id == target_id and item.entity_type == "homey.zone"
-        }
-        if not set(selected) <= observed:
-            raise ValueError("autonomy entity selection contains an unobserved Homey zone")
-        if any("*" in item or "?" in item or "[" in item for item in selected):
-            raise ValueError("autonomy entity selection must be exact")
-        if not 0 < maximum_brightness <= 1:
-            raise ValueError("maximum brightness must be in (0,1]")
-        if not 0 < maximum_power_w <= 20:
-            raise ValueError("maximum power cannot exceed 20 W")
-        if self.store.active_autonomy_profile(plugin_id, target_id) is not None:
-            raise ValueError("an autonomy profile is already active for this target")
-        now = datetime.now(UTC)
-        profile = AutonomyProfileV1(
-            id="autonomy:" + uuid4().hex,
-            plugin_id=plugin_id,
-            target_id=target_id,
-            entity_ids=tuple(sorted(selected)),
-            routine_template_ids=tuple(sorted(allowed_templates)),
-            capability_families=(
-                "homey.lighting.zone",
-                "homey.lighting.zone-state",
+        if registered.static_manifest.contract_version != "engine.plugin/v3":
+            raise ValueError("generic autonomy enrollment requires engine.plugin/v3")
+        strategy = self.registry.autonomy_strategy(plugin_id, strategy_id)
+        if strategy is None:
+            raise ValueError("unknown autonomy strategy")
+        declared_strategy = next(
+            (
+                item
+                for item in registered.static_manifest.autonomy_strategies
+                if item.id == strategy_id
             ),
-            risk_ceiling=RiskClass.LOW,
+            None,
+        )
+        if declared_strategy is None or strategy.spec.to_dict() != declared_strategy.to_dict():
+            raise ValueError("loaded autonomy strategy differs from its v3 manifest")
+        selected_targets = tuple(dict.fromkeys(target_ids))
+        selected_entities = tuple(dict.fromkeys(entity_ids))
+        selected_families = tuple(dict.fromkeys(capability_families))
+        selected_templates = tuple(dict.fromkeys(goal_template_ids))
+        selected_contexts = tuple(dict.fromkeys(context_plugin_ids))
+        selected_privacy = tuple(PrivacyClass(item) for item in privacy_grants)
+        plugin_targets = {
+            item.target_id for item in self.registry.providers if item.plugin_id == plugin_id
+        }
+        if not selected_targets or not set(selected_targets) <= plugin_targets:
+            raise ValueError("autonomy targets must be exact and plugin-owned")
+        entities = {item.id: item for item in snapshot.entities}
+        if not selected_entities or any(
+            item not in entities or entities[item].target_id not in selected_targets
+            for item in selected_entities
+        ):
+            raise ValueError("autonomy entities must be freshly observed in target scope")
+        if not selected_families or not set(selected_families) <= set(
+            strategy.spec.capability_families
+        ):
+            raise ValueError("autonomy capability scope expands strategy declaration")
+        capabilities = tuple(
+            self.registry.capability(target_id, family)
+            for target_id in selected_targets for family in selected_families
+        )
+        if any(item is None or item.plugin_id != plugin_id for item in capabilities):
+            raise ValueError("autonomy capability must exist on every selected target")
+        installed_plugins = {item.id for item in self.registry.manifests}
+        if not set(selected_contexts) <= set(strategy.spec.context_plugin_ids):
+            raise ValueError("autonomy context expands strategy declaration")
+        if not set(selected_contexts) <= installed_plugins:
+            raise ValueError("autonomy context plugin is not installed")
+        if not set(selected_privacy) <= set(strategy.spec.privacy_classes):
+            raise ValueError("autonomy privacy grant expands strategy declaration")
+        risk = RiskClass(risk_ceiling)
+        if risk not in {RiskClass.READ_ONLY, RiskClass.LOW}:
+            raise ValueError("delegated risk cannot exceed low")
+        risk_rank = {RiskClass.READ_ONLY: 0, RiskClass.LOW: 1}
+        if any(
+            item.risk_class not in risk_rank
+            or risk_rank[item.risk_class] > risk_rank[risk]
+            for item in capabilities
+            if item
+        ):
+            raise ValueError("selected capability exceeds delegated low risk")
+        manifest_templates = {
+            item.id: item for item in registered.static_manifest.goal_templates
+        }
+        if not set(selected_templates) <= set(strategy.spec.goal_template_ids):
+            raise ValueError("goal template scope expands strategy declaration")
+        if not set(selected_templates) <= set(manifest_templates):
+            raise ValueError("unknown goal template")
+        route = CognitionRouteV1(cognition_route or strategy.spec.cognition_route.value)
+        if route is not strategy.spec.cognition_route:
+            raise ValueError("enrollment cognition route must match strategy declaration")
+        now = datetime.now(UTC)
+        enrollment = AutonomyEnrollmentV2(
+            id="enrollment:" + uuid4().hex,
+            revision=1,
+            plugin_id=plugin_id,
+            strategy_id=strategy_id,
+            goal_template_ids=selected_templates,
+            target_ids=selected_targets,
+            entity_ids=selected_entities,
+            capability_families=selected_families,
+            context_plugin_ids=selected_contexts,
+            privacy_grants=selected_privacy,
+            cognition_route=route,
+            risk_ceiling=risk,
+            limits=dict(limits or {}),
+            budget=dict(budget or {}),
+            expires_at=(now + timedelta(hours=expires_hours)).isoformat(),
             manifest_fingerprint=registered.static_manifest.fingerprint,
-            limits={
-                "maximum_brightness": maximum_brightness,
-                "maximum_power_w": maximum_power_w,
-                "minimum_cooldown_seconds": 300,
-                "max_actions_per_zone_per_hour": 6,
-                "max_actions_total_per_hour": 30,
-                "parameters": {
-                    "brightness": {"max": maximum_brightness},
-                },
+            strategy_fingerprint=strategy.spec.fingerprint,
+            goal_template_fingerprints={
+                item: manifest_templates[item].fingerprint for item in selected_templates
             },
-            activated_at=now.isoformat(),
-            activated_by="local-owner-cli",
+            enrolled_at=now.isoformat(),
+            enrolled_by="local-owner-cli",
+            control_existing_goals=control_existing_goals,
+            instantiate_goal_templates=instantiate_goal_templates,
+            promote_proven_routines=promote_proven_routines,
         )
-        self.store.save_autonomy_profile(profile)
-        return profile
-
-    def yolo_status(self) -> tuple[AutonomyProfileV1, ...]:
-        return self.store.autonomy_profiles()
-
-    def yolo_disable(self, *, profile_id: str | None = None) -> tuple[AutonomyProfileV1, ...]:
-        active = self.store.autonomy_profiles(enabled_only=True)
-        if profile_id is not None:
-            active = tuple(item for item in active if item.id == profile_id)
-            if not active:
-                raise KeyError(profile_id)
-        now = datetime.now(UTC).isoformat()
-        return tuple(
-            self.store.disable_autonomy_profile(item.id, revoked_at=now)
-            for item in active
+        self.store.expire_autonomy_enrollments(boundary=now.isoformat())
+        self.store.save_autonomy_enrollment(
+            enrollment,
+            resource_keys=enrollment_resource_keys(self.registry, enrollment),
         )
+        return enrollment
+
+    def autonomy_enrollment_inspect(self, enrollment_id: str) -> Any:
+        return canonical_data(self.store.get_autonomy_enrollment(enrollment_id))
+
+    def autonomy_enrollment_disable(self, enrollment_id: str) -> AutonomyEnrollmentV2:
+        return self.store.disable_autonomy_enrollment(
+            enrollment_id, revoked_at=datetime.now(UTC).isoformat()
+        )
+
+    def autonomy_proposals(self) -> tuple[dict[str, Any], ...]:
+        return tuple(_binding_data(item) for item in self.store.autonomy_bindings())
+
+    def autonomy_proposal_inspect(self, evaluation_id: str) -> dict[str, Any]:
+        return _binding_data(self.store.get_autonomy_binding(evaluation_id))
+
+    def autonomy_proposal_approve(self, evaluation_id: str) -> Any:
+        return self.heart.autonomy.evaluate_for_approval(evaluation_id)
+
+    def autonomy_proposal_reject(self, evaluation_id: str, *, reason: str) -> Any:
+        return _binding_data(self.heart.autonomy.reject(evaluation_id, reason=reason))
+
+    def yolo_alias_enable(self) -> dict[str, Any]:
+        return self.autonomy_mode(AutonomyModeV1.DELEGATED.value)
+
+    def yolo_alias_disable(self) -> dict[str, Any]:
+        return self.autonomy_mode(AutonomyModeV1.PAUSED.value)
 
     def routines_list(self) -> dict[str, Any]:
         return {
@@ -398,7 +498,9 @@ class EngineApplication:
         return rolled_back
 
     def lease(self, *, on_lost: Any | None = None) -> RuntimeLease:
-        return RuntimeLease(self.config.store_path, on_lost=on_lost)
+        lease = RuntimeLease(self.config.store_path, on_lost=on_lost)
+        self.heart.set_dispatch_guard(lease.assert_current)
+        return lease
 
     def _configured_model(self) -> OpenAICompatibleV2Model | None:
         configured = (
@@ -460,3 +562,15 @@ def _schema_seed(schema: dict[str, Any]) -> Any:
             if key in properties
         }
     return None
+
+
+def _binding_data(value: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": value["status"].value,
+        "proposal_id": value["proposal_id"],
+        "decision": canonical_data(value["decision"]),
+        "binding": canonical_data(value["binding"]),
+        "reason": value["reason"],
+        "created_at": value["created_at"],
+        "updated_at": value["updated_at"],
+    }

@@ -39,6 +39,7 @@ def _world_files(
 
 class WarehouseSpecialist:
     id = PLUGIN_ID + ".warehouse-specialist/v1"
+    plugin_id = PLUGIN_ID
     supported_families = ("warehouse.transfer-bin",)
 
     def advise(self, goal, snapshot, request):
@@ -91,8 +92,8 @@ where = ["src"]
         "engine-plugin.toml": f'''[plugin]
 id = "{plugin_id}"
 version = "0.1.0"
-engine_api = ">=2.0,<3"
-contract_version = "engine.plugin/v2"
+engine_api = ">=3.0,<4"
+contract_version = "engine.plugin/v3"
 description = "Generated non-house warehouse reference world"
 
 [declarations]
@@ -105,6 +106,10 @@ entity_types = ["warehouse.grid", "warehouse.cell", "warehouse.bin"]
 relation_types = ["contains", "located_in"]
 observation_types = ["bin.count", "sensor.blocked"]
 experience_providers = ["warehouse-experience"]
+
+[autonomy]
+strategies = []
+goal_template_compilers = []
 
 [needs]
 network = []
@@ -129,6 +134,7 @@ idempotent = true
 deadline_ms = 5000
 effect_measurements = ["bin.count"]
 recovery = "poll_task_then_observe"
+conflict_domain = "warehouse.inventory"
 input_schema = {{type = "object", required = ["from", "to", "count"]}}
 effect_schema = {{type = "object", required = ["minimum_count"]}}
 limits = {{count = {{min = 1, max = 10}}}}
@@ -169,10 +175,12 @@ CAPABILITY = CapabilitySpecV2(
     risk_class=RiskClass.LOW, privacy_class=PrivacyClass.LOCAL,
     idempotent=True, deadline_ms=5000, limits={{"count": {{"min": 1, "max": 10}}}},
     effect_measurements=("bin.count",), recovery="poll_task_then_observe",
+    conflict_domain="warehouse.inventory",
 )
 
 
 class WarehouseProvider:
+    id = "warehouse"
     plugin_id = PLUGIN_ID
     target_id = TARGET_ID
     poll_interval_seconds = 1.0
@@ -248,6 +256,7 @@ class WarehouseExperienceProvider:
 
 
 class WarehouseController:
+    id = "warehouse-controller"
     plugin_id = PLUGIN_ID
     supported_families = ("warehouse.transfer-bin",)
 
@@ -272,6 +281,7 @@ class WarehouseController:
 
 
 class WarehouseExecutor:
+    id = "warehouse-executor"
     plugin_id = PLUGIN_ID
 
     def __init__(self, provider):
@@ -300,6 +310,7 @@ class WarehouseExecutor:
 
 
 class WarehouseOracle:
+    id = "warehouse-oracle"
     plugin_id = PLUGIN_ID
     supported_families = ("warehouse.transfer-bin",)
 
@@ -337,7 +348,7 @@ def load_plugin():
     provider = WarehouseProvider()
     return WarehousePlugin(
         PluginManifestV2(
-            id=PLUGIN_ID, version="0.1.0", engine_api=">=2.0,<3",
+            id=PLUGIN_ID, version="0.1.0", engine_api=">=3.0,<4",
             description="Generated non-house warehouse reference world",
             world_providers=("warehouse",), controllers=("warehouse-controller",),
             executors=("warehouse-executor",), effect_oracles=("warehouse-oracle",),
@@ -352,6 +363,7 @@ def load_plugin():
                 promotion_mode=__import__("engine_sdk").PreferencePromotionMode.SHADOW_LOW_RISK,
                 description="Preferred bounded reserve-bin target",
             ),), store_identity=PLUGIN_ID + ".store",
+            contract_version="engine.plugin/v3",
         ),
         (provider,), (WarehouseController(),), (WarehouseExecutor(provider),),
         (WarehouseOracle(),), {specialist_tuple}, (WarehouseExperienceProvider(provider),),
@@ -414,8 +426,8 @@ package-dir = {{"" = "src"}}
         "engine-plugin.toml": f'''[plugin]
 id = "{plugin_id}"
 version = "0.1.0"
-engine_api = ">=2.0,<3"
-contract_version = "engine.plugin/v2"
+engine_api = ">=3.0,<4"
+contract_version = "engine.plugin/v3"
 description = "Generated specialist-only plugin"
 
 [declarations]
@@ -428,6 +440,10 @@ entity_types = []
 relation_types = []
 observation_types = []
 experience_providers = []
+
+[autonomy]
+strategies = []
+goal_template_compilers = []
 
 [needs]
 network = []
@@ -446,6 +462,7 @@ from engine_sdk import PluginManifestV2, SpecialistAdviceV1
 
 class Specialist:
     id = "{plugin_id}.specialist/v1"
+    plugin_id = "{plugin_id}"
     supported_families = ()
 
     def advise(self, goal, snapshot, request):
@@ -466,12 +483,12 @@ class Plugin:
 
 def load_plugin():
     return Plugin(PluginManifestV2(
-        id="{plugin_id}", version="0.1.0", engine_api=">=2.0,<3",
+        id="{plugin_id}", version="0.1.0", engine_api=">=3.0,<4",
         description="Generated specialist-only plugin", world_providers=(),
         controllers=(), executors=(), effect_oracles=(),
         specialists=("{plugin_id}.specialist/v1",), entity_types=(),
         relation_types=(), observation_types=(), capabilities=(),
-        store_identity="{plugin_id}.store",
+        store_identity="{plugin_id}.store", contract_version="engine.plugin/v3",
     ))
 ''',
         "tests/test_conformance.py": f'''import unittest
@@ -482,5 +499,5 @@ class GeneratedPluginTest(unittest.TestCase):
     def test_plugin_conforms(self):
         self.assertEqual(check_plugin(load_plugin()), ())
 ''',
-        "README.md": f"# {name}\n\nGenerated Engine Plugin v2 specialist skeleton.\n",
+        "README.md": f"# {name}\n\nGenerated Engine Plugin v3 specialist skeleton.\n",
     }
