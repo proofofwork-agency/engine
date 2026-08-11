@@ -1163,6 +1163,7 @@ class WorldHeartV2:
             for provider in providers
         }
         passes = 0
+        crashed = False
         try:
             self._append_isolated_event(
                 "runtime_started",
@@ -1185,6 +1186,7 @@ class WorldHeartV2:
             consecutive_failures = 0
             failure_backoff = _FAILURE_BACKOFF_INITIAL_SECONDS
             circuit_event_recorded = False
+            durable_wake_failure_reported = False
             while not stop_event.is_set() and (max_passes is None or passes < max_passes):
                 boundary = self._clock()
                 if (
@@ -1242,10 +1244,29 @@ class WorldHeartV2:
                 with lock:
                     due.update(event_targets)
                     event_targets.clear()
-                next_durable_wake = self.store.next_wake_at()
+                try:
+                    next_durable_wake = self.store.next_wake_at()
+                    next_durable_wake_at = (
+                        _datetime(next_durable_wake)
+                        if next_durable_wake is not None
+                        else None
+                    )
+                except Exception as exc:
+                    if not durable_wake_failure_reported:
+                        durable_wake_failure_reported = self._append_isolated_event(
+                            "durable_wake_failed",
+                            "engine.runtime/v2",
+                            {
+                                "exception_type": type(exc).__name__,
+                                "message": str(exc),
+                            },
+                        )
+                    next_durable_wake_at = None
+                else:
+                    durable_wake_failure_reported = False
                 scheduled_due = (
-                    next_durable_wake is not None
-                    and _datetime(next_durable_wake) <= self._clock()
+                    next_durable_wake_at is not None
+                    and next_durable_wake_at <= self._clock()
                 )
                 if due or scheduled_due:
                     try:
@@ -1296,11 +1317,13 @@ class WorldHeartV2:
                     wake.clear()
                     continue
                 timeout = max(0.01, min(next_poll.values(), default=now + 1) - now)
-                next_wake = self.store.next_wake_at()
-                if next_wake is not None:
+                if next_durable_wake_at is not None:
                     timeout = min(
                         timeout,
-                        max(0.01, (_datetime(next_wake) - self._clock()).total_seconds()),
+                        max(
+                            0.01,
+                            (next_durable_wake_at - self._clock()).total_seconds(),
+                        ),
                     )
                 subscription_retries = tuple(
                     state.retry_at
@@ -1314,6 +1337,9 @@ class WorldHeartV2:
                     )
                 self._waiter(wake, min(timeout, 1.0))
             return passes
+        except BaseException:
+            crashed = True
+            raise
         finally:
             lease_was_lost = False
             if lease_lost is not None:
@@ -1328,7 +1354,9 @@ class WorldHeartV2:
                     {"passes": passes},
                 )
             stop_reason = (
-                "lease_lost"
+                "crashed"
+                if crashed
+                else "lease_lost"
                 if lease_was_lost
                 else "stop_requested"
                 if stop_event.is_set()

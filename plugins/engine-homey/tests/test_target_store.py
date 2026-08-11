@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import sqlite3
 import tempfile
 import unittest
 from dataclasses import replace
@@ -112,6 +115,166 @@ class TargetAndStoreTests(unittest.TestCase):
             list(range(history[-1].revision + 1)), [item.revision for item in history]
         )
         second_store.close()
+
+    def test_snapshot_bodies_are_compressed_and_storage_counters_are_durable(
+        self,
+    ) -> None:
+        database = self.base / "compressed-homeops.db"
+        state = {
+            "schema": "engine.homey.house-snapshot/v1",
+            "devices": [{"alias": "lamp", "padding": "x" * 4096}],
+        }
+        raw_body = json.dumps(
+            state, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        store = HomeOpsStore(database)
+
+        first = store.record_snapshot(state, "2026-08-11T00:00:00+00:00")
+        confirmed = store.record_snapshot(
+            state, "2026-08-11T00:00:30+00:00"
+        )
+        row = store._connection.execute(
+            "SELECT typeof(state_json) AS storage_type, state_json FROM snapshots"
+        ).fetchone()
+        assert row is not None
+        stored_body = bytes(row["state_json"])
+        status = store.snapshot_storage_status()
+
+        self.assertEqual("blob", row["storage_type"])
+        self.assertTrue(
+            stored_body.startswith(b"engine.homey.snapshot.zlib/v1\x00")
+        )
+        self.assertLess(len(stored_body), len(raw_body))
+        self.assertEqual(first.revision, confirmed.revision)
+        self.assertEqual(first, store.latest_snapshot())
+        self.assertEqual(1, status.rows)
+        self.assertEqual(len(stored_body), status.body_bytes)
+        self.assertGreater(status.database_bytes, 0)
+        self.assertEqual(
+            status.database_bytes + status.wal_bytes,
+            status.total_database_bytes,
+        )
+        self.assertEqual(
+            {
+                "snapshot_deduplications": 1,
+                "snapshot_raw_body_bytes_written": len(raw_body),
+                "snapshot_rows_written": 1,
+                "snapshot_stored_body_bytes_written": len(stored_body),
+            },
+            status.counters,
+        )
+        store.close()
+
+        restarted = HomeOpsStore(database)
+        self.assertEqual(first, restarted.latest_snapshot())
+        self.assertEqual(status.counters, restarted.snapshot_storage_status().counters)
+        restarted.close()
+
+    def test_legacy_text_snapshot_remains_readable_alongside_compressed_rows(
+        self,
+    ) -> None:
+        database = self.base / "legacy-homeops.db"
+        legacy_state = {"schema": "legacy", "value": 1}
+        legacy_body = json.dumps(
+            legacy_state, sort_keys=True, separators=(",", ":")
+        )
+        legacy_hash = hashlib.sha256(legacy_body.encode("utf-8")).hexdigest()
+        connection = sqlite3.connect(database)
+        connection.execute(
+            """
+            CREATE TABLE snapshots (
+                revision INTEGER PRIMARY KEY,
+                state_hash TEXT NOT NULL,
+                state_json TEXT NOT NULL,
+                observed_at TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO snapshots(
+                revision, state_hash, state_json, observed_at, created_at
+            ) VALUES(0, ?, ?, ?, ?)
+            """,
+            (
+                legacy_hash,
+                legacy_body,
+                "2026-08-11T00:00:00+00:00",
+                "2026-08-11T00:00:00+00:00",
+            ),
+        )
+        connection.commit()
+        connection.close()
+
+        store = HomeOpsStore(database)
+        self.assertEqual(legacy_state, store.latest_snapshot().state)
+        changed_state = {"schema": "legacy", "value": 2}
+        changed = store.record_snapshot(
+            changed_state, "2026-08-11T00:01:00+00:00"
+        )
+        rows = store._connection.execute(
+            "SELECT revision, typeof(state_json) AS storage_type FROM snapshots "
+            "ORDER BY revision"
+        ).fetchall()
+
+        self.assertEqual(1, changed.revision)
+        self.assertEqual([(0, "text"), (1, "blob")], [tuple(row) for row in rows])
+        self.assertEqual(
+            [legacy_state, changed_state],
+            [snapshot.state for snapshot in store.snapshot_history()],
+        )
+        store.close()
+
+    def test_snapshot_revision_stays_monotone_across_compressed_restart(self) -> None:
+        database = self.base / "restart-homeops.db"
+        first_state = {"schema": "snapshot", "value": 1}
+        first_store = HomeOpsStore(database)
+        first = first_store.record_snapshot(
+            first_state, "2026-08-11T00:00:00+00:00"
+        )
+        first_store.close()
+
+        restarted = HomeOpsStore(database)
+        same = restarted.record_snapshot(
+            first_state, "2026-08-11T00:00:30+00:00"
+        )
+        changed = restarted.record_snapshot(
+            {"schema": "snapshot", "value": 2},
+            "2026-08-11T00:01:00+00:00",
+        )
+
+        self.assertEqual(first.revision, same.revision)
+        self.assertEqual(first.revision + 1, changed.revision)
+        self.assertEqual(changed, restarted.latest_snapshot())
+        self.assertEqual(
+            [first.revision, changed.revision],
+            [item.revision for item in restarted.snapshot_history()],
+        )
+        restarted.close()
+
+    def test_snapshot_insert_rolls_back_when_counter_update_fails(self) -> None:
+        store = HomeOpsStore(self.base / "transactional-homeops.db")
+        store._connection.execute(
+            """
+            CREATE TRIGGER reject_snapshot_counter
+            BEFORE UPDATE ON snapshot_storage_counters_v1
+            BEGIN
+                SELECT RAISE(ABORT, 'counter update failed');
+            END
+            """
+        )
+        store._connection.commit()
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "counter update failed"):
+            store.record_snapshot(
+                {"schema": "snapshot", "value": 1},
+                "2026-08-11T00:00:00+00:00",
+            )
+
+        self.assertIsNone(store.latest_snapshot())
+        self.assertEqual(0, store.snapshot_storage_status().rows)
+        store.close()
 
     def test_provider_projection_revision_and_state_update_atomically(self) -> None:
         config = fixture_config(self.base, zone_count=1)

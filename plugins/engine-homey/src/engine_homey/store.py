@@ -5,10 +5,19 @@ import json
 import re
 import sqlite3
 import uuid
+import zlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+_SNAPSHOT_BODY_ZLIB_PREFIX = b"engine.homey.snapshot.zlib/v1\x00"
+_SNAPSHOT_STORAGE_COUNTER_NAMES = (
+    "snapshot_deduplications",
+    "snapshot_raw_body_bytes_written",
+    "snapshot_rows_written",
+    "snapshot_stored_body_bytes_written",
+)
 
 
 @dataclass(frozen=True)
@@ -26,6 +35,19 @@ class StoredProviderProjection:
     semantic_sha256: str
     presence_state: dict[str, Any]
     last_observed_at: str
+
+
+@dataclass(frozen=True)
+class SnapshotStorageStatus:
+    rows: int
+    body_bytes: int
+    database_bytes: int
+    wal_bytes: int
+    counters: dict[str, int]
+
+    @property
+    def total_database_bytes(self) -> int:
+        return self.database_bytes + self.wal_bytes
 
 
 class HomeOpsStore:
@@ -93,9 +115,20 @@ class HomeOpsStore:
                 last_observed_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS snapshot_storage_counters_v1 (
+                name TEXT PRIMARY KEY,
+                value INTEGER NOT NULL DEFAULT 0
+            );
             INSERT OR IGNORE INTO provider_revision_ledger(singleton, revision)
             VALUES(1, -1);
             """
+        )
+        self._connection.executemany(
+            """
+            INSERT OR IGNORE INTO snapshot_storage_counters_v1(name, value)
+            VALUES(?, 0)
+            """,
+            ((name,) for name in _SNAPSHOT_STORAGE_COUNTER_NAMES),
         )
         self._connection.commit()
 
@@ -249,21 +282,43 @@ class HomeOpsStore:
     def record_snapshot(
         self, state: dict[str, Any], observed_at: str
     ) -> StoredSnapshot:
-        encoded = _dump(state)
-        state_hash = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-        latest = self.latest_snapshot()
-        if latest is not None and latest.state_hash == state_hash:
-            return StoredSnapshot(latest.revision, state_hash, state, observed_at)
-        revision = 0 if latest is None else latest.revision + 1
-        self._connection.execute(
-            """
-            INSERT INTO snapshots (
-                revision, state_hash, state_json, observed_at, created_at
-            ) VALUES (?, ?, ?, ?, ?)
-            """,
-            (revision, state_hash, encoded, observed_at, _now()),
-        )
-        self._connection.commit()
+        raw_body = _dump(state).encode("utf-8")
+        state_hash = hashlib.sha256(raw_body).hexdigest()
+        stored_body = _encode_snapshot_body(raw_body)
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            row = self._connection.execute(
+                "SELECT * FROM snapshots ORDER BY revision DESC LIMIT 1"
+            ).fetchone()
+            latest = _stored_snapshot(row) if row is not None else None
+            if latest is not None and latest.state_hash == state_hash:
+                self._increment_snapshot_storage_counter(
+                    "snapshot_deduplications"
+                )
+                self._connection.commit()
+                return StoredSnapshot(
+                    latest.revision, state_hash, state, observed_at
+                )
+            revision = 0 if latest is None else latest.revision + 1
+            self._connection.execute(
+                """
+                INSERT INTO snapshots (
+                    revision, state_hash, state_json, observed_at, created_at
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (revision, state_hash, stored_body, observed_at, _now()),
+            )
+            self._increment_snapshot_storage_counter("snapshot_rows_written")
+            self._increment_snapshot_storage_counter(
+                "snapshot_raw_body_bytes_written", len(raw_body)
+            )
+            self._increment_snapshot_storage_counter(
+                "snapshot_stored_body_bytes_written", len(stored_body)
+            )
+            self._connection.commit()
+        except Exception:
+            self._connection.rollback()
+            raise
         return StoredSnapshot(revision, state_hash, state, observed_at)
 
     def latest_snapshot(self) -> StoredSnapshot | None:
@@ -272,26 +327,55 @@ class HomeOpsStore:
         ).fetchone()
         if row is None:
             return None
-        return StoredSnapshot(
-            revision=int(row["revision"]),
-            state_hash=str(row["state_hash"]),
-            state=json.loads(row["state_json"]),
-            observed_at=str(row["observed_at"]),
-        )
+        return _stored_snapshot(row)
 
     def snapshot_history(self) -> tuple[StoredSnapshot, ...]:
         rows = self._connection.execute(
             "SELECT * FROM snapshots ORDER BY revision"
         ).fetchall()
-        return tuple(
-            StoredSnapshot(
-                revision=int(row["revision"]),
-                state_hash=str(row["state_hash"]),
-                state=json.loads(row["state_json"]),
-                observed_at=str(row["observed_at"]),
-            )
-            for row in rows
+        return tuple(_stored_snapshot(row) for row in rows)
+
+    def snapshot_storage_status(self) -> SnapshotStorageStatus:
+        row = self._connection.execute(
+            """
+            SELECT COUNT(*) AS rows,
+                   COALESCE(SUM(length(state_json)), 0) AS body_bytes
+            FROM snapshots
+            """
+        ).fetchone()
+        assert row is not None
+        counters = {
+            str(item["name"]): int(item["value"])
+            for item in self._connection.execute(
+                """
+                SELECT name, value FROM snapshot_storage_counters_v1
+                ORDER BY name
+                """
+            ).fetchall()
+        }
+        wal_path = Path(f"{self.path}-wal")
+        return SnapshotStorageStatus(
+            rows=int(row["rows"]),
+            body_bytes=int(row["body_bytes"]),
+            database_bytes=self.path.stat().st_size,
+            wal_bytes=wal_path.stat().st_size if wal_path.exists() else 0,
+            counters=counters,
         )
+
+    def _increment_snapshot_storage_counter(
+        self, name: str, amount: int = 1
+    ) -> None:
+        if name not in _SNAPSHOT_STORAGE_COUNTER_NAMES:
+            raise ValueError(f"unknown snapshot storage counter: {name}")
+        cursor = self._connection.execute(
+            """
+            UPDATE snapshot_storage_counters_v1
+            SET value=value+? WHERE name=?
+            """,
+            (amount, name),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError(f"missing snapshot storage counter: {name}")
 
     def save_charter(
         self,
@@ -437,6 +521,42 @@ def _slug(value: str) -> str:
 
 def _dump(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _encode_snapshot_body(raw_body: bytes) -> bytes:
+    return _SNAPSHOT_BODY_ZLIB_PREFIX + zlib.compress(raw_body)
+
+
+def _decode_snapshot_body(value: Any) -> dict[str, Any]:
+    if isinstance(value, str):
+        raw_body = value.encode("utf-8")
+    elif isinstance(value, (bytes, bytearray, memoryview)):
+        raw_body = bytes(value)
+        if raw_body.startswith(_SNAPSHOT_BODY_ZLIB_PREFIX):
+            try:
+                raw_body = zlib.decompress(
+                    raw_body[len(_SNAPSHOT_BODY_ZLIB_PREFIX) :]
+                )
+            except zlib.error as exc:
+                raise ValueError("corrupt compressed Homey snapshot body") from exc
+    else:
+        raise ValueError("unsupported Homey snapshot body encoding")
+    try:
+        decoded = json.loads(raw_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("invalid Homey snapshot body") from exc
+    if not isinstance(decoded, dict):
+        raise ValueError("Homey snapshot body must be an object")
+    return decoded
+
+
+def _stored_snapshot(row: sqlite3.Row) -> StoredSnapshot:
+    return StoredSnapshot(
+        revision=int(row["revision"]),
+        state_hash=str(row["state_hash"]),
+        state=_decode_snapshot_body(row["state_json"]),
+        observed_at=str(row["observed_at"]),
+    )
 
 
 def _now() -> str:

@@ -259,6 +259,58 @@ class DaemonSurvivalTests(unittest.TestCase):
         self.assertEqual(1, len(stopped))
         self.assertEqual("lease_lost", stopped[0]["payload"]["reason"])
 
+    def test_escaping_loop_fault_is_recorded_as_crashed_before_reraising(
+        self,
+    ) -> None:
+        _, provider, store, heart = self._system()
+        provider.poll_interval_seconds = 30.0
+
+        with (
+            patch.object(
+                heart,
+                "_waiter",
+                side_effect=RuntimeError("fatal loop fixture"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "fatal loop fixture"),
+        ):
+            heart.run_forever(
+                threading.Event(), max_passes=2, lease_lost=lambda: True
+            )
+
+        stopped = self._events(store, "runtime_stopped")
+        self.assertEqual(1, len(stopped))
+        self.assertEqual(1, stopped[0]["payload"]["passes"])
+        self.assertEqual("crashed", stopped[0]["payload"]["reason"])
+        self.assertEqual(1, len(self._events(store, "runtime_lease_lost")))
+
+    def test_durable_wake_read_outages_degrade_to_polling_once_per_outage(
+        self,
+    ) -> None:
+        _, provider, store, heart = self._system()
+        provider.poll_interval_seconds = 0.0
+        wake_reads = (
+            OSError("durable wake unavailable"),
+            OSError("durable wake unavailable"),
+            None,
+            OSError("durable wake unavailable again"),
+        )
+
+        with patch.object(store, "next_wake_at", side_effect=wake_reads):
+            passes = heart.run_forever(threading.Event(), max_passes=4)
+
+        self.assertEqual(4, passes)
+        self.assertEqual(4, self._row_count(store, "world_snapshots_v2"))
+        failures = self._events(store, "durable_wake_failed")
+        self.assertEqual(2, len(failures))
+        self.assertEqual(
+            ["durable wake unavailable", "durable wake unavailable again"],
+            [item["payload"]["message"] for item in failures],
+        )
+        self.assertTrue(
+            all(item["payload"]["exception_type"] == "OSError" for item in failures)
+        )
+        self.assertEqual((), self._events(store, "cycle_failed"))
+
     def test_daily_heartbeat_fires_once_per_utc_day_with_counts_only_payload(
         self,
     ) -> None:
