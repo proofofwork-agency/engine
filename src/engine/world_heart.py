@@ -44,6 +44,11 @@ from .policy_v2 import MandatePolicyV1
 from .routines_v1 import RoutineLearnerV1, RoutineRuntimeV1
 from .world_store import WorldStore
 
+_FAILURE_BACKOFF_INITIAL_SECONDS = 1.0
+_FAILURE_BACKOFF_MAX_SECONDS = 60.0
+_RUNTIME_CIRCUIT_FAILURE_THRESHOLD = 5
+_SUBSCRIPTION_RETRY_SECONDS = 300.0
+
 
 @dataclass(frozen=True)
 class WorldPassV2:
@@ -59,6 +64,15 @@ class WorldPassV2:
     effect_id: str | None = None
     effect_achieved: bool | None = None
     reason: str = ""
+
+
+@dataclass
+class _SubscriptionState:
+    provider: Any
+    callback: Any
+    unsubscribe: Any | None = None
+    outage: bool = False
+    retry_at: float | None = None
 
 
 class DeterministicExecutiveBrainV2:
@@ -140,6 +154,8 @@ class WorldHeartV2:
         projector: BoundedContextProjector | None = None,
         policy: MandatePolicyV1 | None = None,
         clock: Any | None = None,
+        monotonic: Any | None = None,
+        waiter: Any | None = None,
         learner: BoundedPreferenceLearner | None = None,
         lifecycle_observers: tuple[Any, ...] | None = None,
     ) -> None:
@@ -149,6 +165,10 @@ class WorldHeartV2:
         self.projector = projector or BoundedContextProjector()
         self.policy = policy or MandatePolicyV1()
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._monotonic = monotonic or time.monotonic
+        self._waiter = waiter or (
+            lambda event, timeout: event.wait(timeout)
+        )
         self.learner = learner or BoundedPreferenceLearner(store)
         self.lifecycle_observers = (
             registry.lifecycle_observers
@@ -754,16 +774,61 @@ class WorldHeartV2:
         observations = []
         target_revisions: dict[str, int] = {}
         coverage: dict[str, Any] = {"targets": {}, "failures": failures}
+        entity_owners: dict[str, Any] = {}
         boundary = self._clock()
         for provider in providers:
             latest = self.store.latest_target_observation(provider.target_id)
             if latest is None:
                 coverage["targets"][provider.target_id] = {"available": None, "reason": failures.get(provider.target_id, "never observed")}
                 continue
-            target_revisions[provider.target_id] = latest.revision
             failed = provider.target_id in failures
             freshness_boundary = latest.confirmed_at or latest.observed_at
             stale = failed or _age_seconds(freshness_boundary, boundary) > provider.freshness_seconds
+            collisions: list[tuple[Any, Any]] = []
+            local_entities: dict[str, Any] = {}
+            for entity in latest.entities:
+                earlier = entity_owners.get(entity.id) or local_entities.get(entity.id)
+                if earlier is not None:
+                    collisions.append((earlier, entity))
+                else:
+                    local_entities[entity.id] = entity
+            if collisions:
+                collision_ids = sorted({later.id for _, later in collisions})
+                collision_reason = (
+                    "entity identity collision; later provider dropped by "
+                    "registry provider order: " + ", ".join(collision_ids)
+                )
+                previous_failure = failures.get(provider.target_id)
+                failures[provider.target_id] = (
+                    f"{previous_failure}; {collision_reason}"
+                    if previous_failure
+                    else collision_reason
+                )
+                coverage["targets"][provider.target_id] = {
+                    "available": False,
+                    "revision": latest.revision,
+                    "stale": True,
+                    "coverage": latest.coverage,
+                    "reason": collision_reason,
+                }
+                for earlier, later in collisions:
+                    self._append_isolated_event(
+                        "entity_identity_collision",
+                        str(getattr(provider, "plugin_id", latest.source)),
+                        {
+                            "entity_id": later.id,
+                            "earlier_source": earlier.source,
+                            "later_source": later.source,
+                            "earlier_target_id": earlier.target_id,
+                            "later_target_id": later.target_id,
+                            "resolution": (
+                                "dropped_later_provider_by_registry_order"
+                            ),
+                        },
+                    )
+                continue
+            entity_owners.update(local_entities)
+            target_revisions[provider.target_id] = latest.revision
             entities.extend(latest.entities)
             relations.extend(latest.relations)
             observations.extend(
@@ -776,8 +841,6 @@ class WorldHeartV2:
                 "stale": stale,
                 "coverage": latest.coverage,
             }
-        if len({item.id for item in entities}) != len(entities):
-            raise ValueError("entity identity collision across target providers")
         revision = self.store.next_world_revision()
         snapshot = WorldSnapshotV2(
             id=f"world:{revision}", revision=revision,
@@ -1014,7 +1077,18 @@ class WorldHeartV2:
             )
 
     def _advance_learning(self, snapshot: WorldSnapshotV2) -> None:
-        self.routine_learner.advance(snapshot)
+        try:
+            self.routine_learner.advance(snapshot)
+        except Exception as exc:
+            self._append_isolated_event(
+                "routine_learner_failed",
+                "engine.routines/v1",
+                {
+                    "snapshot_id": snapshot.id,
+                    "exception_type": type(exc).__name__,
+                    "message": str(exc),
+                },
+            )
         for candidate in self.store.learning_candidates(
             statuses=("shadow",)
         ):
@@ -1061,12 +1135,12 @@ class WorldHeartV2:
         max_passes: int | None = None,
     ) -> int:
         wake = threading.Event()
-        subscriptions: list[Any] = []
         event_targets: set[str] = set()
         lock = threading.Lock()
+        providers = self.registry.providers
+        started_at = self._monotonic()
         next_poll = {
-            provider.target_id: time.monotonic()
-            for provider in self.registry.providers
+            provider.target_id: started_at for provider in providers
         }
 
         def callback(target_id: str) -> Any:
@@ -1076,27 +1150,49 @@ class WorldHeartV2:
                 wake.set()
             return mark
 
+        subscription_states = {
+            provider.target_id: _SubscriptionState(
+                provider,
+                callback(provider.target_id),
+            )
+            for provider in providers
+        }
         try:
-            for provider in self.registry.providers:
-                try:
-                    unsubscribe = provider.subscribe(callback(provider.target_id))
-                except Exception as exc:
-                    self.store.append_event(None, "subscription_failed", provider.plugin_id, {"target_id": provider.target_id, "error": str(exc)})
-                    continue
-                if unsubscribe is not None:
-                    subscriptions.append(unsubscribe)
+            for state in subscription_states.values():
+                self._attach_subscription(state, started_at)
             passes = 0
             last_prune_at: datetime | None = None
+            consecutive_failures = 0
+            failure_backoff = _FAILURE_BACKOFF_INITIAL_SECONDS
+            circuit_event_recorded = False
             while not stop_event.is_set() and (max_passes is None or passes < max_passes):
                 boundary = self._clock()
                 if (
                     last_prune_at is None
                     or boundary - last_prune_at >= timedelta(hours=1)
                 ):
-                    pins = self.store.retention_pinned_snapshot_ids()
-                    self.store.prune(boundary, pinned_snapshot_ids=pins)
-                    last_prune_at = boundary
-                now = time.monotonic()
+                    try:
+                        pins = self.store.retention_pinned_snapshot_ids()
+                        self.store.prune(boundary, pinned_snapshot_ids=pins)
+                    except Exception as exc:
+                        self._append_isolated_event(
+                            "prune_failed",
+                            "engine.runtime/v2",
+                            {
+                                "exception_type": type(exc).__name__,
+                                "message": str(exc),
+                            },
+                        )
+                    finally:
+                        last_prune_at = boundary
+                now = self._monotonic()
+                for state in subscription_states.values():
+                    if (
+                        state.outage
+                        and state.retry_at is not None
+                        and now >= state.retry_at
+                    ):
+                        self._attach_subscription(state, now)
                 due = {target_id for target_id, deadline in next_poll.items() if now >= deadline}
                 with lock:
                     due.update(event_targets)
@@ -1107,11 +1203,51 @@ class WorldHeartV2:
                     and _datetime(next_durable_wake) <= self._clock()
                 )
                 if due or scheduled_due:
-                    self.run_cycle(refresh_targets=due)
+                    try:
+                        self.run_cycle(refresh_targets=due)
+                    except Exception as exc:
+                        passes += 1
+                        consecutive_failures += 1
+                        delay = failure_backoff
+                        failure_payload = {
+                            "exception_type": type(exc).__name__,
+                            "message": str(exc),
+                            "consecutive_failures": consecutive_failures,
+                            "backoff_seconds": delay,
+                        }
+                        self._append_isolated_event(
+                            "cycle_failed",
+                            "engine.runtime/v2",
+                            failure_payload,
+                        )
+                        if (
+                            consecutive_failures
+                            >= _RUNTIME_CIRCUIT_FAILURE_THRESHOLD
+                            and not circuit_event_recorded
+                        ):
+                            self._append_isolated_event(
+                                "runtime_circuit_open",
+                                "engine.runtime/v2",
+                                failure_payload,
+                            )
+                            circuit_event_recorded = True
+                        failure_backoff = min(
+                            delay * 2,
+                            _FAILURE_BACKOFF_MAX_SECONDS,
+                        )
+                        wake.clear()
+                        if max_passes is None or passes < max_passes:
+                            self._waiter(stop_event, delay)
+                        continue
                     passes += 1
-                    for provider in self.registry.providers:
+                    consecutive_failures = 0
+                    failure_backoff = _FAILURE_BACKOFF_INITIAL_SECONDS
+                    circuit_event_recorded = False
+                    for provider in providers:
                         if provider.target_id in due:
-                            next_poll[provider.target_id] = now + provider.poll_interval_seconds
+                            next_poll[provider.target_id] = (
+                                now + provider.poll_interval_seconds
+                            )
                     wake.clear()
                     continue
                 timeout = max(0.01, min(next_poll.values(), default=now + 1) - now)
@@ -1121,14 +1257,77 @@ class WorldHeartV2:
                         timeout,
                         max(0.01, (_datetime(next_wake) - self._clock()).total_seconds()),
                     )
-                wake.wait(timeout=min(timeout, 1.0))
+                subscription_retries = tuple(
+                    state.retry_at
+                    for state in subscription_states.values()
+                    if state.outage and state.retry_at is not None
+                )
+                if subscription_retries:
+                    timeout = min(
+                        timeout,
+                        max(0.01, min(subscription_retries) - now),
+                    )
+                self._waiter(wake, min(timeout, 1.0))
             return passes
         finally:
-            for unsubscribe in reversed(subscriptions):
+            for state in reversed(tuple(subscription_states.values())):
+                unsubscribe = state.unsubscribe
+                if unsubscribe is None:
+                    continue
                 try:
                     unsubscribe()
                 except Exception:
                     pass
+
+    def _attach_subscription(
+        self,
+        state: _SubscriptionState,
+        now: float,
+    ) -> None:
+        provider = state.provider
+        try:
+            unsubscribe = provider.subscribe(state.callback)
+        except Exception as exc:
+            if not state.outage:
+                self._append_isolated_event(
+                    "subscription_failed",
+                    str(getattr(provider, "plugin_id", "unknown")),
+                    {
+                        "target_id": str(provider.target_id),
+                        "exception_type": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                )
+            state.outage = True
+            state.retry_at = now + _SUBSCRIPTION_RETRY_SECONDS
+            return
+        was_outage = state.outage
+        previous_unsubscribe = state.unsubscribe
+        state.unsubscribe = unsubscribe
+        state.outage = False
+        state.retry_at = None
+        if previous_unsubscribe is not None and previous_unsubscribe is not unsubscribe:
+            try:
+                previous_unsubscribe()
+            except Exception:
+                pass
+        if was_outage:
+            self._append_isolated_event(
+                "subscription_restored",
+                str(getattr(provider, "plugin_id", "unknown")),
+                {"target_id": str(provider.target_id)},
+            )
+
+    def _append_isolated_event(
+        self,
+        kind: str,
+        source: str,
+        payload: dict[str, Any],
+    ) -> None:
+        try:
+            self.store.append_event(None, kind, source, payload)
+        except Exception:
+            pass
 
     def _providers_for_goal(self, goal: GoalSpecV2) -> tuple[Any, ...]:
         del goal
