@@ -157,8 +157,10 @@ class TargetAndStoreTests(unittest.TestCase):
         self.assertEqual(
             {
                 "snapshot_deduplications": 1,
+                "snapshot_prune_runs": 0,
                 "snapshot_raw_body_bytes_written": len(raw_body),
                 "snapshot_rows_written": 1,
+                "snapshot_rows_pruned": 0,
                 "snapshot_stored_body_bytes_written": len(stored_body),
             },
             status.counters,

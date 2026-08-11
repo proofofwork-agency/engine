@@ -7,7 +7,8 @@ import sqlite3
 import uuid
 import zlib
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,8 @@ _SNAPSHOT_STORAGE_COUNTER_NAMES = (
     "snapshot_deduplications",
     "snapshot_raw_body_bytes_written",
     "snapshot_rows_written",
+    "snapshot_prune_runs",
+    "snapshot_rows_pruned",
     "snapshot_stored_body_bytes_written",
 )
 
@@ -43,11 +46,26 @@ class SnapshotStorageStatus:
     body_bytes: int
     database_bytes: int
     wal_bytes: int
+    allocated_bytes: int
+    free_bytes: int
+    auto_vacuum: str
+    newest_revision: int | None
     counters: dict[str, int]
 
     @property
     def total_database_bytes(self) -> int:
         return self.database_bytes + self.wal_bytes
+
+
+@dataclass(frozen=True)
+class SnapshotPruneSummary:
+    boundary: str
+    cutoff: str
+    horizon_hours: float
+    newest_revision: int | None
+    retained_rows: int
+    rows_deleted: int
+    pages_reclaimed: int
 
 
 class HomeOpsStore:
@@ -56,8 +74,11 @@ class HomeOpsStore:
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        fresh_store = not self.path.exists() or self.path.stat().st_size == 0
         self._connection = sqlite3.connect(self.path, check_same_thread=False)
         self._connection.row_factory = sqlite3.Row
+        if fresh_store:
+            self._connection.execute("PRAGMA auto_vacuum=INCREMENTAL")
         self._connection.execute("PRAGMA journal_mode=WAL")
         self._connection.execute("PRAGMA foreign_keys=ON")
         self._create_schema()
@@ -339,7 +360,8 @@ class HomeOpsStore:
         row = self._connection.execute(
             """
             SELECT COUNT(*) AS rows,
-                   COALESCE(SUM(length(state_json)), 0) AS body_bytes
+                   COALESCE(SUM(length(state_json)), 0) AS body_bytes,
+                   MAX(revision) AS newest_revision
             FROM snapshots
             """
         ).fetchone()
@@ -353,13 +375,118 @@ class HomeOpsStore:
                 """
             ).fetchall()
         }
+        page_size = int(self._connection.execute("PRAGMA page_size").fetchone()[0])
+        page_count = int(self._connection.execute("PRAGMA page_count").fetchone()[0])
+        free_pages = int(
+            self._connection.execute("PRAGMA freelist_count").fetchone()[0]
+        )
+        auto_vacuum_value = int(
+            self._connection.execute("PRAGMA auto_vacuum").fetchone()[0]
+        )
         wal_path = Path(f"{self.path}-wal")
         return SnapshotStorageStatus(
             rows=int(row["rows"]),
             body_bytes=int(row["body_bytes"]),
             database_bytes=self.path.stat().st_size,
             wal_bytes=wal_path.stat().st_size if wal_path.exists() else 0,
+            allocated_bytes=page_size * page_count,
+            free_bytes=page_size * free_pages,
+            auto_vacuum={0: "none", 1: "full", 2: "incremental"}.get(
+                auto_vacuum_value, f"unknown:{auto_vacuum_value}"
+            ),
+            newest_revision=(
+                int(row["newest_revision"])
+                if row["newest_revision"] is not None
+                else None
+            ),
             counters=counters,
+        )
+
+    def prune_snapshots(
+        self,
+        boundary: datetime | str,
+        *,
+        horizon_hours: float,
+    ) -> SnapshotPruneSummary:
+        if isinstance(horizon_hours, bool):
+            raise ValueError("snapshot retention horizon must be a positive number")
+        horizon = float(horizon_hours)
+        if not isfinite(horizon) or horizon <= 0:
+            raise ValueError("snapshot retention horizon must be a positive number")
+        boundary_at = _as_utc(boundary)
+        cutoff = boundary_at - timedelta(hours=horizon)
+        page_count_before = int(
+            self._connection.execute("PRAGMA page_count").fetchone()[0]
+        )
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            rows = self._connection.execute(
+                """
+                SELECT revision, observed_at FROM snapshots
+                ORDER BY revision
+                """
+            ).fetchall()
+            newest_revision = int(rows[-1]["revision"]) if rows else None
+            doomed = tuple(
+                int(row["revision"])
+                for row in rows
+                if int(row["revision"]) != newest_revision
+                and _as_utc(str(row["observed_at"])) < cutoff
+            )
+            if doomed:
+                cursor = self._connection.executemany(
+                    "DELETE FROM snapshots WHERE revision=?",
+                    ((revision,) for revision in doomed),
+                )
+                rows_deleted = cursor.rowcount
+            else:
+                rows_deleted = 0
+            if rows_deleted != len(doomed):
+                raise AssertionError("snapshot prune deleted an unexpected row count")
+            if newest_revision is not None:
+                newest_exists = self._connection.execute(
+                    "SELECT 1 FROM snapshots WHERE revision=?",
+                    (newest_revision,),
+                ).fetchone()
+                if newest_exists is None:
+                    raise AssertionError("snapshot prune removed the newest row")
+            retained_row = self._connection.execute(
+                "SELECT COUNT(*) AS rows FROM snapshots"
+            ).fetchone()
+            assert retained_row is not None
+            retained_rows = int(retained_row["rows"])
+            self._increment_snapshot_storage_counter("snapshot_prune_runs")
+            self._increment_snapshot_storage_counter(
+                "snapshot_rows_pruned", rows_deleted
+            )
+            self._connection.commit()
+        except Exception:
+            self._connection.rollback()
+            raise
+
+        auto_vacuum = int(
+            self._connection.execute("PRAGMA auto_vacuum").fetchone()[0]
+        )
+        if rows_deleted and auto_vacuum == 2:
+            if self._connection.in_transaction:
+                raise RuntimeError(
+                    "cannot reclaim snapshot pages inside a transaction"
+                )
+            # sqlite3 PRAGMA cursors are lazy; exhausting the cursor is what
+            # advances incremental vacuum through the entire freelist.
+            self._connection.execute("PRAGMA incremental_vacuum(0)").fetchall()
+            self._connection.commit()
+        page_count_after = int(
+            self._connection.execute("PRAGMA page_count").fetchone()[0]
+        )
+        return SnapshotPruneSummary(
+            boundary=boundary_at.isoformat(),
+            cutoff=cutoff.isoformat(),
+            horizon_hours=horizon,
+            newest_revision=newest_revision,
+            retained_rows=retained_rows,
+            rows_deleted=rows_deleted,
+            pages_reclaimed=max(0, page_count_before - page_count_after),
         )
 
     def _increment_snapshot_storage_counter(
@@ -557,6 +684,13 @@ def _stored_snapshot(row: sqlite3.Row) -> StoredSnapshot:
         state=_decode_snapshot_body(row["state_json"]),
         observed_at=str(row["observed_at"]),
     )
+
+
+def _as_utc(value: datetime | str) -> datetime:
+    parsed = datetime.fromisoformat(value) if isinstance(value, str) else value
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _now() -> str:
