@@ -72,7 +72,7 @@ first consumption:
 
 ```text
 heldout_sha256 = e9a92f500cb40db16a92e0ba85fbf7bcd0e4656b39f00ffe735c7e4a0ee3a5ed
-frozen_source_commit = PENDING_FREEZE
+frozen_source_commit = b3274d0794791f27dc479a7f6401f39974fb5c68
 ```
 
 Splits are audited for duplicate normalized text, duplicate group identifiers,
