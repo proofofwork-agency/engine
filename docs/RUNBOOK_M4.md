@@ -177,6 +177,17 @@ Deduplication counters near zero are expected on a house with cumulative
 energy metering and are not themselves a failure (ADR-0011 Amendment 1.2).
 The budget is the gate, not the dedupe rate.
 
+Expect the Engine store to **plateau, not shrink**, once retention starts
+pruning past the 24-hour horizon. Fresh stores are created with
+`auto_vacuum=INCREMENTAL`, which returns pruned pages to the database's own
+free list for reuse; nothing hands them back to the filesystem unless an
+operator explicitly runs `engine store prune --vacuum`. A flat file size is
+therefore the expected success signal. `engine store status` reports
+`free_bytes` separately from `database_bytes`, which is what distinguishes
+the two cases: a flat file with a growing free list means pages are being
+reused as intended, while both growing together means the store is genuinely
+still growing and the budget is at risk.
+
 ## 6. Daily monitoring
 
 - `uv run engine status` — check `lease.expires_at` is advancing,
