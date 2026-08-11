@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
+from decimal import ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_UP, Decimal
 from math import ceil
 from pathlib import Path
 from typing import Any
@@ -95,15 +96,31 @@ def _static_manifest() -> PluginManifestV2:
 class HomeyWorldProvider:
     id = "homey-world"
     plugin_id = "engine.homey"
-    poll_interval_seconds = 5.0
-    freshness_seconds = 30.0
 
-    def __init__(self, target: HomeyTarget, manifest: PluginManifestV2):
+    def __init__(
+        self,
+        target: HomeyTarget,
+        manifest: PluginManifestV2,
+        *,
+        poll_interval_seconds: float,
+        freshness_seconds: float,
+    ) -> None:
         self.target = target
         self.target_id = target.manifest.id
         self.manifest = manifest
-        self._presence_inactive_since: dict[str, datetime] = {}
-        self._last_observed_at: datetime | None = None
+        self.poll_interval_seconds = poll_interval_seconds
+        self.freshness_seconds = freshness_seconds
+        self._persisted_projection = target.store.provider_projection(self.id)
+        self._presence_inactive_since = _persisted_inactive_since(
+            self._persisted_projection.presence_state
+            if self._persisted_projection is not None
+            else {}
+        )
+        self._last_observed_at = (
+            _datetime(self._persisted_projection.last_observed_at)
+            if self._persisted_projection is not None
+            else None
+        )
         self.latest_observation: TargetObservationV2 | None = None
 
     def discover(self) -> tuple[CapabilitySpecV2, ...]:
@@ -121,7 +138,54 @@ class HomeyWorldProvider:
 
     def observe(self) -> TargetObservationV2:
         snapshot = self.target.observe()
-        provider_revision = self.target.store.next_provider_revision()
+        boundary = _datetime(snapshot.observed_at)
+        continuous = _is_continuous_observation(
+            self._last_observed_at, boundary, self.freshness_seconds
+        )
+        comparison_revision = (
+            self.latest_observation.revision
+            if self.latest_observation is not None
+            else (
+                self._persisted_projection.revision
+                if self._persisted_projection is not None
+                else 0
+            )
+        )
+        result, inactive_since = self._project_observation(
+            snapshot, comparison_revision, continuous=continuous
+        )
+        if self.latest_observation is not None:
+            result = _preserve_observation_timestamps(
+                result,
+                self.latest_observation,
+                preserve_presence=continuous,
+            )
+        elif self._persisted_projection is not None and continuous:
+            result = _preserve_persisted_presence_timestamps(
+                result, self._persisted_projection.presence_state
+            )
+        presence_state = _provider_presence_state(result, inactive_since)
+        self._persisted_projection, _ = self.target.store.save_provider_projection(
+            self.id,
+            result.semantic_fingerprint(),
+            presence_state,
+            snapshot.observed_at,
+        )
+        result = _restamp_observation(
+            result, self._persisted_projection.revision
+        )
+
+        # Continuity bookkeeping is committed only after the semantic change
+        # decision. Absolute inactive-since timestamps remain stable while the
+        # observed presence state is unchanged.
+        self._presence_inactive_since = inactive_since
+        self._last_observed_at = boundary
+        self.latest_observation = result
+        return result
+
+    def _project_observation(
+        self, snapshot: Any, revision: int, *, continuous: bool
+    ) -> tuple[TargetObservationV2, dict[str, datetime]]:
         state = snapshot.state
         source = self.plugin_id
         home_id = f"homey:{self.target_id}:home"
@@ -132,7 +196,6 @@ class HomeyWorldProvider:
                 attributes={
                     "mode": state.get("mode"),
                     "coverage": state.get("coverage", {}),
-                    "target_state_revision": snapshot.revision,
                 },
             )
         ]
@@ -214,11 +277,13 @@ class HomeyWorldProvider:
                     value = None
                 else:
                     grade = EvidenceGrade.OBSERVED
-                    value = capability.get("value")
+                    value = _quantize_sensor_value(
+                        semantic, capability.get("value")
+                    )
                 observed_at = capability.get("observed_at") or snapshot.observed_at
                 observations.append(
                     ObservationV1(
-                        id=f"{entity_id}:{semantic}:r{provider_revision}",
+                        id=f"{entity_id}:{semantic}:r{revision}",
                         entity_id=entity_id, property=semantic, value=value,
                         unit=capability.get("unit"), source=source,
                         observed_at=str(observed_at), evidence_grade=grade,
@@ -237,28 +302,20 @@ class HomeyWorldProvider:
                             attributes={"property": semantic},
                         )
                     )
-        boundary = _datetime(snapshot.observed_at)
-        continuous = (
-            self._last_observed_at is not None
-            and 0 <= (boundary - self._last_observed_at).total_seconds()
-            <= self.freshness_seconds
-        )
+        next_inactive_since: dict[str, datetime] = {}
         for zone_alias, zone_entity_id in zone_ids.items():
             zone_devices = devices_by_zone.get(zone_alias, [])
             inactive_since = _add_zone_aggregates(
-                observations, zone_entity_id, zone_devices, provider_revision,
+                observations, zone_entity_id, zone_devices, revision,
                 snapshot.observed_at, source,
                 inactive_since=self._presence_inactive_since.get(zone_alias),
                 continuous=continuous,
             )
-            if inactive_since is None:
-                self._presence_inactive_since.pop(zone_alias, None)
-            else:
-                self._presence_inactive_since[zone_alias] = inactive_since
-        self._last_observed_at = boundary
+            if inactive_since is not None:
+                next_inactive_since[zone_alias] = inactive_since
         result = TargetObservationV2(
             target_id=self.target_id,
-            revision=provider_revision,
+            revision=revision,
             observed_at=snapshot.observed_at,
             entities=tuple(entities), relations=tuple(relations),
             observations=tuple(observations),
@@ -270,8 +327,7 @@ class HomeyWorldProvider:
             },
             source=source,
         )
-        self.latest_observation = result
-        return result
+        return result, next_inactive_since
 
     def subscribe(self, wake: Any) -> Any:
         return self.target.subscribe(wake)
@@ -661,8 +717,11 @@ class HomeyRoutineCompilerV1:
                         "eq", zone_selector, "observation:presence", False
                     ),
                     ScopedConditionV1(
-                        "gte", zone_selector,
-                        "observation:presence.inactive_seconds", inactive, "s",
+                        "duration",
+                        zone_selector,
+                        "observation:presence",
+                        False,
+                        duration_seconds=inactive,
                     ),
                     ScopedConditionV1(
                         "eq", zone_selector, "observation:lighting.any_on", True
@@ -1044,8 +1103,8 @@ class HomeyExperienceProviderV1:
                     continue
                 presence = _target_value(latest_world, zone_id, "presence")
                 lux = _target_value(latest_world, zone_id, "illuminance_lux")
-                inactive = _target_value(
-                    latest_world, zone_id, "presence.inactive_seconds"
+                inactive_since = _target_value(
+                    latest_world, zone_id, "presence.inactive_since"
                 )
                 if observed_on and presence is True and isinstance(lux, (int, float)) and not isinstance(lux, bool):
                     maximum_lux = max(5, min(100, int(ceil(float(lux) / 5.0) * 5)))
@@ -1057,8 +1116,17 @@ class HomeyExperienceProviderV1:
                             change.get("previous"), True, provenance,
                         )
                     )
-                if not observed_on and isinstance(inactive, (int, float)) and not isinstance(inactive, bool):
-                    minimum_inactive = max(300, min(86400, int(float(inactive) // 300 * 300)))
+                if not observed_on and isinstance(inactive_since, str):
+                    inactive = max(
+                        0.0,
+                        (
+                            _datetime(str(row["created_at"]))
+                            - _datetime(inactive_since)
+                        ).total_seconds(),
+                    )
+                    minimum_inactive = max(
+                        300, min(86400, int(inactive // 300 * 300))
+                    )
                     signals.append(
                         _routine_signal(
                             row, index, "absent", self.target_id, zone_id,
@@ -1139,7 +1207,12 @@ def create_plugin_v2(
     target = _build_target_v2(
         config, store, transport=transport, event_source=event_source
     )
-    provider = HomeyWorldProvider(target, manifest)
+    provider = HomeyWorldProvider(
+        target,
+        manifest,
+        poll_interval_seconds=config.poll_interval_seconds,
+        freshness_seconds=config.max_snapshot_age_seconds,
+    )
     strategy_spec = next(
         item for item in manifest.autonomy_strategies
         if item.id == HomeyLightingStateStrategyV1.id
@@ -1207,7 +1280,10 @@ def _add_zone_aggregates(
     for device in devices:
         for capability in device.get("capabilities", ()):
             if capability.get("evidence") == "OBSERVED":
-                values.setdefault(str(capability.get("semantic")), []).append(capability.get("value"))
+                semantic = str(capability.get("semantic"))
+                values.setdefault(semantic, []).append(
+                    _quantize_sensor_value(semantic, capability.get("value"))
+                )
     aggregates: dict[str, tuple[Any, str | None]] = {}
     numeric_lux = _numbers(values.get("illuminance_lux", ()))
     numeric_power = _numbers(values.get("power_w", ()))
@@ -1229,40 +1305,43 @@ def _add_zone_aggregates(
         aggregates["presence"] = (any(presence), None)
     if light_on:
         aggregates["lighting.any_on"] = (any(light_on), None)
+    boundary = _datetime(observed_at)
     for property_name, (value, unit) in aggregates.items():
         output.append(
             ObservationV1(
                 id=f"{zone_id}:{property_name}:r{revision}", entity_id=zone_id,
                 property=property_name, value=value, unit=unit, source=source,
-                observed_at=observed_at, evidence_grade=EvidenceGrade.DERIVED,
+                observed_at=observed_at,
+                evidence_grade=EvidenceGrade.DERIVED,
                 quality=1.0, coverage="all_observed_zone_devices",
             )
         )
-    boundary = _datetime(observed_at)
     if presence and any(presence):
         output.append(
             ObservationV1(
-                id=f"{zone_id}:presence.inactive_seconds:r{revision}",
+                id=f"{zone_id}:presence.inactive_since:r{revision}",
                 entity_id=zone_id,
-                property="presence.inactive_seconds",
-                value=0.0,
-                unit="s",
+                property="presence.inactive_since",
+                value=None,
+                unit=None,
                 source=source,
                 observed_at=observed_at,
                 evidence_grade=EvidenceGrade.DERIVED,
                 quality=1.0,
-                coverage="continuous_fresh_homey_observations",
+                coverage="presence_currently_active",
             )
         )
         return None
+    if presence and continuous and inactive_since is None:
+        inactive_since = _native_inactive_since(devices, boundary)
     if presence and continuous and inactive_since is not None:
         output.append(
             ObservationV1(
-                id=f"{zone_id}:presence.inactive_seconds:r{revision}",
+                id=f"{zone_id}:presence.inactive_since:r{revision}",
                 entity_id=zone_id,
-                property="presence.inactive_seconds",
-                value=max(0.0, (boundary - inactive_since).total_seconds()),
-                unit="s",
+                property="presence.inactive_since",
+                value=inactive_since.isoformat(),
+                unit=None,
                 source=source,
                 observed_at=observed_at,
                 evidence_grade=EvidenceGrade.DERIVED,
@@ -1273,11 +1352,11 @@ def _add_zone_aggregates(
         return inactive_since
     output.append(
         ObservationV1(
-            id=f"{zone_id}:presence.inactive_seconds:r{revision}",
+            id=f"{zone_id}:presence.inactive_since:r{revision}",
             entity_id=zone_id,
-            property="presence.inactive_seconds",
+            property="presence.inactive_since",
             value=None,
-            unit="s",
+            unit=None,
             source=source,
             observed_at=observed_at,
             evidence_grade=EvidenceGrade.UNKNOWN,
@@ -1287,7 +1366,160 @@ def _add_zone_aggregates(
             ),
         )
     )
-    return boundary if presence else None
+    if not presence:
+        return None
+    if not continuous:
+        return boundary
+    return _native_inactive_since(devices, boundary)
+
+
+def _restamp_observation(
+    observation: TargetObservationV2, revision: int
+) -> TargetObservationV2:
+    return replace(
+        observation,
+        revision=revision,
+        observations=tuple(
+            replace(item, id=f"{item.entity_id}:{item.property}:r{revision}")
+            for item in observation.observations
+        ),
+    )
+
+
+def _preserve_observation_timestamps(
+    current: TargetObservationV2,
+    previous: TargetObservationV2,
+    *,
+    preserve_presence: bool,
+) -> TargetObservationV2:
+    previous_by_key = {
+        (item.entity_id, item.property): item for item in previous.observations
+    }
+    observations = []
+    for item in current.observations:
+        prior = previous_by_key.get((item.entity_id, item.property))
+        if (
+            prior is not None
+            and (item.property != "presence" or preserve_presence)
+            and _observation_semantics(prior) == _observation_semantics(item)
+        ):
+            item = replace(item, observed_at=prior.observed_at)
+        observations.append(item)
+    return replace(current, observations=tuple(observations))
+
+
+def _preserve_persisted_presence_timestamps(
+    current: TargetObservationV2, presence_state: dict[str, Any]
+) -> TargetObservationV2:
+    stored = presence_state.get("observations", {})
+    if not isinstance(stored, dict):
+        return current
+    observations = []
+    for item in current.observations:
+        prior = stored.get(item.entity_id) if item.property == "presence" else None
+        if (
+            isinstance(prior, dict)
+            and prior.get("semantics") == _observation_semantics(item)
+            and isinstance(prior.get("observed_at"), str)
+        ):
+            item = replace(item, observed_at=str(prior["observed_at"]))
+        observations.append(item)
+    return replace(current, observations=tuple(observations))
+
+
+def _observation_semantics(observation: ObservationV1) -> dict[str, Any]:
+    return {
+        "value": observation.value,
+        "source": observation.source,
+        "evidence_grade": observation.evidence_grade.value,
+        "quality": observation.quality,
+        "coverage": observation.coverage,
+        "unit": observation.unit,
+        "artifact_identity": observation.artifact_identity,
+    }
+
+
+def _provider_presence_state(
+    observation: TargetObservationV2,
+    inactive_since: dict[str, datetime],
+) -> dict[str, Any]:
+    return {
+        "inactive_since": {
+            key: value.isoformat() for key, value in inactive_since.items()
+        },
+        "observations": {
+            item.entity_id: {
+                "observed_at": item.observed_at,
+                "semantics": _observation_semantics(item),
+            }
+            for item in observation.observations
+            if item.property == "presence"
+        },
+    }
+
+
+def _persisted_inactive_since(
+    presence_state: dict[str, Any],
+) -> dict[str, datetime]:
+    stored = presence_state.get("inactive_since", {})
+    if not isinstance(stored, dict):
+        raise ValueError("persisted inactive-since state must be an object")
+    return {
+        str(key): _datetime(str(value))
+        for key, value in stored.items()
+        if isinstance(value, str)
+    }
+
+
+def _is_continuous_observation(
+    previous: datetime | None, current: datetime, freshness_seconds: float
+) -> bool:
+    if previous is None:
+        return False
+    elapsed = (current - previous).total_seconds()
+    return 0 <= elapsed <= freshness_seconds
+
+
+def _native_inactive_since(
+    devices: list[dict[str, Any]], boundary: datetime
+) -> datetime:
+    candidates = []
+    for device in devices:
+        for capability in device.get("capabilities", ()):
+            if (
+                capability.get("semantic") == "presence"
+                and capability.get("evidence") == "OBSERVED"
+                and capability.get("value") is False
+                and isinstance(capability.get("observed_at"), str)
+            ):
+                try:
+                    candidates.append(_datetime(str(capability["observed_at"])))
+                except ValueError:
+                    continue
+    if not candidates:
+        return boundary
+    return min(max(candidates), boundary)
+
+
+def _quantize_sensor_value(semantic: str, value: Any) -> Any:
+    step = {
+        "power_w": Decimal("1"),
+        "illuminance_lux": Decimal("5"),
+        "temperature_c": Decimal("0.1"),
+        "battery": Decimal("1"),
+        "battery_percent": Decimal("1"),
+    }.get(semantic)
+    if step is None or isinstance(value, bool) or not isinstance(value, (int, float)):
+        return value
+    number = Decimal(str(value))
+    if not number.is_finite():
+        return value
+    rounding = {
+        "illuminance_lux": ROUND_FLOOR,
+        "power_w": ROUND_CEILING,
+    }.get(semantic, ROUND_HALF_UP)
+    multiple = (number / step).to_integral_value(rounding=rounding)
+    return float(multiple * step)
 
 
 def _numbers(values: Any) -> list[float]:

@@ -762,7 +762,8 @@ class WorldHeartV2:
                 continue
             target_revisions[provider.target_id] = latest.revision
             failed = provider.target_id in failures
-            stale = failed or _age_seconds(latest.observed_at, boundary) > provider.freshness_seconds
+            freshness_boundary = latest.confirmed_at or latest.observed_at
+            stale = failed or _age_seconds(freshness_boundary, boundary) > provider.freshness_seconds
             entities.extend(latest.entities)
             relations.extend(latest.relations)
             observations.extend(

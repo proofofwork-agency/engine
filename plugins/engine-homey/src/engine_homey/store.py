@@ -19,6 +19,15 @@ class StoredSnapshot:
     observed_at: str
 
 
+@dataclass(frozen=True)
+class StoredProviderProjection:
+    provider_id: str
+    revision: int
+    semantic_sha256: str
+    presence_state: dict[str, Any]
+    last_observed_at: str
+
+
 class HomeOpsStore:
     """Plugin-owned state; never shares mutable tables with EngineStore."""
 
@@ -76,6 +85,14 @@ class HomeOpsStore:
                 singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
                 revision INTEGER NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS provider_projection_state (
+                provider_id TEXT PRIMARY KEY,
+                revision INTEGER NOT NULL,
+                semantic_sha256 TEXT NOT NULL,
+                presence_state_json TEXT NOT NULL,
+                last_observed_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
             INSERT OR IGNORE INTO provider_revision_ledger(singleton, revision)
             VALUES(1, -1);
             """
@@ -86,7 +103,7 @@ class HomeOpsStore:
         self._connection.close()
 
     def next_provider_revision(self) -> int:
-        """Monotone v2 observation-boundary revision, including unchanged state."""
+        """Allocate a raw provider revision for legacy callers."""
         self._connection.execute(
             "UPDATE provider_revision_ledger SET revision = revision + 1 WHERE singleton = 1"
         )
@@ -96,6 +113,99 @@ class HomeOpsStore:
         ).fetchone()
         assert row is not None
         return int(row["revision"])
+
+    def provider_projection(
+        self, provider_id: str
+    ) -> StoredProviderProjection | None:
+        row = self._connection.execute(
+            "SELECT * FROM provider_projection_state WHERE provider_id=?",
+            (provider_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        presence_state = json.loads(row["presence_state_json"])
+        if not isinstance(presence_state, dict):
+            raise ValueError("persisted provider presence state must be an object")
+        return StoredProviderProjection(
+            provider_id=str(row["provider_id"]),
+            revision=int(row["revision"]),
+            semantic_sha256=str(row["semantic_sha256"]),
+            presence_state=presence_state,
+            last_observed_at=str(row["last_observed_at"]),
+        )
+
+    def save_provider_projection(
+        self,
+        provider_id: str,
+        semantic_sha256: str,
+        presence_state: dict[str, Any],
+        last_observed_at: str,
+    ) -> tuple[StoredProviderProjection, bool]:
+        """Atomically allocate a changed revision and persist its projection."""
+        encoded_presence = _dump(presence_state)
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            existing = self._connection.execute(
+                "SELECT * FROM provider_projection_state WHERE provider_id=?",
+                (provider_id,),
+            ).fetchone()
+            changed = (
+                existing is None
+                or str(existing["semantic_sha256"]) != semantic_sha256
+            )
+            if changed:
+                self._connection.execute(
+                    """
+                    UPDATE provider_revision_ledger
+                    SET revision = revision + 1 WHERE singleton = 1
+                    """
+                )
+                ledger = self._connection.execute(
+                    """
+                    SELECT revision FROM provider_revision_ledger
+                    WHERE singleton = 1
+                    """
+                ).fetchone()
+                assert ledger is not None
+                revision = int(ledger["revision"])
+            else:
+                revision = int(existing["revision"])
+            self._connection.execute(
+                """
+                INSERT INTO provider_projection_state(
+                    provider_id, revision, semantic_sha256,
+                    presence_state_json, last_observed_at, updated_at
+                ) VALUES(?,?,?,?,?,?)
+                ON CONFLICT(provider_id) DO UPDATE SET
+                    revision=excluded.revision,
+                    semantic_sha256=excluded.semantic_sha256,
+                    presence_state_json=excluded.presence_state_json,
+                    last_observed_at=excluded.last_observed_at,
+                    updated_at=excluded.updated_at
+                """,
+                (
+                    provider_id,
+                    revision,
+                    semantic_sha256,
+                    encoded_presence,
+                    last_observed_at,
+                    _now(),
+                ),
+            )
+            self._connection.commit()
+        except Exception:
+            self._connection.rollback()
+            raise
+        return (
+            StoredProviderProjection(
+                provider_id,
+                revision,
+                semantic_sha256,
+                dict(presence_state),
+                last_observed_at,
+            ),
+            changed,
+        )
 
     def alias_for(
         self,

@@ -133,6 +133,7 @@ events = true
         self.assertEqual("cli", config.auth_mode)
         self.assertEqual("", config.token)
         self.assertFalse(config.events)
+        self.assertEqual(30.0, config.poll_interval_seconds)
 
     def test_cli_transport_reads_large_device_json_without_pipe_truncation(self) -> None:
         devices = {

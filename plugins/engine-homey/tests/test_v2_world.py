@@ -452,17 +452,251 @@ class HomeyV2WorldTests(unittest.TestCase):
             first = provider.observe()
             inactive = next(
                 item for item in first.observations
-                if item.property == "presence.inactive_seconds"
+                if item.property == "presence.inactive_since"
             )
             self.assertEqual("UNKNOWN", inactive.evidence_grade.value)
             second = provider.observe()
             inactive = next(
                 item for item in second.observations
-                if item.property == "presence.inactive_seconds"
+                if item.property == "presence.inactive_since"
             )
             self.assertEqual("DERIVED", inactive.evidence_grade.value)
-            self.assertGreaterEqual(inactive.value, 0)
+            self.assertIsInstance(inactive.value, str)
+            datetime.fromisoformat(inactive.value)
         finally:
+            plugin_store.close()
+
+    def test_provider_revision_advances_only_on_quantized_semantic_change(self) -> None:
+        config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
+        del config
+        provider = plugin.providers[0]
+        try:
+            provider.observe()
+            established = provider.observe()
+            unchanged = provider.observe()
+            self.assertEqual(established.revision, unchanged.revision)
+
+            sensor = transport.devices["sensor-1"]["capabilitiesObj"]
+            sensor["measure_temperature"]["value"] = 21.04
+            below_step = provider.observe()
+            self.assertEqual(unchanged.revision, below_step.revision)
+
+            sensor["measure_temperature"]["value"] = 21.06
+            changed = provider.observe()
+            self.assertEqual(below_step.revision + 1, changed.revision)
+        finally:
+            plugin_store.close()
+
+    def test_restart_with_unchanged_world_preserves_revision_and_presence(self) -> None:
+        config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
+        transport.devices["sensor-1"]["capabilitiesObj"]["alarm_motion"][
+            "value"
+        ] = False
+        provider = plugin.providers[0]
+        first_store = plugin_store
+        established = provider.observe()
+        established = provider.observe()
+        inactive_since = next(
+            item.value
+            for item in established.observations
+            if item.entity_id.endswith(":zone:zone_1")
+            and item.property == "presence.inactive_since"
+        )
+        self.assertIsInstance(inactive_since, str)
+        first_store.close()
+
+        restarted_store = HomeOpsStore(config.plugin_database)
+        restarted_plugin = create_plugin_v2(
+            config,
+            restarted_store,
+            transport=transport,
+            event_source=FakeEventSource(),
+        )
+        try:
+            restarted = restarted_plugin.providers[0].observe()
+            restarted_inactive_since = next(
+                item.value
+                for item in restarted.observations
+                if item.entity_id.endswith(":zone:zone_1")
+                and item.property == "presence.inactive_since"
+            )
+            self.assertEqual(established.revision, restarted.revision)
+            self.assertEqual(inactive_since, restarted_inactive_since)
+            projection = restarted_store.provider_projection("homey-world")
+            assert projection is not None
+            self.assertEqual(established.revision, projection.revision)
+        finally:
+            restarted_store.close()
+
+    def test_restart_with_changed_world_consumes_exactly_one_revision(self) -> None:
+        config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
+        initial = plugin.providers[0].observe()
+        plugin_store.close()
+        transport.external_set("sensor-1", "alarm_motion", False)
+        native_boundary = transport.devices["sensor-1"]["capabilitiesObj"][
+            "alarm_motion"
+        ]["lastUpdated"]
+
+        restarted_store = HomeOpsStore(config.plugin_database)
+        restarted_plugin = create_plugin_v2(
+            config,
+            restarted_store,
+            transport=transport,
+            event_source=FakeEventSource(),
+        )
+        try:
+            provider = restarted_plugin.providers[0]
+            changed = provider.observe()
+            self.assertEqual(initial.revision + 1, changed.revision)
+            inactive_since = next(
+                item
+                for item in changed.observations
+                if item.entity_id.endswith(":zone:zone_1")
+                and item.property == "presence.inactive_since"
+            )
+            self.assertEqual("DERIVED", inactive_since.evidence_grade.value)
+            self.assertEqual(native_boundary, inactive_since.value)
+
+            confirmed = provider.observe()
+            self.assertEqual(changed.revision, confirmed.revision)
+        finally:
+            restarted_store.close()
+
+    def test_sensor_quantization_boundaries(self) -> None:
+        config = fixture_config(self.base, zone_count=1)
+        zones, devices = fixture_house(1)
+        light = devices["light-1"]["capabilitiesObj"]
+        sensor = devices["sensor-1"]["capabilitiesObj"]
+        light["measure_power"]["value"] = 0.0
+        sensor["measure_luminance"]["value"] = 7.49
+        sensor["measure_temperature"]["value"] = 21.24
+        sensor["measure_battery"] = {
+            "id": "measure_battery",
+            "value": 52.49,
+            "lastUpdated": datetime.now(UTC).isoformat(),
+            "type": "number",
+            "units": "%",
+            "getable": True,
+            "setable": False,
+        }
+        devices["sensor-1"]["capabilities"].append("measure_battery")
+        transport = MemoryHomeyTransport(zones, devices)
+        plugin_store = HomeOpsStore(config.plugin_database)
+        plugin = create_plugin_v2(
+            config,
+            plugin_store,
+            transport=transport,
+            event_source=FakeEventSource(),
+        )
+        provider = plugin.providers[0]
+
+        def value(observation, entity_suffix, property_name):
+            return next(
+                item.value
+                for item in observation.observations
+                if item.entity_id.endswith(entity_suffix)
+                and item.property == property_name
+            )
+
+        try:
+            lower = provider.observe()
+            self.assertEqual(0.0, value(lower, "main_light", "power_w"))
+            self.assertEqual(5.0, value(lower, "sensor", "illuminance_lux"))
+            self.assertEqual(21.2, value(lower, "sensor", "temperature_c"))
+            self.assertEqual(52.0, value(lower, "sensor", "battery"))
+
+            live_light = transport.devices["light-1"]["capabilitiesObj"]
+            live_sensor = transport.devices["sensor-1"]["capabilitiesObj"]
+            live_light["measure_power"]["value"] = 0.01
+            live_sensor["measure_luminance"]["value"] = 9.99
+            live_sensor["measure_temperature"]["value"] = 21.25
+            live_sensor["measure_battery"]["value"] = 52.5
+            upper = provider.observe()
+            self.assertEqual(1.0, value(upper, "main_light", "power_w"))
+            self.assertEqual(5.0, value(upper, "sensor", "illuminance_lux"))
+            self.assertEqual(21.3, value(upper, "sensor", "temperature_c"))
+            self.assertEqual(53.0, value(upper, "sensor", "battery"))
+
+            live_sensor["measure_luminance"]["value"] = 10.0
+            next_lux_bucket = provider.observe()
+            self.assertEqual(
+                10.0, value(next_lux_bucket, "sensor", "illuminance_lux")
+            )
+        finally:
+            plugin_store.close()
+
+    def test_poll_and_freshness_intervals_are_wired_from_config(self) -> None:
+        config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
+        del transport
+        try:
+            provider = plugin.providers[0]
+            self.assertEqual(config.poll_interval_seconds, provider.poll_interval_seconds)
+            self.assertEqual(
+                config.max_snapshot_age_seconds, provider.freshness_seconds
+            )
+        finally:
+            plugin_store.close()
+
+    def test_same_revision_confirmation_keeps_homey_observation_fresh(self) -> None:
+        config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
+        del transport
+        registry = PluginRegistryV2()
+        registry.register(plugin, PLUGIN_ROOT)
+        store = WorldStore(self.base / "confirmation-engine.sqlite3")
+        boundary = [datetime.now(UTC)]
+        provider = plugin.providers[0]
+        provider.target._clock = lambda: boundary[0]
+        heart = WorldHeartV2(
+            store,
+            registry,
+            DeterministicExecutiveBrainV2(),
+            clock=lambda: boundary[0],
+        )
+        try:
+            heart.observe_connected_world(refresh_targets=None)
+            original = store.latest_target_observation(config.target_id)
+            assert original is not None
+
+            boundary[0] += timedelta(seconds=29)
+            heart.observe_connected_world(refresh_targets=None)
+            confirmed = store.latest_target_observation(config.target_id)
+            assert confirmed is not None
+            self.assertEqual(original.revision, confirmed.revision)
+            self.assertEqual(original.observed_at, confirmed.observed_at)
+            self.assertEqual(boundary[0].isoformat(), confirmed.confirmed_at)
+
+            boundary[0] += timedelta(seconds=2)
+            snapshot = heart.observe_connected_world(refresh_targets=set())
+            self.assertFalse(snapshot.coverage["targets"][config.target_id]["stale"])
+        finally:
+            store.close()
+            plugin_store.close()
+
+    def test_unchanged_idle_loop_writes_at_most_one_target_row(self) -> None:
+        config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
+        del transport
+        registry = PluginRegistryV2()
+        registry.register(plugin, PLUGIN_ROOT)
+        store = WorldStore(self.base / "idle-engine.sqlite3")
+        provider = plugin.providers[0]
+        try:
+            # Establish the continuity-derived presence boundary before the
+            # measured idle window.
+            store.save_target_observation(provider.observe())
+            store.save_target_observation(provider.observe())
+            before = store.connection.execute(
+                "SELECT COUNT(*) FROM target_observations_v2 WHERE target_id=?",
+                (config.target_id,),
+            ).fetchone()[0]
+            for _ in range(10):
+                store.save_target_observation(provider.observe())
+            after = store.connection.execute(
+                "SELECT COUNT(*) FROM target_observations_v2 WHERE target_id=?",
+                (config.target_id,),
+            ).fetchone()[0]
+            self.assertLessEqual(after - before, 1)
+        finally:
+            store.close()
             plugin_store.close()
 
     def test_known_homey_flow_change_is_not_published_as_behavior(self) -> None:

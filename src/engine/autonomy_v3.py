@@ -738,38 +738,7 @@ def _same_operational_decision(
 
 
 def _world_semantic_fingerprint(snapshot: WorldSnapshotV2) -> str:
-    return artifact_sha256(
-        {
-            "entities": [item.to_dict() for item in snapshot.entities],
-            "relations": [
-                {
-                    "id": item.id,
-                    "relation_type": item.relation_type,
-                    "source_entity_id": item.source_entity_id,
-                    "target_entity_id": item.target_entity_id,
-                    "source": item.source,
-                    "evidence_grade": item.evidence_grade.value,
-                    "confidence": item.confidence,
-                    "attributes": item.attributes,
-                }
-                for item in snapshot.relations
-            ],
-            "observations": [
-                {
-                    "entity_id": item.entity_id,
-                    "property": item.property,
-                    "value": item.value,
-                    "source": item.source,
-                    "evidence_grade": item.evidence_grade.value,
-                    "quality": item.quality,
-                    "coverage": item.coverage,
-                    "unit": item.unit,
-                    "artifact_identity": item.artifact_identity,
-                }
-                for item in snapshot.observations
-            ],
-        }
-    )
+    return snapshot.semantic_fingerprint()
 
 
 def _datetime(value: str) -> datetime:

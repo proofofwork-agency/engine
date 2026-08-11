@@ -142,7 +142,9 @@ def load_config(
             )
 
     timeout = float(homey.get("timeout_seconds", 5.0))
-    poll = float(homey.get("poll_interval_seconds", 2.0))
+    poll = float(
+        homey.get("poll_interval_seconds", 30.0 if mode == "observe" else 2.0)
+    )
     max_snapshot_age = float(homey.get("max_snapshot_age_seconds", 30.0))
     if timeout <= 0 or poll <= 0 or max_snapshot_age <= 0:
         raise HomeyConfigError(

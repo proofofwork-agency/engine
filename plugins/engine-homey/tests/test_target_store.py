@@ -113,6 +113,38 @@ class TargetAndStoreTests(unittest.TestCase):
         )
         second_store.close()
 
+    def test_provider_projection_revision_and_state_update_atomically(self) -> None:
+        config = fixture_config(self.base, zone_count=1)
+        store = HomeOpsStore(config.plugin_database)
+        try:
+            first, changed = store.save_provider_projection(
+                "homey-world",
+                "semantic-a",
+                {"inactive_since": {"zone_1": "2026-01-01T00:00:00+00:00"}},
+                "2026-01-01T00:00:01+00:00",
+            )
+            self.assertTrue(changed)
+            confirmed, changed = store.save_provider_projection(
+                "homey-world",
+                "semantic-a",
+                first.presence_state,
+                "2026-01-01T00:00:02+00:00",
+            )
+            self.assertFalse(changed)
+            self.assertEqual(first.revision, confirmed.revision)
+
+            second, changed = store.save_provider_projection(
+                "homey-world",
+                "semantic-b",
+                {},
+                "2026-01-01T00:00:03+00:00",
+            )
+            self.assertTrue(changed)
+            self.assertEqual(first.revision + 1, second.revision)
+            self.assertEqual(second, store.provider_projection("homey-world"))
+        finally:
+            store.close()
+
     def test_mutation_is_double_gated_allowlisted_and_observation_verified(
         self,
     ) -> None:

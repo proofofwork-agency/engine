@@ -15,7 +15,7 @@ experience_providers = ["homey-behavior"]
 routine_compilers = ["homey-routine-compiler"]
 entity_types = ["homey.home", "homey.zone", "homey.device", "homey.camera"]
 relation_types = ["contains", "located_in", "measures", "illuminates"]
-observation_types = ["on", "brightness", "illuminance_lux", "power_w", "presence", "presence.inactive_seconds", "lighting.any_on", "temperature_c", "thermostat_target_c", "cover_position", "camera.detection"]
+observation_types = ["on", "brightness", "illuminance_lux", "power_w", "presence", "presence.inactive_since", "lighting.any_on", "temperature_c", "thermostat_target_c", "cover_position", "camera.detection"]
 
 [autonomy]
 strategies = ["homey.enrolled-lighting-state/v1"]

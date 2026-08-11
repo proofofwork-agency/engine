@@ -1105,6 +1105,7 @@ class TargetObservationV2:
     source: str
     available: bool | None = True
     errors: tuple[str, ...] = ()
+    confirmed_at: str | None = None
 
     def __post_init__(self) -> None:
         _require(self.target_id, "target observation target_id")
@@ -1118,6 +1119,19 @@ class TargetObservationV2:
 
     def to_dict(self) -> JsonObject:
         return canonical_data(self)
+
+    def semantic_fingerprint(self) -> str:
+        return artifact_sha256(
+            {
+                "content": _world_content_semantic_data(
+                    self.entities, self.relations, self.observations
+                ),
+                "coverage": self.coverage,
+                "source": self.source,
+                "available": self.available,
+                "errors": self.errors,
+            }
+        )
 
 
 @dataclass(frozen=True)
@@ -1142,9 +1156,53 @@ class WorldSnapshotV2:
     def to_dict(self) -> JsonObject:
         return canonical_data(self)
 
+    def semantic_fingerprint(self) -> str:
+        return artifact_sha256(
+            _world_content_semantic_data(
+                self.entities, self.relations, self.observations
+            )
+        )
+
     @property
     def sha256(self) -> str:
         return artifact_sha256(self)
+
+
+def _world_content_semantic_data(
+    entities: tuple[EntityV1, ...],
+    relations: tuple[RelationV1, ...],
+    observations: tuple[ObservationV1, ...],
+) -> JsonObject:
+    return {
+        "entities": [item.to_dict() for item in entities],
+        "relations": [
+            {
+                "id": item.id,
+                "relation_type": item.relation_type,
+                "source_entity_id": item.source_entity_id,
+                "target_entity_id": item.target_entity_id,
+                "source": item.source,
+                "evidence_grade": item.evidence_grade.value,
+                "confidence": item.confidence,
+                "attributes": item.attributes,
+            }
+            for item in relations
+        ],
+        "observations": [
+            {
+                "entity_id": item.entity_id,
+                "property": item.property,
+                "value": item.value,
+                "source": item.source,
+                "evidence_grade": item.evidence_grade.value,
+                "quality": item.quality,
+                "coverage": item.coverage,
+                "unit": item.unit,
+                "artifact_identity": item.artifact_identity,
+            }
+            for item in observations
+        ],
+    }
 
 
 @dataclass(frozen=True)

@@ -50,7 +50,7 @@ from engine_sdk import (
     canonical_json,
 )
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 class WorldStore:
@@ -101,7 +101,9 @@ class WorldStore:
                 revision INTEGER NOT NULL,
                 body_json TEXT NOT NULL,
                 artifact_sha256 TEXT NOT NULL,
+                semantic_sha256 TEXT,
                 observed_at TEXT NOT NULL,
+                confirmed_at TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(target_id, revision)
             );
@@ -337,7 +339,45 @@ class WorldStore:
             """,
             (SCHEMA_VERSION,),
         )
+        self._migrate_target_observation_confirmations()
         self.connection.commit()
+
+    def _migrate_target_observation_confirmations(self) -> None:
+        columns = {
+            str(row["name"])
+            for row in self.connection.execute(
+                "PRAGMA table_info(target_observations_v2)"
+            ).fetchall()
+        }
+        if "semantic_sha256" not in columns:
+            self.connection.execute(
+                "ALTER TABLE target_observations_v2 ADD COLUMN semantic_sha256 TEXT"
+            )
+        if "confirmed_at" not in columns:
+            self.connection.execute(
+                "ALTER TABLE target_observations_v2 ADD COLUMN confirmed_at TEXT"
+            )
+        rows = self.connection.execute(
+            """
+            SELECT id, body_json, observed_at FROM target_observations_v2
+            WHERE semantic_sha256 IS NULL OR confirmed_at IS NULL
+            """
+        ).fetchall()
+        for row in rows:
+            observation = _target_observation(json.loads(row["body_json"]))
+            self.connection.execute(
+                """
+                UPDATE target_observations_v2
+                SET semantic_sha256=COALESCE(semantic_sha256, ?),
+                    confirmed_at=COALESCE(confirmed_at, ?)
+                WHERE id=?
+                """,
+                (
+                    observation.semantic_fingerprint(),
+                    str(row["observed_at"]),
+                    int(row["id"]),
+                ),
+            )
 
     def create_goal(self, goal: GoalSpecV2) -> None:
         if self.has_goal(goal.id):
@@ -1202,27 +1242,51 @@ class WorldStore:
     def save_target_observation(self, observation: TargetObservationV2) -> bool:
         body = canonical_json(observation)
         digest = artifact_sha256(observation)
-        existing = self.connection.execute(
-            "SELECT artifact_sha256 FROM target_observations_v2 WHERE target_id=? AND revision=?",
-            (observation.target_id, observation.revision),
-        ).fetchone()
-        if existing is not None:
-            if existing["artifact_sha256"] != digest:
-                raise ValueError("same target revision cannot describe different state")
-            return False
+        semantic_digest = observation.semantic_fingerprint()
+        confirmed_at = observation.confirmed_at or observation.observed_at
         latest = self.connection.execute(
-            "SELECT MAX(revision) AS revision FROM target_observations_v2 WHERE target_id=?",
+            """
+            SELECT revision, semantic_sha256, body_json
+            FROM target_observations_v2
+            WHERE target_id=? ORDER BY revision DESC LIMIT 1
+            """,
             (observation.target_id,),
-        ).fetchone()["revision"]
-        if latest is not None and observation.revision <= int(latest):
+        ).fetchone()
+        if latest is not None and observation.revision == int(latest["revision"]):
+            stored_semantic = latest["semantic_sha256"]
+            if stored_semantic is None:
+                stored_semantic = _target_observation(
+                    json.loads(latest["body_json"])
+                ).semantic_fingerprint()
+            if stored_semantic != semantic_digest:
+                raise ValueError("same target revision cannot describe different state")
+            self.connection.execute(
+                """
+                UPDATE target_observations_v2 SET confirmed_at=?
+                WHERE target_id=? AND revision=?
+                """,
+                (confirmed_at, observation.target_id, observation.revision),
+            )
+            self.connection.commit()
+            return False
+        if latest is not None and observation.revision <= int(latest["revision"]):
             raise ValueError("target revision must be monotone")
         self.connection.execute(
             """
             INSERT INTO target_observations_v2(
-                target_id, revision, body_json, artifact_sha256, observed_at
-            ) VALUES(?,?,?,?,?)
+                target_id, revision, body_json, artifact_sha256, semantic_sha256,
+                observed_at, confirmed_at
+            ) VALUES(?,?,?,?,?,?,?)
             """,
-            (observation.target_id, observation.revision, body, digest, observation.observed_at),
+            (
+                observation.target_id,
+                observation.revision,
+                body,
+                digest,
+                semantic_digest,
+                observation.observed_at,
+                confirmed_at,
+            ),
         )
         self.connection.commit()
         return True
@@ -1230,12 +1294,22 @@ class WorldStore:
     def latest_target_observation(self, target_id: str) -> TargetObservationV2 | None:
         row = self.connection.execute(
             """
-            SELECT body_json FROM target_observations_v2
+            SELECT body_json, confirmed_at FROM target_observations_v2
             WHERE target_id=? ORDER BY revision DESC LIMIT 1
             """,
             (target_id,),
         ).fetchone()
-        return _target_observation(json.loads(row["body_json"])) if row else None
+        if row is None:
+            return None
+        observation = _target_observation(json.loads(row["body_json"]))
+        return replace(
+            observation,
+            confirmed_at=(
+                str(row["confirmed_at"])
+                if row["confirmed_at"] is not None
+                else observation.observed_at
+            ),
+        )
 
     def save_world_snapshot(self, snapshot: WorldSnapshotV2) -> None:
         expected = self.next_world_revision()
@@ -1844,6 +1918,11 @@ def _target_observation(value: Mapping[str, Any]) -> TargetObservationV2:
         coverage=dict(value.get("coverage", {})), source=str(value["source"]),
         available=value.get("available"),
         errors=tuple(str(item) for item in value.get("errors", ())),
+        confirmed_at=(
+            str(value["confirmed_at"])
+            if value.get("confirmed_at") is not None
+            else None
+        ),
     )
 
 

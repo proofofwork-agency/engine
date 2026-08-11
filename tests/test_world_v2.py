@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -24,6 +25,8 @@ from engine_sdk import (
     PolicyOutcome,
     ProposedActionV1,
     StandingMandateV1,
+    artifact_sha256,
+    canonical_json,
 )
 from engine_sdk.scaffold import scaffold_plugin
 
@@ -331,15 +334,94 @@ class WorldV2Tests(unittest.TestCase):
 
     def test_same_target_revision_cannot_change_state(self) -> None:
         plugin, registry, store, brain, heart, goal = self._system()
-        del registry, brain, heart, goal
+        del heart, goal
         observation = plugin.providers[0].observe()
-        self.assertTrue(store.save_target_observation(observation))
+        clock = _MutableClock(datetime.fromisoformat(observation.observed_at))
+        first = replace(observation, observed_at=clock().isoformat())
+        self.assertTrue(store.save_target_observation(first))
+        clock.advance(timedelta(seconds=9))
+        confirmation = replace(observation, observed_at=clock().isoformat())
+        self.assertFalse(store.save_target_observation(confirmation))
+        latest = store.latest_target_observation(observation.target_id)
+        assert latest is not None
+        self.assertEqual(first.observed_at, latest.observed_at)
+        self.assertEqual(confirmation.observed_at, latest.confirmed_at)
+        self.assertEqual(
+            1,
+            store.connection.execute(
+                "SELECT COUNT(*) FROM target_observations_v2 WHERE target_id=?",
+                (observation.target_id,),
+            ).fetchone()[0],
+        )
+
+        clock.advance(timedelta(seconds=2))
+        confirming_heart = WorldHeartV2(store, registry, brain, clock=clock)
+        snapshot = confirming_heart.observe_connected_world(refresh_targets=set())
+        self.assertFalse(snapshot.coverage["targets"][observation.target_id]["stale"])
+
         changed = replace(
             observation,
             coverage={"bins": "partial"},
         )
         with self.assertRaisesRegex(ValueError, "same target revision"):
             store.save_target_observation(changed)
+
+    def test_target_confirmation_columns_migrate_additively(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del registry, store, brain, heart, goal
+        observation = plugin.providers[0].observe()
+        body = observation.to_dict()
+        body.pop("confirmed_at")
+        path = self.base / "legacy-target-observation.sqlite3"
+        connection = sqlite3.connect(path)
+        connection.execute(
+            """
+            CREATE TABLE target_observations_v2 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                target_id TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                body_json TEXT NOT NULL,
+                artifact_sha256 TEXT NOT NULL,
+                observed_at TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(target_id, revision)
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO target_observations_v2(
+                target_id, revision, body_json, artifact_sha256, observed_at
+            ) VALUES(?,?,?,?,?)
+            """,
+            (
+                observation.target_id,
+                observation.revision,
+                canonical_json(body),
+                artifact_sha256(body),
+                observation.observed_at,
+            ),
+        )
+        connection.commit()
+        connection.close()
+
+        migrated = WorldStore(path)
+        self.addCleanup(migrated.close)
+        columns = {
+            str(row["name"])
+            for row in migrated.connection.execute(
+                "PRAGMA table_info(target_observations_v2)"
+            ).fetchall()
+        }
+        self.assertIn("semantic_sha256", columns)
+        self.assertIn("confirmed_at", columns)
+        latest = migrated.latest_target_observation(observation.target_id)
+        assert latest is not None
+        self.assertEqual(observation.observed_at, latest.confirmed_at)
+        row = migrated.connection.execute(
+            "SELECT semantic_sha256 FROM target_observations_v2"
+        ).fetchone()
+        self.assertEqual(latest.semantic_fingerprint(), row["semantic_sha256"])
 
     def test_declarative_conditions_preserve_units_unknown_and_boolean_composition(self) -> None:
         plugin, registry, store, brain, heart, goal = self._system()
