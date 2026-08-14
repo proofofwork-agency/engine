@@ -14,6 +14,7 @@ from engine_sdk import (
     ConditionV1,
     ContractError,
     EvidenceGrade,
+    EvidenceRefV1,
     LifecycleEventV1,
     PreferencePromotionMode,
     RelationHypothesisV1,
@@ -134,6 +135,11 @@ class EngineSDKTests(unittest.TestCase):
                 "2026-08-01T00:00:00+00:00",
                 "2026-08-01T00:30:00+00:00",
                 dispatch_count=1,
+            )
+        with self.assertRaisesRegex(ContractError, "OBSERVED or DERIVED"):
+            EvidenceRefV1(
+                "obs:1", "entity:1", "bin.count", "plugin",
+                "2026-08-01T00:00:00+00:00", EvidenceGrade.INFERRED, "world:1",
             )
         with self.assertRaisesRegex(ContractError, "cannot record dispatches"):
             AutonomyShadowOutcomeV1(

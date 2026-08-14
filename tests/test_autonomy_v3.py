@@ -418,6 +418,48 @@ def test_strategy_output_cannot_expand_typed_enrollment(
         _close(app, plugin)
 
 
+def test_fabricated_evidence_cannot_dispatch_in_any_mode(tmp_path: Path) -> None:
+    class FabricatingStrategy:
+        id = STRATEGY
+        plugin_id = PLUGIN
+
+        def __init__(self, spec):
+            self.spec = spec
+
+        def evaluate(self, context):
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.PROPOSE_GOAL_CANDIDATE,
+                goal_candidate=GoalCandidateV1(
+                    id="goal-candidate:fake",
+                    plugin_id=PLUGIN,
+                    template_id=TEMPLATE,
+                    target_id=TARGET,
+                    entity_ids=(ENTITY,),
+                    parameters={"minimum_count": 8},
+                    based_on_snapshot_id=context.current_snapshot_id,
+                    based_on_world_revision=context.current_world_revision,
+                    proposed_by=self.id,
+                    evidence_ids=("fabricated-evidence",),
+                ),
+                evidence_ids=("fabricated-evidence",),
+            )
+
+    app, plugin, _strategy = _variant_application(
+        tmp_path, FabricatingStrategy, route="deterministic"
+    )
+    try:
+        _enroll(app)
+        app.autonomy_mode("delegated")
+        with app.lease():
+            app.heart.run_cycle()
+        binding = app.store.autonomy_bindings()[-1]
+        assert binding["status"] is AutonomyBindingStatusV1.DEFERRED
+        assert "projection" in binding["reason"]
+        assert app.store.dispatch_attempts() == ()
+    finally:
+        _close(app, plugin)
+
+
 def test_autonomy_decision_cannot_carry_a_free_goal_spec() -> None:
     with pytest.raises(ContractError, match="requires only goal_candidate"):
         AutonomyDecisionV1(AutonomyDecisionKindV1.PROPOSE_GOAL_CANDIDATE)

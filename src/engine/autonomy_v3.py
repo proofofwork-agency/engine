@@ -17,9 +17,11 @@ from engine_sdk import (
     AutonomyModeV1,
     BrainDecisionV2,
     CognitionRouteV1,
+    ContractError,
     ControlLayer,
     DecisionKindV2,
     EvidenceGrade,
+    EvidenceRefV1,
     GoalCandidateV1,
     GoalSpecV2,
     ProposedActionV1,
@@ -391,6 +393,19 @@ class AutonomyRuntimeV3:
                 reason=decision.rationale or decision.kind.value,
             )
             return None
+        try:
+            binding = replace(
+                binding,
+                evidence_refs=self._resolve_evidence(enrollment, evaluation),
+            )
+        except (PermissionError, ValueError, ContractError) as exc:
+            self.store.save_autonomy_binding(
+                binding,
+                decision,
+                status=AutonomyBindingStatusV1.DEFERRED,
+                reason=str(exc),
+            )
+            return None
         proposal_id = (
             decision.proposed_action.id if decision.proposed_action is not None else None
         )
@@ -559,6 +574,74 @@ class AutonomyRuntimeV3:
         )
         self._validate_proposal(enrollment, proposal, snapshot)
         return goal, proposal
+
+    def _resolve_evidence(
+        self,
+        enrollment: AutonomyEnrollmentV2,
+        evaluation: AutonomyEvaluationV1,
+    ) -> tuple[EvidenceRefV1, ...]:
+        decision = evaluation.decision
+        evidence_ids = decision.evidence_ids
+        if decision.proposed_action is not None and decision.proposed_action.evidence_ids:
+            evidence_ids = decision.proposed_action.evidence_ids
+        elif decision.goal_candidate is not None and decision.goal_candidate.evidence_ids:
+            evidence_ids = decision.goal_candidate.evidence_ids
+        world = evaluation.context.projection.get("world", {})
+        if not isinstance(world, dict):
+            raise PermissionError("evaluation projection is malformed")
+        observations = {
+            str(item["id"]): item
+            for item in world.get("observations", ())
+            if isinstance(item, dict) and item.get("id")
+        }
+        entities = {
+            str(item["id"]): item
+            for item in world.get("entities", ())
+            if isinstance(item, dict) and item.get("id")
+        }
+        refs: list[EvidenceRefV1] = []
+        for evidence_id in evidence_ids:
+            raw = observations.get(str(evidence_id))
+            if raw is None:
+                raise PermissionError(
+                    f"evidence is not in the evaluation projection: {evidence_id}"
+                )
+            if raw.get("evidence_eligible") is False:
+                raise PermissionError("stale evidence cannot bind")
+            try:
+                grade = EvidenceGrade(str(raw.get("evidence_grade")))
+            except ValueError as exc:
+                raise PermissionError("evidence grade is not independently observed") from exc
+            if grade not in {EvidenceGrade.OBSERVED, EvidenceGrade.DERIVED}:
+                raise PermissionError("evidence grade is not independently observed")
+            entity = entities.get(str(raw.get("entity_id", "")))
+            source = str(
+                entity.get("source") if isinstance(entity, dict) else raw.get("source", "")
+            )
+            allowed = {enrollment.plugin_id, *enrollment.context_plugin_ids}
+            if source not in allowed:
+                raise PermissionError("evidence source is outside enrollment")
+            refs.append(
+                EvidenceRefV1(
+                    evidence_id=str(raw["id"]),
+                    entity_id=str(raw.get("entity_id", "")),
+                    property=str(raw.get("property", "")),
+                    source=source,
+                    observed_at=str(raw.get("observed_at", "")),
+                    evidence_grade=grade,
+                    snapshot_id=evaluation.context.current_snapshot_id,
+                )
+            )
+        if enrollment.context_plugin_ids:
+            own = any(item.source == enrollment.plugin_id for item in refs)
+            foreign = any(
+                item.source in enrollment.context_plugin_ids for item in refs
+            )
+            if not own or not foreign:
+                raise PermissionError(
+                    "context strategy requires own-plugin and context evidence"
+                )
+        return tuple(refs)
 
     def _validate_proposal(
         self,

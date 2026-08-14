@@ -1823,6 +1823,44 @@ class AutonomyEvaluationV1:
 
 
 @dataclass(frozen=True)
+class EvidenceRefV1:
+    evidence_id: str
+    entity_id: str
+    property: str
+    source: str
+    observed_at: str
+    evidence_grade: EvidenceGrade
+    snapshot_id: str
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.evidence_id, "evidence ref id"),
+            (self.entity_id, "evidence ref entity_id"),
+            (self.property, "evidence ref property"),
+            (self.source, "evidence ref source"),
+            (self.snapshot_id, "evidence ref snapshot_id"),
+        ):
+            _require(value, name)
+        if self.evidence_grade not in {EvidenceGrade.OBSERVED, EvidenceGrade.DERIVED}:
+            raise ContractError("evidence refs must be OBSERVED or DERIVED")
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "EvidenceRefV1":
+        return cls(
+            evidence_id=str(value["evidence_id"]),
+            entity_id=str(value["entity_id"]),
+            property=str(value["property"]),
+            source=str(value["source"]),
+            observed_at=str(value["observed_at"]),
+            evidence_grade=EvidenceGrade(str(value["evidence_grade"])),
+            snapshot_id=str(value["snapshot_id"]),
+        )
+
+
+@dataclass(frozen=True)
 class AutonomyBindingV1:
     enrollment_id: str
     enrollment_revision: int
@@ -1832,6 +1870,7 @@ class AutonomyBindingV1:
     manifest_fingerprint: str
     strategy_fingerprint: str
     context_fingerprint: str
+    evidence_refs: tuple[EvidenceRefV1, ...] = ()
 
     def __post_init__(self) -> None:
         for value, name in (
@@ -1859,6 +1898,10 @@ class AutonomyBindingV1:
             manifest_fingerprint=str(value["manifest_fingerprint"]),
             strategy_fingerprint=str(value["strategy_fingerprint"]),
             context_fingerprint=str(value["context_fingerprint"]),
+            evidence_refs=tuple(
+                EvidenceRefV1.from_dict(item)
+                for item in value.get("evidence_refs", ())
+            ),
         )
 
 
