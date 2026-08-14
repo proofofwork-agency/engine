@@ -217,6 +217,7 @@ class ContextWorldProvider:
         coordinates = self.location_provider.location()
         if coordinates is None:
             observations.extend(_unknown_location(revision, observed_at, self.location_provider.source))
+            observations.extend(_unknown_sun(revision, observed_at, local.id))
             errors.append("weather deferred: confirmed location is unavailable")
             observations.extend(_unknown_weather(revision, observed_at, "location_unavailable"))
         else:
@@ -235,6 +236,7 @@ class ContextWorldProvider:
                     quality=1.0, coverage="confirmed_point",
                 ),
             ))
+            observations.extend(_sun_observations(revision, observed_at, local.id, latitude, longitude, now))
             if self.weather_provider is not None and self.share_location_with_weather:
                 try:
                     current = self.weather_provider.current(latitude, longitude)
@@ -280,6 +282,7 @@ class ContextWorldProvider:
             {
                 "time": "complete",
                 "location": "confirmed" if coordinates is not None else "UNKNOWN",
+                "sun": "derived" if coordinates is not None else "UNKNOWN",
                 "weather": "provider_current" if not errors else "UNKNOWN",
                 "location_transmitted": bool(coordinates and self.share_location_with_weather and self.weather_provider),
             },
@@ -342,6 +345,51 @@ def load_plugin() -> ContextPlugin:
         share_location_with_weather=consent,
     )
     return ContextPlugin(manifest, (provider,))
+
+
+def _sun_observations(
+    revision: int,
+    observed_at: str,
+    entity_id: str,
+    latitude: float,
+    longitude: float,
+    when: datetime,
+) -> tuple[ObservationV1, ...]:
+    from .sun import solar_position
+
+    elevation, above_horizon, phase = solar_position(latitude, longitude, when)
+    return (
+        ObservationV1(
+            f"context:sun-elevation:r{revision}", entity_id, "sun.elevation_deg",
+            round(elevation, 4), "engine.context.sun/noaa", observed_at,
+            EvidenceGrade.DERIVED, unit="degree", quality=1.0, coverage="point",
+        ),
+        ObservationV1(
+            f"context:sun-horizon:r{revision}", entity_id, "sun.above_horizon",
+            above_horizon, "engine.context.sun/noaa", observed_at,
+            EvidenceGrade.DERIVED, quality=1.0, coverage="point",
+        ),
+        ObservationV1(
+            f"context:sun-phase:r{revision}", entity_id, "sun.phase",
+            phase, "engine.context.sun/noaa", observed_at,
+            EvidenceGrade.DERIVED, quality=1.0, coverage="point",
+        ),
+    )
+
+
+def _unknown_sun(revision: int, observed_at: str, entity_id: str) -> tuple[ObservationV1, ...]:
+    return tuple(
+        ObservationV1(
+            f"context:sun-{name}:r{revision}", entity_id, property_name,
+            None, "engine.context.sun/noaa", observed_at, EvidenceGrade.UNKNOWN,
+            unit=unit, coverage="no_confirmed_location",
+        )
+        for name, property_name, unit in (
+            ("elevation", "sun.elevation_deg", "degree"),
+            ("horizon", "sun.above_horizon", None),
+            ("phase", "sun.phase", None),
+        )
+    )
 
 
 def _unknown_location(revision: int, observed_at: str, source: str) -> tuple[ObservationV1, ...]:

@@ -13,7 +13,7 @@ effect_oracles = []
 specialists = []
 entity_types = ["context.local", "context.location", "context.weather"]
 relation_types = ["located_at", "weather_for"]
-observation_types = ["time.iso8601", "time.hour", "time.minute_of_day", "time.weekday", "location.latitude", "location.longitude", "weather.temperature_c", "weather.cloud_cover_pct", "weather.precipitation_mm"]
+observation_types = ["time.iso8601", "time.hour", "time.minute_of_day", "time.weekday", "location.latitude", "location.longitude", "sun.elevation_deg", "sun.above_horizon", "sun.phase", "weather.temperature_c", "weather.cloud_cover_pct", "weather.precipitation_mm"]
 
 [autonomy]
 strategies = []

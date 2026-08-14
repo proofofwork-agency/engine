@@ -11,6 +11,7 @@ from engine_context.plugin import (
     ExplicitLocationProvider,
     MacOSCoreLocationProvider,
 )
+from engine_context.sun import solar_position
 from engine_sdk import EvidenceGrade, load_static_manifest
 
 
@@ -122,6 +123,75 @@ class ContextPluginTests(unittest.TestCase):
 
         self.assertIsNone(provider.location())
         self.assertEqual(0, calls)
+
+    def test_noaa_solar_elevation_matches_ephemeris_fixtures(self) -> None:
+        fixtures = (
+            # NREL SPA Reda & Andreas 2004, Boulder; NOAA refraction stays
+            # inside the ±0.5° C1 gate of the published 39.888° geometric
+            # elevation.
+            (
+                39.742476,
+                -105.1786,
+                datetime(2003, 10, 17, 19, 30, 30, tzinfo=UTC),
+                39.888,
+            ),
+            # Local solar noon near the March equinox at the equator.
+            (0.0, 0.0, datetime(2024, 3, 20, 12, 7, tzinfo=UTC), 90.0),
+            # Midwinter polar night at the North Pole.
+            (90.0, 0.0, datetime(2024, 12, 21, 12, tzinfo=UTC), -23.4),
+        )
+        for latitude, longitude, when, expected in fixtures:
+            elevation, above, phase = solar_position(latitude, longitude, when)
+            with self.subTest(when=when.isoformat()):
+                self.assertLessEqual(abs(elevation - expected), 0.5)
+                self.assertEqual(above, elevation >= 0.0)
+                if elevation >= 0.0:
+                    self.assertEqual("day", phase)
+                elif elevation >= -6.0:
+                    self.assertEqual("civil_twilight", phase)
+                else:
+                    self.assertEqual("night", phase)
+
+    def test_sun_observations_are_unknown_without_coordinates(self) -> None:
+        provider = ContextWorldProvider(
+            self._store(),
+            self.manifest,
+            ExplicitLocationProvider(None, None),
+            _Weather(),
+            share_location_with_weather=True,
+        )
+        observed = provider.observe()
+        sun = [
+            item for item in observed.observations
+            if item.property.startswith("sun.")
+        ]
+        self.assertEqual(3, len(sun))
+        self.assertTrue(all(item.evidence_grade is EvidenceGrade.UNKNOWN for item in sun))
+        self.assertTrue(all(item.value is None for item in sun))
+        self.assertEqual("UNKNOWN", observed.coverage["sun"])
+
+    def test_sun_observations_are_derived_when_location_is_known(self) -> None:
+        provider = ContextWorldProvider(
+            self._store(),
+            self.manifest,
+            ExplicitLocationProvider(52.37, 4.89),
+            _Weather(),
+            share_location_with_weather=False,
+            clock=lambda: datetime(2026, 8, 10, 14, tzinfo=UTC),
+        )
+        observed = provider.observe()
+        elevation = next(
+            item for item in observed.observations
+            if item.property == "sun.elevation_deg"
+        )
+        phase = next(
+            item for item in observed.observations
+            if item.property == "sun.phase"
+        )
+        self.assertEqual(EvidenceGrade.DERIVED, elevation.evidence_grade)
+        self.assertEqual("derived", observed.coverage["sun"])
+        self.assertIn(phase.value, {"day", "civil_twilight", "night"})
+        self.assertIn("sun.elevation_deg", self.manifest.observation_types)
 
 
 if __name__ == "__main__":
