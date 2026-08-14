@@ -1244,13 +1244,17 @@ _VOLATILE_METERING_EXACT = frozenset(
     {
         "current",
         "energy_kwh",
+        "frequency",
         "house_power_w",
         "measure_current",
         "measure_power",
         "measure_voltage",
         "meter_power",
+        "net_load_phase1_pct",
         "power_w",
+        "rssi",
         "voltage",
+        "wifi_quality",
     }
 )
 _VOLATILE_METERING_PREFIXES = (
@@ -1263,6 +1267,7 @@ _VOLATILE_METERING_PREFIXES = (
     "measure_voltage_",
     "meter_power.",
     "meter_power_",
+    "net_load",
     "power.",
     "voltage.",
     "voltage_",
@@ -1270,7 +1275,7 @@ _VOLATILE_METERING_PREFIXES = (
 
 
 def is_volatile_metering_signal(name: str) -> bool:
-    """True when a watt/kWh/voltage/current tick must not mint house identity."""
+    """True when a watt/kWh/voltage/current/rssi tick must not mint house identity."""
     key = name.casefold().strip()
     if key in _VOLATILE_METERING_EXACT:
         return True

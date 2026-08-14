@@ -295,6 +295,20 @@ class TargetAndStoreTests(unittest.TestCase):
                                 "observed_at": observed,
                                 "evidence": "OBSERVED",
                             },
+                            {
+                                "id": "rssi",
+                                "semantic": "rssi",
+                                "value": 90 + int(watts) % 10,
+                                "observed_at": observed,
+                                "evidence": "OBSERVED",
+                            },
+                            {
+                                "id": "net_load_phase1_pct",
+                                "semantic": "net_load_phase1_pct",
+                                "value": int(watts) % 5,
+                                "observed_at": observed,
+                                "evidence": "OBSERVED",
+                            },
                         ],
                     }
                 ],

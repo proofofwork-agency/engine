@@ -265,7 +265,8 @@ outbound ntfy accept list remains exactly the five kinds of Decision 10.
 - Trigger: the 2026-08-14 burn-in was minting a new Homey snapshot and Engine
   target revision every 30 s because P1 / Homey Energy registers
   (`measure_power*`, `meter_power*`, `voltage*`, `current*`, `power_w`,
-  `energy_kwh`, `house_power_w`) tick by construction. A1.2 recorded this
+  `energy_kwh`, `house_power_w`, plus live leftovers `rssi` and
+  `net_load_phase1_pct`) tick by construction. A1.2 recorded this
   honestly and required a separate unit-aware sampling decision to be
   preregistered **before** another fresh burn-in. This is that decision.
 
@@ -284,8 +285,11 @@ use those readings after a light change. They cannot reconstruct a
 watt-resolution time series between transitions.
 
 This is not a new quantization bin and does not change Decision 3. It is
-an identity-sampling rule. `rssi` and other non-metering jitter remain in
-identity; they are a separate decision if they still dominate a later
-burn-in. Existing stores computed fingerprints including meters; this
-rule requires a fresh-store restart so the same-revision fingerprint
-invariant is not violated by the contract change.
+an identity-sampling rule. The first minutes of the post-A1.6 restart
+showed the remaining 30 s revisions were `rssi` (92/94/98/100) and
+`net_load_phase1_pct` (2/3), not lights or presence. Those two signals
+are therefore in the same exclusion set; they stay on the stored body
+when a real transition writes. Existing stores computed fingerprints
+including these values; the rule requires a fresh-store restart so the
+same-revision fingerprint invariant is not violated by the contract
+change.

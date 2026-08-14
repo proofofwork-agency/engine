@@ -310,10 +310,12 @@ effect_schema = {}
         self.assertTrue(is_volatile_metering_signal("meter_power.imported"))
         self.assertTrue(is_volatile_metering_signal("voltage.phase1"))
         self.assertTrue(is_volatile_metering_signal("current.l1"))
+        self.assertTrue(is_volatile_metering_signal("rssi"))
+        self.assertTrue(is_volatile_metering_signal("net_load_phase1_pct"))
         self.assertFalse(is_volatile_metering_signal("on"))
         self.assertFalse(is_volatile_metering_signal("illuminance_lux"))
         self.assertFalse(is_volatile_metering_signal("current_scene"))
-        self.assertFalse(is_volatile_metering_signal("rssi"))
+        self.assertFalse(is_volatile_metering_signal("presence"))
 
 
 if __name__ == "__main__":
