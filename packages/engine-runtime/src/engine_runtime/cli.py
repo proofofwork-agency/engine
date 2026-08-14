@@ -63,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
         "mode", choices=("observe", "supervised", "delegated", "paused")
     )
     autonomy_sub.add_parser("status")
+    autonomy_sub.add_parser("shadow-report")
     strategies = autonomy_sub.add_parser("strategies")
     strategies_sub = strategies.add_subparsers(
         dest="autonomy_strategies_command", required=True
@@ -226,6 +227,9 @@ def main(argv: list[str] | None = None) -> int:
                     return 0
                 if args.autonomy_command == "status":
                     _print(app.autonomy_status())
+                    return 0
+                if args.autonomy_command == "shadow-report":
+                    _print(app.autonomy_shadow_report())
                     return 0
                 if args.autonomy_command == "strategies":
                     if args.autonomy_strategies_command == "list":

@@ -239,6 +239,11 @@ class EngineApplication:
             )
         )
 
+    def autonomy_shadow_report(self) -> dict[str, Any]:
+        from engine.autonomy_shadow import shadow_report
+
+        return shadow_report(self.store, self.registry)
+
     def autonomy_status(self) -> dict[str, Any]:
         mode = self.store.autonomy_mode()
         return {

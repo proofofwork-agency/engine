@@ -647,6 +647,7 @@ class AutonomyShadowOutcomeV1:
     canonical_parameters: JsonObject
     evaluation_id: str
     desired_effect_ids: tuple[str, ...] = ()
+    close_snapshot_id: str | None = None
     agreement: bool | None = None
     strict_disagreement: bool = False
     desired_effect_observed_at: str | None = None
@@ -686,6 +687,11 @@ class AutonomyShadowOutcomeV1:
             evaluation_id=str(value["evaluation_id"]),
             desired_effect_ids=tuple(
                 str(item) for item in value.get("desired_effect_ids", ())
+            ),
+            close_snapshot_id=(
+                str(value["close_snapshot_id"])
+                if value.get("close_snapshot_id") is not None
+                else None
             ),
             agreement=value.get("agreement"),
             strict_disagreement=bool(value.get("strict_disagreement", False)),

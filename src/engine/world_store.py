@@ -1759,6 +1759,12 @@ class WorldStore:
         ).fetchone()
         return _load_world_snapshot_row(self.connection, row) if row else None
 
+    def world_snapshots(self) -> tuple[WorldSnapshotV2, ...]:
+        rows = self.connection.execute(
+            "SELECT snapshot_id FROM world_snapshots_v2 ORDER BY revision"
+        ).fetchall()
+        return tuple(self.world_snapshot(str(row["snapshot_id"])) for row in rows)
+
     def world_snapshot(self, snapshot_id: str) -> WorldSnapshotV2:
         row = self.connection.execute(
             "SELECT * FROM world_snapshots_v2 WHERE snapshot_id=?",

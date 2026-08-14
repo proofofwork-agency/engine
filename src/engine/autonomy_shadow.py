@@ -98,7 +98,9 @@ class AutonomyShadowScorerV1:
         goal = self._goal_for_evaluation(evaluation)
         if goal is None:
             if now > _as_utc(outcome.window_ends_at):
-                return replace(outcome, agreement=False)
+                return replace(
+                    outcome, agreement=False, close_snapshot_id=snapshot.id
+                )
             return None
         effects = evaluate_effects(goal, snapshot)
         evidence_ids = tuple(
@@ -113,16 +115,23 @@ class AutonomyShadowScorerV1:
             return replace(
                 outcome,
                 agreement=True,
+                close_snapshot_id=snapshot.id,
                 desired_effect_observed_at=now.isoformat(),
                 evidence_ids=evidence_ids,
             )
         if now > _as_utc(outcome.window_ends_at):
-            return replace(outcome, agreement=False, evidence_ids=evidence_ids)
+            return replace(
+                outcome,
+                agreement=False,
+                close_snapshot_id=snapshot.id,
+                evidence_ids=evidence_ids,
+            )
         if self._opposing(outcome, goal, snapshot):
             return replace(
                 outcome,
                 agreement=False,
                 strict_disagreement=True,
+                close_snapshot_id=snapshot.id,
                 evidence_ids=evidence_ids,
             )
         return None
@@ -283,3 +292,184 @@ def _as_utc(value: datetime | str) -> datetime:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
+
+
+def shadow_report(store: Any, registry: Any) -> dict[str, Any]:
+    """Counts and rates only. Thresholds stay in the experiment protocol."""
+    outcomes = store.autonomy_shadow_outcomes()
+    closed = tuple(item for item in outcomes if item.agreement is not None)
+    open_outcomes = tuple(item for item in outcomes if item.agreement is None)
+    days = _spanned_days(outcomes)
+    snapshots = store.world_snapshots()
+    scorer = AutonomyShadowScorerV1(store, registry)
+    engine = _policy_counts(
+        tuple(
+            (item.agreement is True, item.strict_disagreement)
+            for item in closed
+        )
+    )
+    baselines = {
+        "always_defer": _policy_counts(
+            tuple(
+                _baseline_verdict(
+                    scorer, item, snapshots, kind="always_defer"
+                )
+                for item in closed
+            )
+        ),
+        "hour_of_week": _policy_counts(
+            tuple(
+                _baseline_verdict(
+                    scorer, item, snapshots, kind="hour_of_week"
+                )
+                for item in closed
+            )
+        ),
+        "persistence": _policy_counts(
+            tuple(
+                _baseline_verdict(
+                    scorer, item, snapshots, kind="persistence"
+                )
+                for item in closed
+            )
+        ),
+    }
+    return {
+        "closed": len(closed),
+        "open": len(open_outcomes),
+        "enrollments": len({item.enrollment_id for item in outcomes}),
+        "days": days,
+        "dispatch_count": sum(item.dispatch_count for item in outcomes),
+        "engine": engine,
+        "baselines": baselines,
+    }
+
+
+def _policy_counts(
+    verdicts: tuple[tuple[bool | None, bool], ...],
+) -> dict[str, Any]:
+    scored = tuple(item for item in verdicts if item[0] is not None)
+    agreements = sum(1 for item in scored if item[0] is True)
+    disagreements = sum(1 for item in scored if item[0] is False)
+    strict = sum(1 for item in scored if item[1])
+    total = len(scored)
+    return {
+        "scored": total,
+        "agreement_count": agreements,
+        "disagreement_count": disagreements,
+        "strict_disagreement_count": strict,
+        "agreement_rate": (agreements / total) if total else None,
+        "strict_false_intervention_rate": (strict / total) if total else None,
+    }
+
+
+def _baseline_verdict(
+    scorer: AutonomyShadowScorerV1,
+    outcome: AutonomyShadowOutcomeV1,
+    snapshots: tuple[WorldSnapshotV2, ...],
+    *,
+    kind: str,
+) -> tuple[bool | None, bool]:
+    if outcome.close_snapshot_id is None:
+        return None, False
+    try:
+        trigger = next(
+            item for item in snapshots if item.id == outcome.trigger_snapshot_id
+        )
+        close = next(
+            item for item in snapshots if item.id == outcome.close_snapshot_id
+        )
+    except StopIteration:
+        return None, False
+    evaluation = scorer.store.get_autonomy_evaluation(outcome.evaluation_id)
+    goal = scorer._goal_for_evaluation(evaluation)
+    if goal is None:
+        return None, False
+    properties = tuple(
+        item
+        for effect in goal.desired_effects
+        for item in _observation_properties(effect.condition)
+    )
+    if not properties:
+        return None, False
+    predicted = _baseline_prediction(
+        kind, outcome, trigger, snapshots, properties
+    )
+    if predicted is None:
+        return None, False
+    observed = tuple(
+        _observation_value(close, outcome.entity_id, property_name)
+        for property_name in properties
+    )
+    if any(item is _MISSING for item in observed):
+        return None, False
+    agrees = observed == predicted
+    return agrees, (not agrees)
+
+
+def _baseline_prediction(
+    kind: str,
+    outcome: AutonomyShadowOutcomeV1,
+    trigger: WorldSnapshotV2,
+    snapshots: tuple[WorldSnapshotV2, ...],
+    properties: tuple[str, ...],
+) -> tuple[Any, ...] | None:
+    trigger_values = tuple(
+        _observation_value(trigger, outcome.entity_id, property_name)
+        for property_name in properties
+    )
+    if any(item is _MISSING for item in trigger_values):
+        return None
+    if kind == "always_defer":
+        return trigger_values
+    earlier = tuple(
+        item for item in snapshots if item.revision < trigger.revision
+    )
+    if kind == "persistence":
+        if not earlier:
+            return trigger_values
+        previous = earlier[-1]
+        values = tuple(
+            _observation_value(previous, outcome.entity_id, property_name)
+            for property_name in properties
+        )
+        if any(item is _MISSING for item in values):
+            return trigger_values
+        return values
+    if kind != "hour_of_week":
+        raise ValueError(f"unknown baseline: {kind}")
+    trigger_at = _as_utc(trigger.observed_at)
+    window_start = trigger_at - timedelta(days=7)
+    samples: list[tuple[Any, ...]] = []
+    for snapshot in earlier:
+        stamp = _as_utc(snapshot.observed_at)
+        if stamp < window_start or stamp >= trigger_at:
+            continue
+        if (
+            stamp.weekday() != trigger_at.weekday()
+            or stamp.hour != trigger_at.hour
+        ):
+            continue
+        values = tuple(
+            _observation_value(snapshot, outcome.entity_id, property_name)
+            for property_name in properties
+        )
+        if any(item is _MISSING for item in values):
+            continue
+        samples.append(values)
+    if not samples:
+        return trigger_values
+    counts: dict[tuple[Any, ...], int] = {}
+    for sample in samples:
+        counts[sample] = counts.get(sample, 0) + 1
+    return max(
+        counts,
+        key=lambda item: (counts[item], artifact_sha256(list(item))),
+    )
+
+
+def _spanned_days(outcomes: tuple[AutonomyShadowOutcomeV1, ...]) -> int:
+    if not outcomes:
+        return 0
+    stamps = tuple(_as_utc(item.triggered_at).date() for item in outcomes)
+    return (max(stamps) - min(stamps)).days + 1

@@ -25,10 +25,15 @@ from engine_sdk import (
     TargetObservationV2,
     WorldSnapshotV2,
     artifact_sha256,
+    canonical_json,
 )
 from test_world_v2 import _MutableClock
 
-from engine.autonomy_shadow import AutonomyShadowScorerV1, shadow_opportunity_key
+from engine.autonomy_shadow import (
+    AutonomyShadowScorerV1,
+    shadow_opportunity_key,
+    shadow_report,
+)
 from engine.world_heart import DeterministicExecutiveBrainV2, WorldHeartV2
 from engine.world_store import WorldStore
 
@@ -187,6 +192,34 @@ class AutonomyShadowTests(unittest.TestCase):
             ).fetchall()
         ]
         self.assertIn("autonomy_shadow_failed", kinds)
+
+    def test_shadow_report_is_byte_reproducible_and_has_no_thresholds(self) -> None:
+        first = self._world(1, False)
+        self._record_proposal(first, evaluation_id="evaluation:agree")
+        self.scorer.advance(first)
+        self.clock.advance(timedelta(minutes=20))
+        self.scorer.advance(self._world(2, True))
+        self.clock.advance(timedelta(minutes=20))
+        third = self._world(3, False)
+        self._record_proposal(third, evaluation_id="evaluation:expire")
+        self.scorer.advance(third)
+        self.clock.advance(timedelta(hours=2))
+        self.scorer.advance(self._world(4, False))
+
+        first_report = shadow_report(self.store, self.registry)
+        second_report = shadow_report(self.store, self.registry)
+        encoded = canonical_json(first_report)
+        self.assertEqual(encoded, canonical_json(second_report))
+        self.assertEqual(2, first_report["closed"])
+        self.assertEqual(0, first_report["open"])
+        self.assertEqual(0, first_report["dispatch_count"])
+        self.assertEqual(0.5, first_report["engine"]["agreement_rate"])
+        self.assertIn("always_defer", first_report["baselines"])
+        self.assertIn("hour_of_week", first_report["baselines"])
+        self.assertIn("persistence", first_report["baselines"])
+        self.assertNotIn("threshold", encoded)
+        self.assertNotIn("0.6", encoded)
+        self.assertNotIn("60", encoded)
 
     def test_opportunity_key_uses_thirty_minute_bucket(self) -> None:
         first = shadow_opportunity_key(
