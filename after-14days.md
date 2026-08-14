@@ -202,20 +202,17 @@ Nothing in this phase happens without the owner physically present.
 
 ### D1 — authority hardening (ADR-0013, before any live act)
 
-- Transactional admission: `BEGIN IMMEDIATE` around the final gates and the
-  `PREPARED` write in `src/engine/world_heart.py` (the attempt is written
-  around line 1617). Semantics to state explicitly: a mode change invalidates
-  future admissions and never recalls in-flight I/O.
-- CLI `autonomy mode` and `autonomy disable`
-  (`packages/engine-runtime/src/engine_runtime/cli.py:225`) become audited and
-  serialized with that transaction.
-- Reject non-empty `budget` and unenforced limit keys at enroll time rather
-  than accepting something the runtime cannot honor.
-- A `CLOSED_UNKNOWN` closure path, automatic after a one-hour horizon plus
-  `engine autonomy attempts list|close`, so an ambiguous attempt cannot
-  deadlock a zone for weeks.
-- An explicit enrollment-owns-resource conflict rule, with a cross-concern
-  test proving a live goal and an enrollment on one zone resolve to a single
+- Transactional admission: landed. Final gates and the `PREPARED` write
+  run in one `BEGIN IMMEDIATE`. Mode and enrollment writes use the same
+  lock. A mode change invalidates future admissions and never recalls
+  in-flight I/O.
+- CLI `autonomy mode` and `autonomy disable` stay audited
+  (`autonomy_mode_changed` / `autonomy_enrollment_saved`) and now
+  serialize with that transaction.
+- Reject non-empty `budget` at enroll time: landed.
+- `CLOSED_UNKNOWN` plus `engine autonomy attempts list|close`: landed.
+- Enrollment-owns-resource: landed. A live independent goal cannot take
+  a reserved `(target, entity, conflict_domain)`. The enrollment is the
   deterministic owner.
 
 *Gate:* all hardening tests green, extending the existing crash and lease
