@@ -31,6 +31,7 @@ from engine_sdk import (
     artifact_sha256,
 )
 
+from .autonomy_shadow import AutonomyShadowScorerV1
 from .conditions_v2 import (
     ConditionResult,
     evaluate_condition,
@@ -192,6 +193,9 @@ class WorldHeartV2:
         from .autonomy_v3 import AutonomyRuntimeV3
 
         self.autonomy = AutonomyRuntimeV3(store, registry, self, clock=self._clock)
+        self.shadow_scorer = AutonomyShadowScorerV1(
+            store, registry, clock=self._clock
+        )
 
     def set_dispatch_guard(self, guard: Any | None) -> None:
         """Install the active runtime lease fence used immediately before I/O."""
@@ -875,6 +879,15 @@ class WorldHeartV2:
             current_snapshot = self.store.latest_world_snapshot() or snapshot
             autonomy_handled = self.autonomy.evaluate_cycle(previous, current_snapshot)
             current_snapshot = self.store.latest_world_snapshot() or current_snapshot
+            try:
+                self.shadow_scorer.advance(current_snapshot)
+            except Exception as exc:  # noqa: BLE001 - scorer fault cannot kill the daemon
+                self.store.append_event(
+                    None,
+                    "autonomy_shadow_failed",
+                    "heart.autonomy/v3",
+                    {"error": f"{type(exc).__name__}: {exc}"},
+                )
             for goal in self.store.live_goals():
                 if goal.id in autonomy_handled:
                     continue

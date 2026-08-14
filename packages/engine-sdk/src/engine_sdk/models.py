@@ -634,6 +634,72 @@ class RoutineShadowEventV1:
 
 
 @dataclass(frozen=True)
+class AutonomyShadowOutcomeV1:
+    """Plugin-neutral scored shadow opportunity. Never records a dispatch."""
+
+    id: str
+    enrollment_id: str
+    opportunity_key: str
+    triggered_at: str
+    window_ends_at: str
+    trigger_snapshot_id: str
+    entity_id: str
+    canonical_parameters: JsonObject
+    evaluation_id: str
+    desired_effect_ids: tuple[str, ...] = ()
+    agreement: bool | None = None
+    strict_disagreement: bool = False
+    desired_effect_observed_at: str | None = None
+    evidence_ids: tuple[str, ...] = ()
+    dispatch_count: int = 0
+
+    def __post_init__(self) -> None:
+        for value, name in (
+            (self.id, "autonomy shadow outcome id"),
+            (self.enrollment_id, "autonomy shadow enrollment_id"),
+            (self.opportunity_key, "autonomy shadow opportunity_key"),
+            (self.trigger_snapshot_id, "autonomy shadow trigger_snapshot_id"),
+            (self.entity_id, "autonomy shadow entity_id"),
+            (self.evaluation_id, "autonomy shadow evaluation_id"),
+        ):
+            _require(value, name)
+        if self.dispatch_count != 0:
+            raise ContractError("autonomy shadow outcomes cannot record dispatches")
+        if self.strict_disagreement and self.agreement is not False:
+            raise ContractError("strict disagreement requires agreement=false")
+        canonical_data(self.canonical_parameters)
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "AutonomyShadowOutcomeV1":
+        return cls(
+            id=str(value["id"]),
+            enrollment_id=str(value["enrollment_id"]),
+            opportunity_key=str(value["opportunity_key"]),
+            triggered_at=str(value["triggered_at"]),
+            window_ends_at=str(value["window_ends_at"]),
+            trigger_snapshot_id=str(value["trigger_snapshot_id"]),
+            entity_id=str(value["entity_id"]),
+            canonical_parameters=dict(value.get("canonical_parameters", {})),
+            evaluation_id=str(value["evaluation_id"]),
+            desired_effect_ids=tuple(
+                str(item) for item in value.get("desired_effect_ids", ())
+            ),
+            agreement=value.get("agreement"),
+            strict_disagreement=bool(value.get("strict_disagreement", False)),
+            desired_effect_observed_at=(
+                str(value["desired_effect_observed_at"])
+                if value.get("desired_effect_observed_at") is not None
+                else None
+            ),
+            evidence_ids=tuple(str(item) for item in value.get("evidence_ids", ())),
+            dispatch_count=int(value.get("dispatch_count", 0)),
+        )
+
+
+@dataclass(frozen=True)
 class AutonomyStrategySpecV1:
     """Static declaration for a single-pass, proposal-only strategy."""
 

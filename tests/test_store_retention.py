@@ -15,6 +15,7 @@ from engine_runtime.cli import build_parser
 from engine_sdk import (
     ActionRequestV1,
     AutonomyBindingStatusV1,
+    AutonomyShadowOutcomeV1,
     DispatchAttemptStateV1,
     DispatchAttemptV1,
     canonical_json,
@@ -147,6 +148,30 @@ class StoreRetentionTests(unittest.TestCase):
         self.assertEqual(old, self.store.world_snapshot(old.id))
         self.assertEqual(middle, self.store.world_snapshot(middle.id))
         self.assertEqual(recent, self.store.world_snapshot(recent.id))
+
+    def test_unscored_autonomy_shadow_outcome_pins_trigger_snapshot(self) -> None:
+        old, middle, recent = self._multi_day_snapshots()
+        self.store.save_autonomy_shadow_outcome(
+            AutonomyShadowOutcomeV1(
+                id="autonomy-shadow:retention-pin",
+                enrollment_id="enrollment:pin",
+                opportunity_key="key:pin",
+                triggered_at=self.boundary.isoformat(),
+                window_ends_at=(self.boundary + timedelta(minutes=45)).isoformat(),
+                trigger_snapshot_id=old.id,
+                entity_id=ENTITY_ID,
+                canonical_parameters={"count": 3},
+                evaluation_id="evaluation:shadow-pin",
+            )
+        )
+
+        self.store.prune(self.boundary)
+
+        self.assertEqual(old, self.store.world_snapshot(old.id))
+        with self.assertRaises(KeyError):
+            self.store.world_snapshot(middle.id)
+        self.assertEqual(recent, self.store.world_snapshot(recent.id))
+        self.assertIn(old.id, self.store.retention_pinned_snapshot_ids())
 
     def test_caller_supplied_pin_retains_old_snapshot(self) -> None:
         old, middle, recent = self._multi_day_snapshots()

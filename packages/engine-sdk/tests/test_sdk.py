@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 
 from engine_sdk import (
+    AutonomyProfileV1,
+    AutonomyShadowOutcomeV1,
     BehaviorBatchV1,
     BehaviorSignalV1,
     ConditionV1,
@@ -18,7 +20,6 @@ from engine_sdk import (
     RiskClass,
     RoutineShadowEventV1,
     ScopedConditionV1,
-    AutonomyProfileV1,
     artifact_sha256,
     check_plugin,
     compare_manifests,
@@ -132,6 +133,14 @@ class EngineSDKTests(unittest.TestCase):
                 "shadow:1", "candidate:1", "day:1",
                 "2026-08-01T00:00:00+00:00",
                 "2026-08-01T00:30:00+00:00",
+                dispatch_count=1,
+            )
+        with self.assertRaisesRegex(ContractError, "cannot record dispatches"):
+            AutonomyShadowOutcomeV1(
+                "shadow:2", "enrollment:1", "key:1",
+                "2026-08-01T00:00:00+00:00",
+                "2026-08-01T00:45:00+00:00",
+                "world:1", "entity:1", {"on": True}, "evaluation:1",
                 dispatch_count=1,
             )
 

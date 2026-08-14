@@ -18,6 +18,7 @@ from engine_sdk import (
     AutonomyEvaluationV1,
     AutonomyModeV1,
     AutonomyProfileV1,
+    AutonomyShadowOutcomeV1,
     BehaviorBatchV1,
     BehaviorSignalV1,
     ConditionV1,
@@ -348,6 +349,16 @@ class WorldStore:
                 body_json TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS autonomy_shadow_outcomes_v1 (
+                id TEXT PRIMARY KEY,
+                enrollment_id TEXT NOT NULL,
+                opportunity_key TEXT NOT NULL,
+                trigger_snapshot_id TEXT NOT NULL,
+                body_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(enrollment_id, opportunity_key)
+            );
             CREATE TABLE IF NOT EXISTS autonomy_bindings_v1 (
                 evaluation_id TEXT PRIMARY KEY,
                 enrollment_id TEXT NOT NULL,
@@ -561,6 +572,25 @@ class WorldStore:
                             f"{field}: {row['evaluation_id']}"
                         )
                     pinned.add(snapshot_id)
+
+        shadow_rows = self.connection.execute(
+            """
+            SELECT trigger_snapshot_id, body_json
+            FROM autonomy_shadow_outcomes_v1
+            """
+        ).fetchall()
+        for row in shadow_rows:
+            outcome = json.loads(row["body_json"])
+            if not isinstance(outcome, Mapping):
+                raise ValueError("autonomy shadow outcome body is not an object")
+            if outcome.get("agreement") is not None:
+                continue
+            snapshot_id = row["trigger_snapshot_id"]
+            if not isinstance(snapshot_id, str) or not snapshot_id:
+                raise ValueError(
+                    "unscored autonomy shadow outcome has no trigger snapshot"
+                )
+            pinned.add(snapshot_id)
         return tuple(sorted(pinned))
 
     def prune(
@@ -1137,6 +1167,69 @@ class WorldStore:
             ).fetchall()
         return tuple(
             AutonomyEvaluationV1.from_dict(json.loads(row["body_json"])) for row in rows
+        )
+
+    def save_autonomy_shadow_outcome(self, outcome: AutonomyShadowOutcomeV1) -> None:
+        if outcome.dispatch_count != 0:
+            raise ValueError("autonomy shadow outcomes cannot record dispatches")
+        self.connection.execute(
+            """
+            INSERT INTO autonomy_shadow_outcomes_v1(
+                id,enrollment_id,opportunity_key,trigger_snapshot_id,body_json
+            ) VALUES(?,?,?,?,?)
+            ON CONFLICT(enrollment_id,opportunity_key) DO UPDATE SET
+                id=excluded.id,
+                trigger_snapshot_id=excluded.trigger_snapshot_id,
+                body_json=excluded.body_json,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                outcome.id,
+                outcome.enrollment_id,
+                outcome.opportunity_key,
+                outcome.trigger_snapshot_id,
+                canonical_json(outcome),
+            ),
+        )
+        self.connection.commit()
+
+    def autonomy_shadow_outcome(
+        self, enrollment_id: str, opportunity_key: str
+    ) -> AutonomyShadowOutcomeV1 | None:
+        row = self.connection.execute(
+            """
+            SELECT body_json FROM autonomy_shadow_outcomes_v1
+            WHERE enrollment_id=? AND opportunity_key=?
+            """,
+            (enrollment_id, opportunity_key),
+        ).fetchone()
+        if row is None:
+            return None
+        return AutonomyShadowOutcomeV1.from_dict(json.loads(row["body_json"]))
+
+    def autonomy_shadow_outcomes(
+        self,
+        *,
+        enrollment_id: str | None = None,
+        open_only: bool = False,
+    ) -> tuple[AutonomyShadowOutcomeV1, ...]:
+        clauses: list[str] = []
+        parameters: list[str] = []
+        if enrollment_id is not None:
+            clauses.append("enrollment_id=?")
+            parameters.append(enrollment_id)
+        if open_only:
+            clauses.append("json_extract(body_json, '$.agreement') IS NULL")
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        rows = self.connection.execute(
+            "SELECT body_json FROM autonomy_shadow_outcomes_v1"
+            + where
+            + " ORDER BY created_at,id",
+            tuple(parameters),
+        ).fetchall()
+        return tuple(
+            AutonomyShadowOutcomeV1.from_dict(json.loads(row["body_json"]))
+            for row in rows
         )
 
     def get_autonomy_evaluation(self, evaluation_id: str) -> AutonomyEvaluationV1:
