@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import zlib
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -53,6 +54,9 @@ from engine_sdk import (
 )
 
 SCHEMA_VERSION = 9
+_LIVE_GOAL_STATUSES = frozenset(
+    {"active", "monitoring", "waiting", "uncertain", "degraded"}
+)
 _TARGET_BODY_ZLIB_PREFIX = b"engine.target-observation.zlib/v1\x00"
 _OPEN_DISPATCH_STATES = (
     DispatchAttemptStateV1.PREPARED.value,
@@ -721,8 +725,53 @@ class WorldStore:
     def create_goal(self, goal: GoalSpecV2) -> None:
         if self.has_goal(goal.id):
             raise ValueError(f"goal already exists: {goal.id}")
+        if goal.status in _LIVE_GOAL_STATUSES:
+            owner = self._enrollment_owner_for_goal_entities(goal)
+            if owner is not None and self._goal_enrollment_id(goal) != owner:
+                raise PermissionError(
+                    "enrollment owns this target/entity/conflict_domain"
+                )
         self._insert_goal(goal)
         self.append_event(goal.id, "goal_created", "heart.v2", goal.to_dict())
+
+    def _goal_enrollment_id(self, goal: GoalSpecV2) -> str | None:
+        if not goal.mandate_id:
+            return None
+        try:
+            mandate = self.get_mandate(goal.mandate_id)
+        except KeyError:
+            return None
+        prefix = "autonomy-enrollment:"
+        activated = mandate.activated_by
+        if not activated.startswith(prefix):
+            return None
+        return activated.removeprefix(prefix).split(":r", 1)[0]
+
+    def _enrollment_owner_for_goal_entities(self, goal: GoalSpecV2) -> str | None:
+        scope = goal.entity_scope if isinstance(goal.entity_scope, dict) else {}
+        target_ids = {str(item) for item in scope.get("target_ids", ())}
+        entity_ids = {str(item) for item in scope.get("entity_ids", ())}
+        for effect in goal.desired_effects:
+            entity_ids.update(
+                str(item) for item in effect.entity_selector.get("entity_ids", ())
+            )
+        if not target_ids or not entity_ids:
+            return None
+        owners: set[str] = set()
+        for target_id in target_ids:
+            for entity_id in entity_ids:
+                row = self.connection.execute(
+                    """
+                    SELECT enrollment_id FROM autonomy_enrollment_resources_v1
+                    WHERE target_id=? AND entity_id=?
+                    """,
+                    (target_id, entity_id),
+                ).fetchone()
+                if row is not None:
+                    owners.add(str(row["enrollment_id"]))
+        if len(owners) == 1:
+            return next(iter(owners))
+        return None
 
     def has_goal(self, goal_id: str) -> bool:
         return self.connection.execute(
@@ -992,7 +1041,8 @@ class WorldStore:
     def set_autonomy_mode(
         self, mode: AutonomyModeV1, *, changed_at: str, changed_by: str
     ) -> dict[str, Any]:
-        with self.connection:
+        try:
+            self.connection.execute("BEGIN IMMEDIATE")
             row = self.connection.execute(
                 "SELECT mode,epoch FROM autonomy_mode_v1 WHERE singleton=1"
             ).fetchone()
@@ -1009,6 +1059,10 @@ class WorldStore:
                 None, "autonomy_mode_changed", changed_by,
                 {"mode": mode.value, "epoch": epoch},
             )
+            self.connection.commit()
+        except Exception:
+            self.connection.rollback()
+            raise
         return self.autonomy_mode()
 
     def save_autonomy_enrollment(
@@ -1023,7 +1077,8 @@ class WorldStore:
         if any(not all(item) for item in resources):
             raise ValueError("autonomy enrollment resources must be exact")
         try:
-            with self.connection:
+            self.connection.execute("BEGIN IMMEDIATE")
+            try:
                 current = self.connection.execute(
                     "SELECT revision FROM autonomy_enrollments_v2 WHERE id=? AND current=1",
                     (enrollment.id,),
@@ -1075,6 +1130,10 @@ class WorldStore:
                         "resource_count": len(resources),
                     },
                 )
+                self.connection.commit()
+            except Exception:
+                self.connection.rollback()
+                raise
         except sqlite3.IntegrityError as exc:
             raise ValueError(
                 "autonomy enrollment overlaps an active target/entity/conflict_domain"
@@ -1345,6 +1404,76 @@ class WorldStore:
             "SELECT body_json FROM suggestions_v1 ORDER BY rowid"
         ).fetchall()
         return tuple(SuggestionV1.from_dict(json.loads(row["body_json"])) for row in rows)
+
+    def enrollment_owning_resource(
+        self, target_id: str, entity_id: str, conflict_domain: str
+    ) -> str | None:
+        row = self.connection.execute(
+            """
+            SELECT enrollment_id FROM autonomy_enrollment_resources_v1
+            WHERE target_id=? AND entity_id=? AND conflict_domain=?
+            """,
+            (target_id, entity_id, conflict_domain),
+        ).fetchone()
+        return str(row["enrollment_id"]) if row is not None else None
+
+    def admit_prepared_dispatch_attempt(
+        self,
+        attempt: DispatchAttemptV1,
+        *,
+        validate: Callable[[], None],
+    ) -> None:
+        if attempt.state is not DispatchAttemptStateV1.PREPARED:
+            raise ValueError("admission writes only a PREPARED attempt")
+        try:
+            self.connection.execute("BEGIN IMMEDIATE")
+            validate()
+            owner = self.enrollment_owning_resource(
+                attempt.target_id, attempt.entity_id, attempt.conflict_domain
+            )
+            binding = attempt.autonomy_binding
+            if owner is not None and (
+                binding is None or binding.enrollment_id != owner
+            ):
+                raise PermissionError(
+                    "enrollment owns this target/entity/conflict_domain"
+                )
+            if binding is not None and owner != binding.enrollment_id:
+                raise PermissionError(
+                    "autonomy binding is not the reserved resource owner"
+                )
+            for existing in self.dispatch_attempts(open_only=True):
+                if (
+                    existing.target_id,
+                    existing.entity_id,
+                    existing.conflict_domain,
+                ) == (
+                    attempt.target_id,
+                    attempt.entity_id,
+                    attempt.conflict_domain,
+                ):
+                    raise RuntimeError(
+                        "resource is reserved by an unresolved dispatch attempt"
+                    )
+            if self.dispatch_attempt_for_operation(attempt.operation_key) is not None:
+                raise RuntimeError("dispatch operation already has a durable attempt")
+            self.connection.execute(
+                """
+                INSERT INTO dispatch_attempts_v1(
+                    id,operation_key,request_id,target_id,entity_id,conflict_domain,
+                    state,body_json
+                ) VALUES(?,?,?,?,?,?,?,?)
+                """,
+                (
+                    attempt.id, attempt.operation_key, attempt.request_id,
+                    attempt.target_id, attempt.entity_id, attempt.conflict_domain,
+                    attempt.state.value, canonical_json(attempt),
+                ),
+            )
+            self.connection.commit()
+        except Exception:
+            self.connection.rollback()
+            raise
 
     def save_dispatch_attempt(self, attempt: DispatchAttemptV1) -> None:
         self.connection.execute(

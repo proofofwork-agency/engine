@@ -1616,9 +1616,6 @@ class WorldHeartV2:
                 "conflict_domain": conflict_domain,
             }
         )
-        existing = self.store.dispatch_attempt_for_operation(operation_key)
-        if existing is not None:
-            raise RuntimeError("dispatch operation already has a durable attempt")
         attempt = DispatchAttemptV1(
             id="dispatch-attempt:" + uuid4().hex,
             operation_key=operation_key,
@@ -1633,7 +1630,19 @@ class WorldHeartV2:
             lease_fencing_token=fencing_token,
             updated_at=now.isoformat(),
         )
-        self.store.save_dispatch_attempt(attempt)
+
+        def _validate_admission() -> None:
+            if _datetime(authorization.expires_at) <= self._clock():
+                raise PermissionError("authorization expired before dispatch")
+            if request.autonomy_binding is not None:
+                self._validate_current_autonomy_binding(
+                    request.autonomy_binding, request, capability, self._clock()
+                )
+            self._validate_dispatch_snapshot(request)
+
+        self.store.admit_prepared_dispatch_attempt(
+            attempt, validate=_validate_admission
+        )
         try:
             final_boundary = self._clock()
             if _datetime(authorization.expires_at) <= final_boundary:

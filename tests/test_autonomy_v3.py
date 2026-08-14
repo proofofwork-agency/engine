@@ -1015,3 +1015,65 @@ def test_local_privacy_grant_cannot_expose_latitude() -> None:
     assert [item.property for item in projected] == ["sun.elevation_deg"]
     payload = _projected_observation(projected[0], enrollment)
     assert payload["evidence_eligible"] is False
+
+
+def _live_goal(goal_id: str) -> GoalSpecV2:
+    return GoalSpecV2(
+        id=goal_id,
+        source_intent="Independent live goal on the enrolled bin",
+        mode=GoalModeV2.MAINTAIN,
+        entity_scope={"target_ids": [TARGET], "entity_ids": [ENTITY]},
+        desired_effects=(
+            DesiredEffectV1(
+                id="reserve",
+                capability_family=FAMILY,
+                entity_selector={"entity_ids": [ENTITY]},
+                condition=ConditionV1(
+                    "gte", path="observation:bin.count", value=3, unit="crate"
+                ),
+                parameters={"minimum_count": 3},
+            ),
+        ),
+        status="active",
+    )
+
+
+def test_enrollment_owns_resource_and_rejects_independent_live_goal(
+    tmp_path: Path,
+) -> None:
+    app, plugin = _application(tmp_path)
+    try:
+        app.store.create_goal(_live_goal("goal:independent-first"))
+        _enroll(app)
+        with pytest.raises(
+            PermissionError, match="enrollment owns this target/entity/conflict_domain"
+        ):
+            app.store.create_goal(_live_goal("goal:independent-second"))
+        assert app.store.has_goal("goal:independent-first")
+        enrollment = app.store.autonomy_enrollments(enabled_only=True)[0]
+        resource = enrollment_resource_keys(app.registry, enrollment)[0]
+        assert app.store.enrollment_owning_resource(*resource) == enrollment.id
+    finally:
+        _close(app, plugin)
+
+
+def test_mode_and_disable_are_serialized_and_audited(tmp_path: Path) -> None:
+    app, plugin = _application(tmp_path)
+    try:
+        _enroll(app)
+        first = app.autonomy_mode("delegated")
+        second = app.autonomy_mode("paused")
+        assert first["epoch"] + 1 == second["epoch"]
+        kinds = [
+            event.kind
+            for event in app.store.lifecycle_events_after(0, limit=200)
+        ]
+        assert kinds.count("autonomy_mode_changed") >= 2
+        enrollment = app.store.autonomy_enrollments()[0]
+        disabled = app.autonomy_enrollment_disable(enrollment.id)
+        assert disabled.enabled is False
+        assert app.store.enrollment_owning_resource(
+            *enrollment_resource_keys(app.registry, enrollment)[0]
+        ) is None
+    finally:
+        _close(app, plugin)
