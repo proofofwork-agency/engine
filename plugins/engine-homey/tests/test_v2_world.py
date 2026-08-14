@@ -627,6 +627,46 @@ class HomeyV2WorldTests(unittest.TestCase):
         finally:
             restarted_store.close()
 
+    def test_watt_tick_does_not_mint_house_but_light_change_keeps_current_watts(
+        self,
+    ) -> None:
+        config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
+        del config
+        provider = plugin.providers[0]
+        try:
+            first = provider.observe()
+            light = transport.devices["light-1"]["capabilitiesObj"]
+            light["measure_power"]["value"] = 12.4
+            meter_tick = provider.observe()
+            self.assertEqual(first.revision, meter_tick.revision)
+            live_watts = next(
+                item.value
+                for item in meter_tick.observations
+                if item.entity_id.endswith("main_light")
+                and item.property == "power_w"
+            )
+            self.assertEqual(13.0, live_watts)
+
+            light["onoff"]["value"] = True
+            light["measure_power"]["value"] = 18.7
+            after_light = provider.observe()
+            self.assertEqual(first.revision + 1, after_light.revision)
+            stored_watts = next(
+                item.value
+                for item in after_light.observations
+                if item.entity_id.endswith("main_light")
+                and item.property == "power_w"
+            )
+            self.assertEqual(19.0, stored_watts)
+            stored_on = next(
+                item.value
+                for item in after_light.observations
+                if item.entity_id.endswith("main_light") and item.property == "on"
+            )
+            self.assertTrue(stored_on)
+        finally:
+            plugin_store.close()
+
     def test_sensor_quantization_boundaries(self) -> None:
         config = fixture_config(self.base, zone_count=1)
         zones, devices = fixture_house(1)

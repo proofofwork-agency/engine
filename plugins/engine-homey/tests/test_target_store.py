@@ -256,6 +256,84 @@ class TargetAndStoreTests(unittest.TestCase):
         )
         restarted.close()
 
+    def test_meter_only_tick_dedupes_but_light_change_stores_current_watts(
+        self,
+    ) -> None:
+        def house(*, on: bool, watts: float, kwh: float, observed: str) -> dict:
+            return {
+                "schema": "engine.homey.house-snapshot/v1",
+                "devices": [
+                    {
+                        "alias": "lamp",
+                        "kind": "light",
+                        "capabilities": [
+                            {
+                                "id": "onoff",
+                                "semantic": "on",
+                                "value": on,
+                                "observed_at": observed,
+                                "evidence": "OBSERVED",
+                            },
+                            {
+                                "id": "measure_power",
+                                "semantic": "power_w",
+                                "value": watts,
+                                "observed_at": observed,
+                                "evidence": "OBSERVED",
+                            },
+                            {
+                                "id": "meter_power.imported",
+                                "semantic": "energy_kwh",
+                                "value": kwh,
+                                "observed_at": observed,
+                                "evidence": "OBSERVED",
+                            },
+                            {
+                                "id": "voltage.phase1",
+                                "semantic": "voltage",
+                                "value": 230.0 + watts,
+                                "observed_at": observed,
+                                "evidence": "OBSERVED",
+                            },
+                        ],
+                    }
+                ],
+                "obligations": [
+                    {
+                        "id": "energy",
+                        "status": "SATISFIED",
+                        "observations": {"house_power_w": watts},
+                    }
+                ],
+            }
+
+        store = HomeOpsStore(self.base / "meter-identity.db")
+        first = store.record_snapshot(
+            house(on=False, watts=1.2, kwh=10.0, observed="t0"),
+            "2026-08-14T00:00:00+00:00",
+        )
+        meter_only = store.record_snapshot(
+            house(on=False, watts=47.8, kwh=10.01, observed="t1"),
+            "2026-08-14T00:00:30+00:00",
+        )
+        flipped = store.record_snapshot(
+            house(on=True, watts=48.1, kwh=10.02, observed="t2"),
+            "2026-08-14T00:01:00+00:00",
+        )
+        stored = store.latest_snapshot()
+        status = store.snapshot_storage_status()
+        store.close()
+
+        self.assertEqual(first.revision, meter_only.revision)
+        self.assertEqual(first.revision + 1, flipped.revision)
+        self.assertEqual(True, stored.state["devices"][0]["capabilities"][0]["value"])
+        self.assertEqual(48.1, stored.state["devices"][0]["capabilities"][1]["value"])
+        self.assertEqual(
+            48.1, stored.state["obligations"][0]["observations"]["house_power_w"]
+        )
+        self.assertEqual(1, status.counters["snapshot_deduplications"])
+        self.assertEqual(2, status.counters["snapshot_rows_written"])
+
     def test_snapshot_insert_rolls_back_when_counter_update_fails(self) -> None:
         store = HomeOpsStore(self.base / "transactional-homeops.db")
         store._connection.execute(

@@ -13,17 +13,22 @@ from engine_sdk import (
     BehaviorSignalV1,
     ConditionV1,
     ContractError,
+    EntityV1,
     EvidenceGrade,
     EvidenceRefV1,
     LifecycleEventV1,
+    ObservationV1,
     PreferencePromotionMode,
     RelationHypothesisV1,
     RiskClass,
     RoutineShadowEventV1,
     ScopedConditionV1,
+    TargetObservationV2,
+    WorldSnapshotV2,
     artifact_sha256,
     check_plugin,
     compare_manifests,
+    is_volatile_metering_signal,
     load_static_manifest,
 )
 from engine_sdk.scaffold import scaffold_plugin
@@ -229,6 +234,86 @@ effect_schema = {}
             )
             with self.assertRaisesRegex(ContractError, "controller, executor"):
                 load_static_manifest(path)
+
+    def test_semantic_fingerprint_ignores_volatile_metering_values(self) -> None:
+        entity = EntityV1("home:lamp", "home", "light", "fixture", "lamp")
+
+        def observation(*, watts: float, on: bool) -> TargetObservationV2:
+            return TargetObservationV2(
+                target_id="home",
+                revision=1,
+                observed_at="2026-08-14T00:00:00+00:00",
+                entities=(entity,),
+                relations=(),
+                observations=(
+                    ObservationV1(
+                        id="on",
+                        entity_id=entity.id,
+                        property="on",
+                        value=on,
+                        source="fixture",
+                        observed_at="2026-08-14T00:00:00+00:00",
+                        evidence_grade=EvidenceGrade.OBSERVED,
+                    ),
+                    ObservationV1(
+                        id="power",
+                        entity_id=entity.id,
+                        property="power_w",
+                        value=watts,
+                        source="fixture",
+                        observed_at="2026-08-14T00:00:00+00:00",
+                        evidence_grade=EvidenceGrade.OBSERVED,
+                        unit="W",
+                    ),
+                    ObservationV1(
+                        id="import",
+                        entity_id=entity.id,
+                        property="meter_power.imported",
+                        value=watts * 10,
+                        source="fixture",
+                        observed_at="2026-08-14T00:00:00+00:00",
+                        evidence_grade=EvidenceGrade.OBSERVED,
+                        unit="kWh",
+                    ),
+                ),
+                coverage={},
+                source="fixture",
+            )
+
+        idle = observation(watts=1.2, on=False)
+        ticked = observation(watts=48.0, on=False)
+        flipped = observation(watts=48.0, on=True)
+        self.assertEqual(idle.semantic_fingerprint(), ticked.semantic_fingerprint())
+        self.assertNotEqual(idle.semantic_fingerprint(), flipped.semantic_fingerprint())
+        self.assertEqual(
+            WorldSnapshotV2(
+                "world:1",
+                1,
+                idle.observed_at,
+                {"home": 1},
+                idle.entities,
+                (),
+                idle.observations,
+                {},
+            ).semantic_fingerprint(),
+            WorldSnapshotV2(
+                "world:2",
+                2,
+                ticked.observed_at,
+                {"home": 1},
+                ticked.entities,
+                (),
+                ticked.observations,
+                {},
+            ).semantic_fingerprint(),
+        )
+        self.assertTrue(is_volatile_metering_signal("meter_power.imported"))
+        self.assertTrue(is_volatile_metering_signal("voltage.phase1"))
+        self.assertTrue(is_volatile_metering_signal("current.l1"))
+        self.assertFalse(is_volatile_metering_signal("on"))
+        self.assertFalse(is_volatile_metering_signal("illuminance_lux"))
+        self.assertFalse(is_volatile_metering_signal("current_scene"))
+        self.assertFalse(is_volatile_metering_signal("rssi"))
 
 
 if __name__ == "__main__":

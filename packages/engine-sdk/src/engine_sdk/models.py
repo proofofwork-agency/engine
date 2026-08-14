@@ -1240,6 +1240,43 @@ class WorldSnapshotV2:
         return artifact_sha256(self)
 
 
+_VOLATILE_METERING_EXACT = frozenset(
+    {
+        "current",
+        "energy_kwh",
+        "house_power_w",
+        "measure_current",
+        "measure_power",
+        "measure_voltage",
+        "meter_power",
+        "power_w",
+        "voltage",
+    }
+)
+_VOLATILE_METERING_PREFIXES = (
+    "current.",
+    "measure_current.",
+    "measure_current_",
+    "measure_power.",
+    "measure_power_",
+    "measure_voltage.",
+    "measure_voltage_",
+    "meter_power.",
+    "meter_power_",
+    "power.",
+    "voltage.",
+    "voltage_",
+)
+
+
+def is_volatile_metering_signal(name: str) -> bool:
+    """True when a watt/kWh/voltage/current tick must not mint house identity."""
+    key = name.casefold().strip()
+    if key in _VOLATILE_METERING_EXACT:
+        return True
+    return key.startswith(_VOLATILE_METERING_PREFIXES)
+
+
 def _world_content_semantic_data(
     entities: tuple[EntityV1, ...],
     relations: tuple[RelationV1, ...],
@@ -1273,6 +1310,7 @@ def _world_content_semantic_data(
                 "artifact_identity": item.artifact_identity,
             }
             for item in observations
+            if not is_volatile_metering_signal(item.property)
         ],
     }
 

@@ -258,3 +258,34 @@ isolated-failure diagnostics (`cycle_failed`, `prune_failed`,
 `crashed`, which outranks a simultaneous lease loss, so a fault escaping the
 loop can no longer be recorded as a clean bounded-run completion. The
 outbound ntfy accept list remains exactly the five kinds of Decision 10.
+
+### A1.6 — Volatile electrical metering is not house identity
+
+- Status: **accepted by explicit owner implementation direction on 2026-08-14**.
+- Trigger: the 2026-08-14 burn-in was minting a new Homey snapshot and Engine
+  target revision every 30 s because P1 / Homey Energy registers
+  (`measure_power*`, `meter_power*`, `voltage*`, `current*`, `power_w`,
+  `energy_kwh`, `house_power_w`) tick by construction. A1.2 recorded this
+  honestly and required a separate unit-aware sampling decision to be
+  preregistered **before** another fresh burn-in. This is that decision.
+
+House identity — Homey `state_hash` and Engine `semantic_fingerprint` —
+omits volatile electrical metering **values**. Homey identity also omits
+capability `observed_at` timestamps, matching Decision 1 (timestamps are
+not identity). The capability's existence, the rest of the house (on/off,
+dim, lux, presence, temperature, availability), and obligation
+status/reason stay in the identity. A watt or kWh tick therefore does not
+consume a revision.
+
+When a non-metering transition does consume a revision (a light change,
+presence, lux bucket, obligation status), the **stored body still includes
+the current watts/kWh** as of that transition. Oracles and later reads can
+use those readings after a light change. They cannot reconstruct a
+watt-resolution time series between transitions.
+
+This is not a new quantization bin and does not change Decision 3. It is
+an identity-sampling rule. `rssi` and other non-metering jitter remain in
+identity; they are a separate decision if they still dominate a later
+burn-in. Existing stores computed fingerprints including meters; this
+rule requires a fresh-store restart so the same-revision fingerprint
+invariant is not violated by the contract change.

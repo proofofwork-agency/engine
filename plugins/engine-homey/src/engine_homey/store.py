@@ -12,6 +12,8 @@ from math import isfinite
 from pathlib import Path
 from typing import Any
 
+from engine_sdk import is_volatile_metering_signal
+
 _SNAPSHOT_BODY_ZLIB_PREFIX = b"engine.homey.snapshot.zlib/v1\x00"
 _SNAPSHOT_STORAGE_COUNTER_NAMES = (
     "snapshot_deduplications",
@@ -304,7 +306,8 @@ class HomeOpsStore:
         self, state: dict[str, Any], observed_at: str
     ) -> StoredSnapshot:
         raw_body = _dump(state).encode("utf-8")
-        state_hash = hashlib.sha256(raw_body).hexdigest()
+        identity_body = _dump(_snapshot_identity_state(state)).encode("utf-8")
+        state_hash = hashlib.sha256(identity_body).hexdigest()
         stored_body = _encode_snapshot_body(raw_body)
         try:
             self._connection.execute("BEGIN IMMEDIATE")
@@ -648,6 +651,65 @@ def _slug(value: str) -> str:
 
 def _dump(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _snapshot_identity_state(state: dict[str, Any]) -> dict[str, Any]:
+    """House identity without volatile metering values or their timestamps."""
+    projected = dict(state)
+    devices = state.get("devices")
+    if isinstance(devices, list):
+        projected["devices"] = [_identity_device(item) for item in devices]
+    obligations = state.get("obligations")
+    if isinstance(obligations, list):
+        projected["obligations"] = [
+            _identity_obligation(item) for item in obligations
+        ]
+    return projected
+
+
+def _identity_device(device: Any) -> Any:
+    if not isinstance(device, dict):
+        return device
+    capabilities = device.get("capabilities")
+    if not isinstance(capabilities, list):
+        return device
+    projected = dict(device)
+    projected["capabilities"] = [
+        _identity_capability(item) for item in capabilities
+    ]
+    return projected
+
+
+def _identity_capability(capability: Any) -> Any:
+    if not isinstance(capability, dict):
+        return capability
+    cap_id = str(capability.get("id") or "")
+    semantic = str(capability.get("semantic") or "")
+    projected = dict(capability)
+    projected["observed_at"] = None
+    if is_volatile_metering_signal(cap_id) or is_volatile_metering_signal(
+        semantic
+    ):
+        projected["value"] = None
+    return projected
+
+
+def _identity_obligation(obligation: Any) -> Any:
+    if not isinstance(obligation, dict):
+        return obligation
+    observations = obligation.get("observations")
+    if not isinstance(observations, dict):
+        return obligation
+    filtered = {
+        key: value
+        for key, value in observations.items()
+        if not is_volatile_metering_signal(str(key))
+    }
+    if filtered == observations:
+        return obligation
+    projected = dict(obligation)
+    projected["observations"] = filtered
+    return projected
 
 
 def _encode_snapshot_body(raw_body: bytes) -> bytes:
