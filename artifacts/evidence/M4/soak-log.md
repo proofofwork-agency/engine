@@ -295,6 +295,50 @@ Vs 0 h `2026-08-14T08:08:09Z` / `2,253,608`: `+8,149,432` in 8111 s ≈
 of the aggregate (`8,289,504`); mains-only slope ≈ `22.3 MB/day`. Early
 WAL/fill, not another house-every-poll leak. Soak left running.
 
+### Burn-in check 2026-08-14T12:23:10Z — prior 0 h stores no longer live
+
+Observe-only loop. Official clock not started. Homey left unarmed. This
+check did not restart launchd.
+
+The `08:08:09Z` 0 h stores were archived read-only before this check to
+`/Users/danillofelanso/engine-m4/discarded-burnin-2026-08-14-pre-water-identity/`
+(`chmod 444`):
+
+- `engine.sqlite3` `4,423,680` bytes
+  `sha256=e0632e595b177e14fda7cf19bd5d516d0d355729bf74586c63235db736537bd3`
+- `homeops.local.db` `102,400` bytes
+  `sha256=be9a2ad47d8a5d5e5562389fd63b71a05b23693c1673b21f97abc3b49b31ce7f`
+- `context.sqlite3` `8,192` bytes
+  `sha256=c6b743588f4d083fe8606ee5bdac26d591669559a25baa0df2ea9a6e21430225`
+
+Those files do not count toward a growth slope. Repo HEAD / water-identity
+change is `6490f35` (*Stop water and gas meter ticks from minting a new
+house*). Fresh live stores and a new launchd job started at `12:22:18Z`.
+
+- launchd `com.proofofworks.engine.observe`: `state=running` pid `62783`
+  `runs=1` never exited (old pid `58840` gone). Lease generation 1,
+  acquired `12:22:18Z`.
+- Mode `observe`, `ENGINE_HOMEY_ARMED` unset.
+- `dispatch_attempts_v1=0`. `runtime_started=1`, `runtime_heartbeat=1`.
+- HomeOps live `snapshots` count `1` (revision 0). At `12:24:35Z`:
+  `snapshot_rows_written=1`, `snapshot_deduplications=4`,
+  `snapshot_rows_pruned=0`, `snapshot_prune_runs=5`. Not a 30 s meter
+  leak: keep-latest still one row after four extra polls.
+- Engine: `home` 2 rows / rev 1, `engine.context.local` 3 rows.
+
+```text
+engine.sqlite3         main=4096         wal=576832     total=580928
+context.sqlite3        main=8192         wal=0          total=8192
+homeops.local.db       main=4096         wal=1400832    total=1404928
+checkpoint=2026-08-14T12:23:10Z aggregate_bytes=1994048
+```
+
+Vs named 0 h `2026-08-14T08:08:09Z` / `2,253,608`: **not comparable**
+(different files; live aggregate is smaller because the store is new).
+At `12:24:35Z` (~2.3 min) aggregate `2,208,288`. No MB/day score until
+this new runtime has its own 24 h mark. Soak left running. Official
+clock still off.
+
 ### Water-identity restart (new burn-in 0 h)
 
 The ~4 h soak still minted Engine/Homey revisions on `meter_water` /
