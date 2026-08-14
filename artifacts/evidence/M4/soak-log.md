@@ -262,3 +262,35 @@ stores (pid `58840`, observe, unarmed). Official clock still off.
 At `08:21:53Z` (~0.23 h): HomeOps still 1 snapshot, 24 dedupes, 0
 dispatches, aggregate `2,411,000` bytes. Early MB/day is WAL/fill
 noise, not a new 30 s house leak.
+
+### Burn-in check 2026-08-14T10:23:20Z (~2.25 h)
+
+Observe-only loop. Official clock not started. Homey left unarmed. No
+dispatch.
+
+- launchd `com.proofofworks.engine.observe`: `state=running` pid `58840`
+  `runs=1` never exited, lease generation 2 (acquired `08:14:33Z`).
+- Mode `observe`, `ENGINE_HOMEY_ARMED` unset.
+- `dispatch_attempts_v1=0`.
+- HomeOps live `snapshots` count `1` (revision 78). Counters:
+  `snapshot_rows_written=78`, `snapshot_deduplications=198`,
+  `snapshot_rows_pruned=77`, `snapshot_prune_runs=258`. Compression
+  `9,661,405` raw → `876,162` stored (9.07%). Not a 30 s meter leak:
+  ~276 polls, 72% deduped; keep-latest holds one row.
+- Engine: `home` 79 rows / rev 78, `engine.context.local` 138 rows,
+  `target_observation_deduplications=198`, `prune_runs=4`,
+  `target_observations_pruned=0` (24 h horizon not crossed).
+  `runtime_started=2` (08:05:30 and H2 restart 08:14:33),
+  `runtime_stopped=1`, `runtime_heartbeat=1`.
+
+```text
+engine.sqlite3         main=2011136      wal=4144752    total=6155888
+context.sqlite3        main=8192         wal=0          total=8192
+homeops.local.db       main=94208        wal=4144752    total=4238960
+checkpoint=2026-08-14T10:23:20Z aggregate_bytes=10403040
+```
+
+Vs 0 h `2026-08-14T08:08:09Z` / `2,253,608`: `+8,149,432` in 8111 s ≈
+`86.8 MB/day`. Above 50 MB/day target, below 150 hard fail. WAL is 80%
+of the aggregate (`8,289,504`); mains-only slope ≈ `22.3 MB/day`. Early
+WAL/fill, not another house-every-poll leak. Soak left running.
