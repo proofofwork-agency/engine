@@ -122,3 +122,71 @@ This preflight run is exploratory evidence and is discarded. The official
 window starts only after PAT rotation, fresh stores on the committed runtime,
 a passing 24 h/48 h burn-in per `docs/RUNBOOK_M4.md` §5a, and the sleep/wake
 gate.
+
+## 2026-08-14
+
+### Discarded preflight sealed off the official path
+
+The Aug-11 isolated daemon was still running at `00:47:57Z` (launchd pid
+3923, `runs=1`, never exited). It had been exploratory evidence only. After
+~53 h the three-store aggregate was `352,641,208` bytes (~160 MB/day),
+dominated by the Homey plugin store (`285,966,336` main + WAL). Engine
+retention had begun (`prune_runs` present) but HomeOps prune remained 0, as
+required while H2 stays unwired. Compression on that discarded store was
+`409,849,112` raw → `37,155,295` stored (9.07%). Dispatch attempts remained
+0. Mode remained `observe`.
+
+The owner asked to run the 14-day handoff. The discarded preflight was
+stopped with `launchctl bootout` and archived read-only with SQLite
+`.backup` (not `cp`) to
+`/Users/danillofelanso/engine-m4/discarded-preflight-2026-08-11/`:
+
+- `engine.sqlite3` `58,142,720` bytes
+  `sha256=c94a019fe9a2e809173719cf8b73fb1bd10585fb07ba1d4c7df87a3be41b563f`
+- `homeops.local.db` `286,949,376` bytes
+  `sha256=d0b97326dff26e24182c7ec480e06c7ddc20207e6c40c200a117f230a89b2394`
+- `context.sqlite3` `8,192` bytes
+  `sha256=84c509b0b4f919d09cb3041044fa1649b12dc1a3ab03abd6ad9aa10e79ac09d0`
+
+Those files are `chmod 444`. They do not count toward the official window.
+
+### Fresh isolated runtime and burn-in 0 h
+
+- Soak commit actually installed into
+  `/Users/danillofelanso/engine-m4/runtime-venv/`: `46dbd7470486f90e6193cf725f38a9e1e3d37800`
+- Installs are non-editable wheels in the venv. `import engine` resolves
+  inside the venv, not the workspace. Plugin entry points: `context`,
+  `homey`, `ntfy`. `engine.reference-world` is absent.
+- Live stores wiped and recreated under `engine-m4/live/`. Homey config
+  copy retained: `mode=observe`, `events=false`, no
+  `poll_interval_seconds` (frozen 30 s default), `ENGINE_HOMEY_ARMED`
+  unset.
+- `00:51:18Z`: launchd bootstrapped. pid `74836`, `runs=1`, lease
+  generation 1, one `runtime_started`, one `runtime_heartbeat`.
+- Homey poll is live: target `home` available, zones/devices `complete`.
+  An early `home` revision 0/1 pair is retained. Context location and sun
+  are `UNKNOWN` (no coordinates configured). Dispatch attempts: 0.
+- H2 remains unwired: HomeOps `snapshot_prune_runs=0`.
+
+`checkpoint=2026-08-14T00:52:42Z aggregate_bytes=2158848`
+
+```text
+engine.sqlite3         main=4096         wal=683952     total=688048
+context.sqlite3        main=8192         wal=0          total=8192
+homeops.local.db       main=4096         wal=1458512    total=1462608
+```
+
+HomeOps counters at 0 h: `snapshot_rows_written=3`,
+`snapshot_raw_body_bytes_written=371568`,
+`snapshot_stored_body_bytes_written=33556` (9.03% of raw on this tiny
+sample), `snapshot_deduplications=0`, `snapshot_prune_runs=0`.
+
+Engine `store status`: `auto_vacuum=incremental`, `prune_runs=1`,
+`target_observation_rows_written=5`, `dispatch_attempts_v1=0`.
+
+This timestamp is the **burn-in 0 h** mark, not the official fourteen-day
+start. 24 h and 48 h measurements, then the sleep/wake gate, are still
+required. ADR-0011 Amendment 1 and H2 enablement remain unsigned. The
+existing local read-only PAT was reused from the LaunchAgent plist at the
+owner's "run the 14-day handoff" instruction; the token value is not
+recorded here. Rotating it is still the safer credential hygiene.

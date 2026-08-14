@@ -9,33 +9,23 @@ ever disagree.
 
 ## Current state
 
-Last updated: `2026-08-12T00:20Z` (day-0 preflight findings; supersedes the 19:46Z state).
+Last updated: `2026-08-14T00:53Z` (burn-in restart; official clock still off).
 
-- A0 through A5 are committed and pushed through commit
-  `7918f06bd2de2725e7f4784e0160eb60b125fbbc`.
-- The definitive A6 runtime is running on the original Mac under launchd label
-  `com.proofofworks.engine.observe`.
-- The runtime is forced to Homey `observe` mode and is unarmed. It has produced
-  zero dispatch attempts.
-- The installed runtime contains only the `engine.context`, `engine.homey`, and
-  `engine.ntfy` plugin entry points. The synthetic `engine.reference-world`
-  provider is intentionally excluded so it cannot contaminate the real-house
-  storage-growth metric.
-- The final supervised `SIGKILL`/launchd restart gate passed: lease generation
-  advanced from 1 to 2, exactly one replacement `runtime_started` event was
-  added, no false `runtime_stopped` event was written for the hard kill, the
-  lifecycle cursor reached event sequence 4, and dispatch attempts remained
-  zero.
-- Homey polling is authoritative at 30 seconds. Socket events are deliberately
-  disabled in the current local configuration. An initial transient Homey
-  `URLError` was retained in coverage; the following poll recovered normally.
-- The official 14-day clock has **not started yet**, and the sleep/wake gate is
-  no longer the only thing in front of it. A day-0 storage preflight on
-  2026-08-11 measured the plugin store growing at roughly `346 MB/day`
-  unbounded, which would have spent the frozen window on a run that could not
-  pass its own budget. The currently running daemon is therefore **exploratory
-  preflight evidence and will be discarded**; see the day-0 section of
-  [`artifacts/evidence/M4/soak-log.md`](artifacts/evidence/M4/soak-log.md).
+- The discarded Aug-11 preflight was stopped and archived. It is not the
+  official window.
+- A fresh isolated runtime is running on the original Mac under launchd
+  label `com.proofofworks.engine.observe`, built from commit
+  `46dbd7470486f90e6193cf725f38a9e1e3d37800`.
+- Mode is Homey `observe`, unarmed. Dispatch attempts are zero.
+- Installed plugin entry points: `engine.context`, `engine.homey`,
+  `engine.ntfy`. `engine.reference-world` is absent.
+- Homey polling is authoritative at 30 seconds (`events = false`).
+- Burn-in 0 h: `2026-08-14T00:52:42Z`, aggregate `2,158,848` bytes.
+  Next required marks: 24 h and 48 h, then sleep/wake, then the official
+  fourteen-day timestamp.
+- H2 plugin-store retention remains wired to nothing.
+- ADR-0011 Amendment 1 remains unsigned; growth is still measured across
+  all three stores including WAL.
 
 ### Before the clock may start (as of commit `89a99ac`)
 
