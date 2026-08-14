@@ -18,7 +18,7 @@ relation_types = ["contains", "located_in", "measures", "illuminates"]
 observation_types = ["on", "brightness", "illuminance_lux", "power_w", "presence", "presence.inactive_since", "lighting.any_on", "temperature_c", "thermostat_target_c", "cover_position", "camera.detection"]
 
 [autonomy]
-strategies = ["homey.enrolled-lighting-state/v1"]
+strategies = ["homey.enrolled-lighting-state/v1", "homey.context-lighting-state/v1"]
 goal_template_compilers = ["homey-goal-template-compiler"]
 
 [needs]
@@ -175,6 +175,16 @@ goal_template_ids = ["homey.lighting-zone-state/v1"]
 context_plugin_ids = ["engine.context"]
 privacy_classes = []
 description = "Maintain an explicitly enrolled zone on/off state from fresh Homey observations"
+
+[[autonomy_strategies]]
+id = "homey.context-lighting-state/v1"
+version = "1.0.0"
+cognition_route = "deterministic"
+capability_families = ["homey.lighting.zone-state"]
+goal_template_ids = ["homey.lighting-zone-state/v1"]
+context_plugin_ids = ["engine.context"]
+privacy_classes = ["local", "public"]
+description = "Maintain enrolled zone lighting from own presence plus foreign sun phase"
 
 [[goal_templates]]
 id = "homey.lighting-zone-state/v1"

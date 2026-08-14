@@ -111,6 +111,70 @@ class HomeyV2WorldTests(unittest.TestCase):
         self.assertEqual("engine.homey", plugin.manifest.id)
         self.assertIsNone(plugin._plugin)
 
+    def test_context_lighting_strategy_closes_five_simulated_loops(self) -> None:
+        now = datetime.now(UTC)
+        # Place the house at local solar midnight so the sun evidence is night
+        # without shifting Heart/authorization clocks.
+        night_longitude = -((now.hour + now.minute / 60.0) * 15.0)
+        if night_longitude < -180.0:
+            night_longitude += 360.0
+        config, transport, plugin_store, homey = self._home(zones=1, cameras=0)
+        context_manifest = load_static_manifest(PLUGINS_ROOT / "engine-context")
+        context_store = ContextStore(self.base / "context.sqlite3")
+        context = ContextPlugin(
+            context_manifest,
+            (
+                ContextWorldProvider(
+                    context_store,
+                    context_manifest,
+                    ExplicitLocationProvider(52.37, night_longitude),
+                    None,
+                    share_location_with_weather=False,
+                ),
+            ),
+        )
+        registry = PluginRegistryV2()
+        registry.register(homey, PLUGIN_ROOT)
+        registry.register(context, PLUGINS_ROOT / "engine-context")
+        app = EngineApplication(
+            RuntimeConfig(store_path=self.base / "cross-body.sqlite3"),
+            registry=registry,
+        )
+        zone_id = f"homey:{config.target_id}:zone:zone_1"
+        try:
+            with app.lease():
+                app.autonomy_enroll(
+                    plugin_id="engine.homey",
+                    strategy_id="homey.context-lighting-state/v1",
+                    target_ids=(config.target_id,),
+                    entity_ids=(zone_id,),
+                    capability_families=(LIGHTING_ZONE_STATE,),
+                    goal_template_ids=("homey.lighting-zone-state/v1",),
+                    context_plugin_ids=("engine.context",),
+                    privacy_grants=("local", "public"),
+                    instantiate_goal_templates=True,
+                )
+            app.autonomy_mode("delegated")
+            outcomes: list[bool] = []
+            for index in range(5):
+                transport.external_set("light-1", "onoff", False)
+                if index == 4:
+                    transport.ack_without_effect.add(("light-1", "onoff"))
+                with app.lease():
+                    app.heart.run_cycle()
+                outcomes.append(
+                    bool(
+                        transport.devices["light-1"]["capabilitiesObj"]["onoff"]["value"]
+                    )
+                )
+            self.assertEqual([True, True, True, True, False], outcomes)
+            self.assertEqual(0, app.store.brain_call_count())
+            self.assertGreaterEqual(len(app.store.dispatch_attempts()), 5)
+        finally:
+            app.close()
+            plugin_store.close()
+            context_store.close()
+
     def test_generic_v3_autonomy_uses_same_heart_without_homey_core_branch(self) -> None:
         config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
         registry = PluginRegistryV2()

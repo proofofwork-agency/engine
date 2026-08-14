@@ -933,6 +933,100 @@ class HomeyLightingStateStrategyV1:
         )
 
 
+class HomeyContextLightingStrategyV1:
+    id = "homey.context-lighting-state/v1"
+    plugin_id = "engine.homey"
+
+    def __init__(self, spec: AutonomyStrategySpecV1):
+        self.spec = spec
+
+    def evaluate(self, context: AutonomyContextV1) -> AutonomyDecisionV1:
+        enrollment = context.projection.get("enrollment", {})
+        world = context.projection.get("world", {})
+        if not isinstance(enrollment, dict) or not isinstance(world, dict):
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER, rationale="bounded projection is malformed"
+            )
+        entity_ids = tuple(str(item) for item in enrollment.get("entity_ids", ()))
+        observations = world.get("observations", ())
+        if not entity_ids:
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER, rationale="enrollment has no zone"
+            )
+        entity_id = entity_ids[0]
+        lighting = _projected_observation(observations, entity_id, "lighting.any_on")
+        presence = _projected_observation(observations, entity_id, "presence")
+        sun_up = _projected_observation(observations, None, "sun.above_horizon")
+        phase = _projected_observation(observations, None, "sun.phase")
+        if lighting is None or presence is None or sun_up is None or phase is None:
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER,
+                rationale="own lighting/presence or foreign sun evidence is unavailable",
+            )
+        if any(
+            item.get("evidence_eligible") is False
+            for item in (lighting, presence, sun_up, phase)
+        ):
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER,
+                rationale="cited evidence is not eligible",
+            )
+        night = phase.get("value") in {"night", "civil_twilight"} or sun_up.get("value") is False
+        desired = bool(presence.get("value") is True and night)
+        if lighting.get("value") is desired:
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.NOOP,
+                rationale="zone lighting already matches sun and presence",
+                evidence_ids=_evidence_ids(lighting, presence, sun_up, phase),
+            )
+        target_revisions = world.get("target_revisions", {})
+        if not isinstance(target_revisions, dict) or not target_revisions:
+            return AutonomyDecisionV1(
+                AutonomyDecisionKindV1.DEFER,
+                rationale="exact Homey target boundary is unavailable",
+            )
+        target_id = next(iter(target_revisions))
+        candidate = GoalCandidateV1(
+            id="goal-candidate:" + uuid4().hex,
+            plugin_id=self.plugin_id,
+            template_id="homey.lighting-zone-state/v1",
+            target_id=str(target_id),
+            entity_ids=(entity_id,),
+            parameters={"on": desired},
+            based_on_snapshot_id=context.current_snapshot_id,
+            based_on_world_revision=context.current_world_revision,
+            proposed_by=self.id,
+            rationale="zone lighting differs from sun and presence",
+            evidence_ids=_evidence_ids(lighting, presence, sun_up, phase),
+        )
+        return AutonomyDecisionV1(
+            AutonomyDecisionKindV1.PROPOSE_GOAL_CANDIDATE,
+            goal_candidate=candidate,
+            rationale=candidate.rationale,
+            evidence_ids=candidate.evidence_ids,
+        )
+
+
+def _projected_observation(
+    observations: object, entity_id: str | None, property_name: str
+) -> dict[str, Any] | None:
+    if not isinstance(observations, (list, tuple)):
+        return None
+    return next(
+        (
+            item for item in observations
+            if isinstance(item, dict)
+            and item.get("property") == property_name
+            and (entity_id is None or item.get("entity_id") == entity_id)
+        ),
+        None,
+    )
+
+
+def _evidence_ids(*rows: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(str(item.get("id", "")) for item in rows if item.get("id"))
+
+
 class HomeyGoalTemplateCompilerV1:
     id = "homey-goal-template-compiler"
     plugin_id = "engine.homey"
@@ -1222,10 +1316,7 @@ def create_plugin_v2(
         poll_interval_seconds=config.poll_interval_seconds,
         freshness_seconds=config.max_snapshot_age_seconds,
     )
-    strategy_spec = next(
-        item for item in manifest.autonomy_strategies
-        if item.id == HomeyLightingStateStrategyV1.id
-    )
+    strategies_by_id = {item.id: item for item in manifest.autonomy_strategies}
     return HomeyPluginV2(
         manifest=manifest,
         providers=(provider,),
@@ -1235,7 +1326,14 @@ def create_plugin_v2(
         specialists=(HomeyDomainSpecialistV2(),),
         experience_providers=(HomeyExperienceProviderV1(store, provider),),
         routine_compilers=(HomeyRoutineCompilerV1(target),),
-        autonomy_strategies=(HomeyLightingStateStrategyV1(strategy_spec),),
+        autonomy_strategies=(
+            HomeyLightingStateStrategyV1(
+                strategies_by_id[HomeyLightingStateStrategyV1.id]
+            ),
+            HomeyContextLightingStrategyV1(
+                strategies_by_id[HomeyContextLightingStrategyV1.id]
+            ),
+        ),
         goal_template_compilers=(HomeyGoalTemplateCompilerV1(),),
     )
 
