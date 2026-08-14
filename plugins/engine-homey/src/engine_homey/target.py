@@ -679,6 +679,20 @@ def _same(left: object, right: object) -> bool:
     return type(left) is type(right) and left == right
 
 
+# Homey actuator capability ids whose value changes are human-or-automation
+# overrides. Detection is independent of the write allowlist; execute gating
+# still uses control_allowed / binding.control.
+_OVERRIDE_ACTUATOR_CAPABILITIES = frozenset(
+    {"onoff", "dim", "target_temperature", "windowcoverings_set"}
+)
+
+
+def _override_visible_capability(capability: dict[str, Any]) -> bool:
+    if capability.get("control_allowed") is True:
+        return True
+    return str(capability.get("id")) in _OVERRIDE_ACTUATOR_CAPABILITIES
+
+
 def _controlled_changes(
     previous: dict[str, Any], current: dict[str, Any]
 ) -> list[dict[str, Any]]:
@@ -686,13 +700,13 @@ def _controlled_changes(
         (str(device["alias"]), str(capability["id"])): capability.get("value")
         for device in previous.get("devices", [])
         for capability in device.get("capabilities", [])
-        if capability.get("control_allowed") is True
+        if _override_visible_capability(capability)
     }
     current_values = {
         (str(device["alias"]), str(capability["id"])): capability.get("value")
         for device in current.get("devices", [])
         for capability in device.get("capabilities", [])
-        if capability.get("control_allowed") is True
+        if _override_visible_capability(capability)
     }
     return [
         {

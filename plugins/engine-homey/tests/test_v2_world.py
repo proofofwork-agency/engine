@@ -700,6 +700,53 @@ class HomeyV2WorldTests(unittest.TestCase):
             store.close()
             plugin_store.close()
 
+    def test_experience_emits_zone_on_off_for_non_light_onoff_override(self) -> None:
+        config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
+        now = datetime.now(UTC).isoformat()
+        transport.devices["switch-1"] = {
+            "id": "switch-1",
+            "name": "Hall Switch",
+            "zone": "zone-1",
+            "class": "socket",
+            "available": True,
+            "capabilities": ["onoff"],
+            "capabilitiesObj": {
+                "onoff": {
+                    "id": "onoff",
+                    "value": False,
+                    "lastUpdated": now,
+                    "type": "boolean",
+                    "getable": True,
+                    "setable": True,
+                }
+            },
+        }
+        provider = plugin.providers[0]
+        provider.observe()
+        transport.external_set("switch-1", "onoff", True)
+        provider.observe()
+        zone_id = f"homey:{config.target_id}:zone:zone_1"
+        try:
+            batch = plugin.experience_providers[0].read(None, 100)
+            zone_signals = [
+                item
+                for item in batch.signals
+                if item.capability_family == LIGHTING_ZONE_STATE
+                and item.entity_id == zone_id
+                and item.context.get("kind") == "lighting-external-state"
+            ]
+            self.assertEqual(1, len(zone_signals))
+            self.assertEqual(True, zone_signals[0].new_value)
+            self.assertEqual({"on": True}, zone_signals[0].pattern_value)
+            self.assertFalse(
+                any(
+                    item.routine_template_id is not None
+                    for item in batch.signals
+                )
+            )
+        finally:
+            plugin_store.close()
+
     def test_known_homey_flow_change_is_not_published_as_behavior(self) -> None:
         config, transport, plugin_store, plugin = self._home(zones=1, cameras=0)
         del config, transport

@@ -6,6 +6,7 @@ import sqlite3
 import tempfile
 import unittest
 from dataclasses import replace
+from datetime import UTC, datetime
 from importlib import metadata
 from pathlib import Path
 from unittest.mock import patch
@@ -549,6 +550,161 @@ class TargetAndStoreTests(unittest.TestCase):
         self.assertEqual(
             "unattributed_control_change_detected", evidence[0]["source"]
         )
+        store.close()
+
+    def test_override_visible_for_each_actuator_family_outside_write_allowlist(
+        self,
+    ) -> None:
+        config = fixture_config(self.base, zone_count=1)
+        zones, devices = fixture_house(1)
+        now = datetime.now(UTC).isoformat()
+        devices["stray-light"] = {
+            "id": "stray-light",
+            "name": "Stray Light",
+            "zone": "zone-1",
+            "class": "light",
+            "available": True,
+            "capabilities": ["onoff", "dim", "measure_power"],
+            "capabilitiesObj": {
+                "onoff": {
+                    "id": "onoff",
+                    "value": False,
+                    "lastUpdated": now,
+                    "type": "boolean",
+                    "getable": True,
+                    "setable": True,
+                },
+                "dim": {
+                    "id": "dim",
+                    "value": 0.2,
+                    "lastUpdated": now,
+                    "type": "number",
+                    "getable": True,
+                    "setable": True,
+                },
+                "measure_power": {
+                    "id": "measure_power",
+                    "value": 0.0,
+                    "lastUpdated": now,
+                    "type": "number",
+                    "units": "W",
+                    "getable": True,
+                    "setable": False,
+                },
+            },
+        }
+        devices["thermostat-1"] = {
+            "id": "thermostat-1",
+            "name": "Hall Thermostat",
+            "zone": "zone-1",
+            "class": "thermostat",
+            "available": True,
+            "capabilities": ["target_temperature"],
+            "capabilitiesObj": {
+                "target_temperature": {
+                    "id": "target_temperature",
+                    "value": 20.0,
+                    "lastUpdated": now,
+                    "type": "number",
+                    "units": "°C",
+                    "getable": True,
+                    "setable": True,
+                },
+            },
+        }
+        devices["cover-1"] = {
+            "id": "cover-1",
+            "name": "Hall Cover",
+            "zone": "zone-1",
+            "class": "windowcoverings",
+            "available": True,
+            "capabilities": ["windowcoverings_set"],
+            "capabilitiesObj": {
+                "windowcoverings_set": {
+                    "id": "windowcoverings_set",
+                    "value": 0.0,
+                    "lastUpdated": now,
+                    "type": "number",
+                    "getable": True,
+                    "setable": True,
+                },
+            },
+        }
+        devices["switch-1"] = {
+            "id": "switch-1",
+            "name": "Hall Switch",
+            "zone": "zone-1",
+            "class": "socket",
+            "available": True,
+            "capabilities": ["onoff"],
+            "capabilitiesObj": {
+                "onoff": {
+                    "id": "onoff",
+                    "value": False,
+                    "lastUpdated": now,
+                    "type": "boolean",
+                    "getable": True,
+                    "setable": True,
+                },
+            },
+        }
+        transport = MemoryHomeyTransport(zones, devices)
+        store = HomeOpsStore(config.plugin_database)
+        target = HomeyTarget(config, store, transport)
+        target.observe()
+
+        mutations = (
+            ("stray-light", "onoff", True),
+            ("stray-light", "dim", 0.8),
+            ("thermostat-1", "target_temperature", 21.5),
+            ("cover-1", "windowcoverings_set", 0.4),
+            ("switch-1", "onoff", True),
+        )
+        for device_id, capability_id, value in mutations:
+            before = len(store.preferences())
+            transport.external_set(device_id, capability_id, value)
+            target.observe()
+            evidence = store.preferences()
+            self.assertEqual(before + 1, len(evidence), capability_id)
+            latest = evidence[-1]
+            self.assertEqual("INFERRED", latest["grade"])
+            self.assertEqual(
+                "unattributed_control_change_detected", latest["source"]
+            )
+            changes = latest["context"]["changes"]
+            self.assertTrue(
+                any(item["capability_id"] == capability_id for item in changes),
+                capability_id,
+            )
+
+        transport.external_set("sensor-1", "measure_luminance", 80.0)
+        after_sensor = len(store.preferences())
+        target.observe()
+        self.assertEqual(after_sensor, len(store.preferences()))
+
+        denied = target.execute(
+            ToolCall(SET_LIGHT, {"alias": "zone_1_stray_light", "on": False})
+        )
+        self.assertFalse(denied.succeeded)
+        self.assertIn("not allowlisted", denied.error or "")
+        store.close()
+
+    def test_engine_dispatch_still_suppresses_override_detection(self) -> None:
+        config = fixture_config(self.base, zone_count=1)
+        zones, devices = fixture_house(1)
+        transport = MemoryHomeyTransport(zones, devices)
+        store = HomeOpsStore(config.plugin_database)
+        target = HomeyTarget(config, store, transport)
+        target.observe()
+        result = target.execute(
+            ToolCall(
+                SET_LIGHT,
+                {"alias": "zone_1_main_light", "on": True, "brightness": 0.5},
+            )
+        )
+        self.assertTrue(result.succeeded)
+        target.observe()
+        self.assertEqual((), store.preferences())
         store.close()
 
     def test_missing_house_scope_is_unknown_not_vacuously_satisfied(self) -> None:

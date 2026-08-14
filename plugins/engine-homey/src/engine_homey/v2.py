@@ -1022,21 +1022,23 @@ class HomeyExperienceProviderV1:
                     continue
                 alias = str(change.get("alias", ""))
                 device = devices.get(alias)
-                if device is None or device.get("kind") != "light":
-                    continue
-                capability = next(
-                    (
-                        item for item in device.get("capabilities", ())
-                        if item.get("id") == change.get("capability_id")
-                    ),
-                    None,
-                )
-                if capability is None:
+                if device is None:
                     continue
                 zone_alias = device.get("zone_alias")
                 if not isinstance(zone_alias, str):
                     continue
                 zone_id = f"homey:{self.target_id}:zone:{zone_alias}"
+                capability_id = str(change.get("capability_id", ""))
+                capability = next(
+                    (
+                        item for item in device.get("capabilities", ())
+                        if item.get("id") == capability_id
+                    ),
+                    None,
+                )
+                semantic = (
+                    capability.get("semantic") if capability is not None else None
+                )
                 provenance = {
                     "plugin_evidence_id": row["id"],
                     "source": row["source"],
@@ -1046,7 +1048,11 @@ class HomeyExperienceProviderV1:
                     "known_automation_excluded": True,
                     "local_date": _datetime(str(row["created_at"])).date().isoformat(),
                 }
-                if capability.get("semantic") == "brightness":
+                if (
+                    device.get("kind") == "light"
+                    and capability is not None
+                    and capability.get("semantic") == "brightness"
+                ):
                     old_band = _brightness_band(change.get("previous"))
                     new_band = _brightness_band(change.get("observed"))
                     if old_band is None or new_band is None:
@@ -1068,7 +1074,8 @@ class HomeyExperienceProviderV1:
                         )
                     )
                     continue
-                if capability.get("semantic") != "on" or type(change.get("observed")) is not bool:
+                is_onoff = capability_id == "onoff" or semantic == "on"
+                if not is_onoff or type(change.get("observed")) is not bool:
                     continue
                 observed_on = bool(change["observed"])
                 stamp = _datetime(str(row["created_at"]))
@@ -1090,6 +1097,8 @@ class HomeyExperienceProviderV1:
                         pattern_value={"on": observed_on},
                     )
                 )
+                if device.get("kind") != "light":
+                    continue
                 if not observed_on:
                     signals.append(
                         _routine_signal(
