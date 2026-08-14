@@ -352,6 +352,8 @@ class EngineApplication:
             raise ValueError("autonomy context plugin is not installed")
         if not set(selected_privacy) <= set(strategy.spec.privacy_classes):
             raise ValueError("autonomy privacy grant expands strategy declaration")
+        if not set(strategy.spec.privacy_classes) <= set(selected_privacy):
+            raise ValueError("autonomy enrollment is missing required privacy grants")
         risk = RiskClass(risk_ceiling)
         if risk not in {RiskClass.READ_ONLY, RiskClass.LOW}:
             raise ValueError("delegated risk cannot exceed low")

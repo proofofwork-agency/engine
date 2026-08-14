@@ -2219,6 +2219,7 @@ class PluginManifestV2:
     store_identity: str = ""
     store_schema_version: int = 1
     contract_version: str = "engine.plugin/v2"
+    observation_privacy: tuple["ObservationPrivacyRuleV1", ...] = ()
 
     def __post_init__(self) -> None:
         _require(self.id, "plugin id")
@@ -2250,6 +2251,30 @@ class PluginManifestV2:
     @property
     def fingerprint(self) -> str:
         return artifact_sha256(self)
+
+
+@dataclass(frozen=True)
+class ObservationPrivacyRuleV1:
+    property: str
+    privacy_class: PrivacyClass
+
+    def __post_init__(self) -> None:
+        _require(self.property, "observation privacy property")
+
+    def matches(self, property_name: str) -> bool:
+        if self.property.endswith(".*"):
+            return property_name.startswith(self.property[:-1])
+        return self.property == property_name
+
+    def to_dict(self) -> JsonObject:
+        return canonical_data(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "ObservationPrivacyRuleV1":
+        return cls(
+            property=str(value["property"]),
+            privacy_class=PrivacyClass(str(value["privacy_class"])),
+        )
 
 
 @dataclass(frozen=True)

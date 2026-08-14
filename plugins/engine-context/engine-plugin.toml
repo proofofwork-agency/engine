@@ -29,6 +29,22 @@ privacy = ["location-shared-only-after-consent"]
 identity = "engine.context.store"
 schema_version = 1
 
+[[observation_privacy]]
+property = "time.*"
+class = "public"
+
+[[observation_privacy]]
+property = "sun.*"
+class = "local"
+
+[[observation_privacy]]
+property = "weather.*"
+class = "local"
+
+[[observation_privacy]]
+property = "location.*"
+class = "sensitive"
+
 [[capability_families]]
 id = "engine.context.observe/v2"
 family = "context.observe"

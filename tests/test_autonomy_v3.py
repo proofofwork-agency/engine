@@ -313,7 +313,7 @@ def test_executive_route_calls_once_and_model_failure_defers(tmp_path: Path) -> 
         _close(app, plugin)
 
 
-def test_missing_privacy_grant_defers_before_strategy_or_cognition(tmp_path: Path) -> None:
+def test_missing_privacy_grant_is_rejected_at_enroll_time(tmp_path: Path) -> None:
     class CountingStrategy:
         id = STRATEGY
         plugin_id = PLUGIN
@@ -331,15 +331,10 @@ def test_missing_privacy_grant_defers_before_strategy_or_cognition(tmp_path: Pat
         tmp_path, CountingStrategy, route="deterministic", privacy=True
     )
     try:
-        _enroll(app, privacy_grants=())
-        app.autonomy_mode("delegated")
-        with app.lease():
-            app.heart.run_cycle()
-        evaluation = app.store.autonomy_evaluations()[-1]
+        with pytest.raises(ValueError, match="required privacy grants"):
+            _enroll(app, privacy_grants=())
         assert strategy.calls == 0
-        assert evaluation.cognition_calls == 0
-        assert evaluation.decision.kind is AutonomyDecisionKindV1.DEFER
-        assert "privacy grants" in evaluation.decision.rationale
+        assert app.store.autonomy_evaluations() == ()
         assert app.store.brain_call_count() == 0
     finally:
         _close(app, plugin)
@@ -768,3 +763,159 @@ def test_suggestions_are_non_operational_and_core_autonomy_is_identity_free(tmp_
             assert forbidden not in sources
     finally:
         _close(app, plugin)
+
+
+def test_source_fair_quotas_keep_context_after_442_own_observations() -> None:
+    from types import SimpleNamespace
+
+    from engine_sdk import (
+        EntityV1,
+        EvidenceGrade,
+        ObservationV1,
+        PrivacyClass,
+        WorldSnapshotV2,
+    )
+
+    from engine.autonomy_v3 import _project_world
+
+    own = EntityV1(ENTITY, TARGET, "warehouse.bin", PLUGIN)
+    context_entities = (
+        EntityV1("context:local", "engine.context.local", "context.local", "engine.context"),
+        EntityV1(
+            "context:location",
+            "engine.context.local",
+            "context.location",
+            "engine.context",
+        ),
+    )
+    observations = [
+        ObservationV1(
+            f"own:{index}",
+            ENTITY,
+            "bin.count",
+            index,
+            PLUGIN,
+            "2026-08-14T12:00:00+00:00",
+            EvidenceGrade.OBSERVED,
+        )
+        for index in range(442)
+    ]
+    observations.extend(
+        (
+            ObservationV1(
+                "sun:el",
+                "context:local",
+                "sun.elevation_deg",
+                32.1,
+                "engine.context",
+                "2026-08-14T12:00:00+00:00",
+                EvidenceGrade.DERIVED,
+                unit="degree",
+            ),
+            ObservationV1(
+                "loc:lat",
+                "context:location",
+                "location.latitude",
+                52.37,
+                "engine.context",
+                "2026-08-14T12:00:00+00:00",
+                EvidenceGrade.OBSERVED,
+                unit="degree",
+            ),
+        )
+    )
+    snapshot = WorldSnapshotV2(
+        "world:fair",
+        1,
+        "2026-08-14T12:00:00+00:00",
+        {TARGET: 1, "engine.context.local": 1},
+        (own, *context_entities),
+        (),
+        tuple(observations),
+        {},
+    )
+    enrollment = SimpleNamespace(
+        entity_ids=(ENTITY,),
+        context_plugin_ids=("engine.context",),
+        privacy_grants=(PrivacyClass.LOCAL, PrivacyClass.PUBLIC),
+    )
+    registry = SimpleNamespace(
+        plugin=lambda plugin_id: SimpleNamespace(
+            static_manifest=load_static_manifest(Path("plugins/engine-context"))
+            if plugin_id == "engine.context"
+            else SimpleNamespace(observation_privacy=(), capabilities=())
+        )
+    )
+    entities, projected, truncation = _project_world(enrollment, snapshot, registry)
+    properties = {item.property for item in projected}
+    assert len([item for item in projected if item.entity_id == ENTITY]) == 442
+    assert "sun.elevation_deg" in properties
+    assert "location.latitude" not in properties
+    assert {item.id for item in entities} >= {ENTITY, "context:local"}
+    assert truncation["engine.context"]["truncated_observations"] is False
+
+
+def test_local_privacy_grant_cannot_expose_latitude() -> None:
+    from types import SimpleNamespace
+
+    from engine_sdk import (
+        EntityV1,
+        EvidenceGrade,
+        ObservationV1,
+        PrivacyClass,
+        WorldSnapshotV2,
+    )
+
+    from engine.autonomy_v3 import _project_world, _projected_observation
+
+    entity = EntityV1(
+        "context:location",
+        "engine.context.local",
+        "context.location",
+        "engine.context",
+    )
+    latitude = ObservationV1(
+        "lat",
+        entity.id,
+        "location.latitude",
+        52.37,
+        "engine.context",
+        "2026-08-14T12:00:00+00:00",
+        EvidenceGrade.OBSERVED,
+    )
+    stale_sun = ObservationV1(
+        "sun",
+        "context:local",
+        "sun.elevation_deg",
+        10.0,
+        "engine.context",
+        "2026-08-14T12:00:00+00:00",
+        EvidenceGrade.STALE,
+    )
+    local = EntityV1(
+        "context:local", "engine.context.local", "context.local", "engine.context"
+    )
+    snapshot = WorldSnapshotV2(
+        "world:privacy",
+        1,
+        "2026-08-14T12:00:00+00:00",
+        {"engine.context.local": 1},
+        (entity, local),
+        (),
+        (latitude, stale_sun),
+        {},
+    )
+    enrollment = SimpleNamespace(
+        entity_ids=("warehouse:bin:reserve",),
+        context_plugin_ids=("engine.context",),
+        privacy_grants=(PrivacyClass.LOCAL,),
+    )
+    registry = SimpleNamespace(
+        plugin=lambda plugin_id: SimpleNamespace(
+            static_manifest=load_static_manifest(Path("plugins/engine-context"))
+        )
+    )
+    _entities, projected, _truncation = _project_world(enrollment, snapshot, registry)
+    assert [item.property for item in projected] == ["sun.elevation_deg"]
+    payload = _projected_observation(projected[0], enrollment)
+    assert payload["evidence_eligible"] is False

@@ -17,7 +17,9 @@ from engine_sdk import (
     AutonomyModeV1,
     BrainDecisionV2,
     CognitionRouteV1,
+    ControlLayer,
     DecisionKindV2,
+    EvidenceGrade,
     GoalCandidateV1,
     GoalSpecV2,
     ProposedActionV1,
@@ -281,7 +283,23 @@ class AutonomyRuntimeV3:
                 0,
             )
         try:
+            if not self.store.has_goal(request.goal_id):
+                return (
+                    AutonomyDecisionV1(
+                        AutonomyDecisionKindV1.DEFER,
+                        rationale="cognition request goal is unknown",
+                    ),
+                    0,
+                )
             goal = self.store.get_goal(request.goal_id)
+            if not _goal_in_enrollment(goal, enrollment):
+                return (
+                    AutonomyDecisionV1(
+                        AutonomyDecisionKindV1.DEFER,
+                        rationale="cognition request goal is outside enrollment scope",
+                    ),
+                    0,
+                )
             if request.route is CognitionRouteV1.EXECUTIVE:
                 raw = self.heart.brain.decide(goal, dict(context.projection))
                 if not isinstance(raw, BrainDecisionV2):
@@ -620,24 +638,14 @@ class AutonomyRuntimeV3:
         current: WorldSnapshotV2,
         mode_state: dict[str, Any],
     ) -> AutonomyContextV1:
-        allowed_sources = {enrollment.plugin_id, *enrollment.context_plugin_ids}
-        exact_ids = set(enrollment.entity_ids)
-        entities = tuple(
-            item
-            for item in current.entities
-            if (
-                item.id in exact_ids
-                or (item.source in allowed_sources and item.source != enrollment.plugin_id)
-            )
-        )[: self.max_entities]
+        entities, observations, truncation = _project_world(
+            enrollment, current, self.registry
+        )
         entity_ids = {item.id for item in entities}
         relations = tuple(
             item for item in current.relations
             if item.source_entity_id in entity_ids and item.target_entity_id in entity_ids
         )
-        observations = tuple(
-            item for item in current.observations if item.entity_id in entity_ids
-        )[: self.max_observations]
         capabilities = []
         for target_id in enrollment.target_ids:
             for capability in self.registry.capabilities_for_target(target_id):
@@ -672,12 +680,20 @@ class AutonomyRuntimeV3:
                 },
                 "entities": [item.to_dict() for item in entities],
                 "relations": [item.to_dict() for item in relations],
-                "observations": [item.to_dict() for item in observations],
+                "observations": [
+                    _projected_observation(item, enrollment)
+                    for item in observations
+                ],
                 "coverage": {
                     "entities": len(entities),
                     "observations": len(observations),
-                    "truncated_entities": len(entities) == self.max_entities,
-                    "truncated_observations": len(observations) == self.max_observations,
+                    "truncated_entities": any(
+                        item["truncated_entities"] for item in truncation.values()
+                    ),
+                    "truncated_observations": any(
+                        item["truncated_observations"] for item in truncation.values()
+                    ),
+                    "truncated_sources": truncation,
                 },
             },
             "capabilities": capabilities,
@@ -753,6 +769,133 @@ def _risk_rank(value: RiskClass) -> int:
         RiskClass.MEDIUM: 2,
         RiskClass.HIGH: 3,
     }[value]
+
+
+_FOREIGN_ENTITY_CAP = 16
+_FOREIGN_OBSERVATION_CAP = 32
+
+
+def _project_world(
+    enrollment: AutonomyEnrollmentV2,
+    current: WorldSnapshotV2,
+    registry: Any,
+) -> tuple[tuple[Any, ...], tuple[Any, ...], dict[str, dict[str, bool]]]:
+    own_ids = set(enrollment.entity_ids)
+    own_entities = tuple(
+        item for item in current.entities if item.id in own_ids
+    )
+    foreign_entities_by_source: dict[str, list[Any]] = {}
+    for item in current.entities:
+        if item.id in own_ids:
+            continue
+        if item.source not in enrollment.context_plugin_ids:
+            continue
+        foreign_entities_by_source.setdefault(item.source, []).append(item)
+    truncation: dict[str, dict[str, bool]] = {}
+    selected_foreign: list[Any] = []
+    for source in sorted(foreign_entities_by_source):
+        group = sorted(foreign_entities_by_source[source], key=lambda item: item.id)
+        truncation[source] = {
+            "truncated_entities": len(group) > _FOREIGN_ENTITY_CAP,
+            "truncated_observations": False,
+        }
+        selected_foreign.extend(group[:_FOREIGN_ENTITY_CAP])
+    entities = tuple(
+        sorted((*own_entities, *selected_foreign), key=lambda item: item.id)
+    )
+    entity_ids = {item.id for item in entities}
+    own_observations = tuple(
+        item
+        for item in current.observations
+        if item.entity_id in own_ids
+    )
+    foreign_observations_by_source: dict[str, list[Any]] = {}
+    for item in current.observations:
+        if item.entity_id not in entity_ids or item.entity_id in own_ids:
+            continue
+        entity = next(value for value in entities if value.id == item.entity_id)
+        if not _observation_granted(entity.source, item.property, enrollment, registry):
+            continue
+        foreign_observations_by_source.setdefault(entity.source, []).append(item)
+    selected_foreign_observations: list[Any] = []
+    for source in sorted(foreign_observations_by_source):
+        group = sorted(
+            foreign_observations_by_source[source],
+            key=lambda item: (item.entity_id, item.property, item.id),
+        )
+        flags = truncation.setdefault(
+            source, {"truncated_entities": False, "truncated_observations": False}
+        )
+        flags["truncated_observations"] = len(group) > _FOREIGN_OBSERVATION_CAP
+        selected_foreign_observations.extend(group[:_FOREIGN_OBSERVATION_CAP])
+    observations = tuple(
+        sorted(
+            (*own_observations, *selected_foreign_observations),
+            key=lambda item: (item.entity_id, item.property, item.id),
+        )
+    )
+    return entities, observations, truncation
+
+
+def _projected_observation(
+    observation: Any, enrollment: AutonomyEnrollmentV2
+) -> dict[str, Any]:
+    payload = observation.to_dict()
+    foreign = observation.entity_id not in set(enrollment.entity_ids)
+    stale_foreign = (
+        foreign and observation.evidence_grade is EvidenceGrade.STALE
+    )
+    payload["evidence_eligible"] = (
+        observation.evidence_grade
+        in {EvidenceGrade.OBSERVED, EvidenceGrade.DERIVED}
+        and not stale_foreign
+    )
+    return payload
+
+
+def _observation_granted(
+    source: str,
+    property_name: str,
+    enrollment: AutonomyEnrollmentV2,
+    registry: Any,
+) -> bool:
+    granted = set(enrollment.privacy_grants)
+    return _observation_privacy_class(source, property_name, registry) in granted
+
+
+def _observation_privacy_class(
+    source: str, property_name: str, registry: Any
+) -> Any:
+    from engine_sdk import PrivacyClass
+
+    try:
+        manifest = registry.plugin(source).static_manifest
+    except KeyError:
+        return PrivacyClass.SENSITIVE
+    for rule in getattr(manifest, "observation_privacy", ()):
+        if rule.matches(property_name):
+            return rule.privacy_class
+    query_caps = [
+        item
+        for item in manifest.capabilities
+        if item.control_layer is ControlLayer.QUERY
+    ]
+    if len(query_caps) == 1:
+        return query_caps[0].privacy_class
+    return PrivacyClass.SENSITIVE
+
+
+def _goal_in_enrollment(goal: Any, enrollment: AutonomyEnrollmentV2) -> bool:
+    scope = goal.entity_scope if isinstance(goal.entity_scope, dict) else {}
+    target_ids = {str(item) for item in scope.get("target_ids", ())}
+    entity_ids = {str(item) for item in scope.get("entity_ids", ())}
+    if "*" in target_ids or "*" in entity_ids:
+        return False
+    if target_ids and not target_ids <= set(enrollment.target_ids):
+        return False
+    if entity_ids and not entity_ids <= set(enrollment.entity_ids):
+        return False
+    return bool(target_ids or entity_ids)
 
 
 def _parameter_limits_error(

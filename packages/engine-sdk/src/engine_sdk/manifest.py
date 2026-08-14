@@ -18,6 +18,7 @@ from .models import (
     GoalModeV2,
     GoalTemplateSpecV1,
     InvocationModeV2,
+    ObservationPrivacyRuleV1,
     PluginManifestV2,
     PluginManifestV3,
     PreferencePromotionMode,
@@ -151,6 +152,7 @@ def manifest_from_dict(raw: Mapping[str, Any]) -> PluginManifestV2:
         privacy_needs=_strings(needs, "privacy"),
         store_identity=str(store.get("identity", "")),
         store_schema_version=int(store.get("schema_version", 1)),
+        observation_privacy=_observation_privacy(raw.get("observation_privacy", [])),
     )
     validate_manifest(manifest)
     return manifest
@@ -247,6 +249,10 @@ def compare_manifests(
     loaded_preferences = {item.id: item.to_dict() for item in loaded.preference_specs}
     if static_preferences != loaded_preferences:
         mismatches.append("preferences")
+    if tuple(item.to_dict() for item in static.observation_privacy) != tuple(
+        item.to_dict() for item in loaded.observation_privacy
+    ):
+        mismatches.append("observation_privacy")
     static_routines = {item.id: item.to_dict() for item in static.routine_templates}
     loaded_routines = {item.id: item.to_dict() for item in loaded.routine_templates}
     if static_routines != loaded_routines:
@@ -377,6 +383,28 @@ def _goal_template(raw: object, plugin_id: str) -> GoalTemplateSpecV1:
         risk_class=RiskClass(str(raw.get("risk_class", RiskClass.LOW.value))),
         description=str(raw.get("description", "")),
     )
+
+
+def _observation_privacy(raw: object) -> tuple[ObservationPrivacyRuleV1, ...]:
+    if raw in (None, ()):
+        return ()
+    if not isinstance(raw, list):
+        raise ContractError("observation_privacy must be an array of tables")
+    rules: list[ObservationPrivacyRuleV1] = []
+    for item in raw:
+        if not isinstance(item, Mapping):
+            raise ContractError("observation_privacy entries must be tables")
+        property_name = str(item.get("property", ""))
+        privacy = item.get("class", item.get("privacy_class"))
+        if not property_name or privacy is None:
+            raise ContractError("observation_privacy requires property and class")
+        rules.append(
+            ObservationPrivacyRuleV1(
+                property=property_name,
+                privacy_class=PrivacyClass(str(privacy)),
+            )
+        )
+    return tuple(rules)
 
 
 def _table(
