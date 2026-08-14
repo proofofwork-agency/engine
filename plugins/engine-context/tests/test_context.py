@@ -124,6 +124,28 @@ class ContextPluginTests(unittest.TestCase):
         self.assertIsNone(provider.location())
         self.assertEqual(0, calls)
 
+    def test_same_minute_reobserve_reuses_context_revision(self) -> None:
+        clock = [datetime(2026, 8, 14, 12, 24, 10, tzinfo=UTC)]
+        provider = ContextWorldProvider(
+            self._store(),
+            self.manifest,
+            ExplicitLocationProvider(None, None),
+            None,
+            share_location_with_weather=False,
+            clock=lambda: clock[0],
+        )
+        first = provider.observe()
+        clock[0] = datetime(2026, 8, 14, 12, 24, 40, tzinfo=UTC)
+        same_minute = provider.observe()
+        clock[0] = datetime(2026, 8, 14, 12, 25, 5, tzinfo=UTC)
+        next_minute = provider.observe()
+
+        self.assertEqual(first.revision, same_minute.revision)
+        self.assertEqual(first.revision + 1, next_minute.revision)
+        self.assertNotEqual(
+            first.semantic_fingerprint(), next_minute.semantic_fingerprint()
+        )
+
     def test_noaa_solar_elevation_matches_ephemeris_fixtures(self) -> None:
         fixtures = (
             # NREL SPA Reda & Andreas 2004, Boulder; NOAA refraction stays

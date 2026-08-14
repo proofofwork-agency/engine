@@ -1329,7 +1329,8 @@ def _world_content_semantic_data(
                 "artifact_identity": item.artifact_identity,
             }
             for item in observations
-            if not is_volatile_metering_signal(item.property, item.value)
+            if item.property != "time.iso8601"
+            and not is_volatile_metering_signal(item.property, item.value)
         ],
     }
 

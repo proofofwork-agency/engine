@@ -7,7 +7,7 @@ import threading
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
@@ -128,14 +128,52 @@ class ContextStore:
         connection.execute(
             "INSERT OR IGNORE INTO revision_ledger(id, revision) VALUES(1, 0)"
         )
+        columns = {
+            str(row[1])
+            for row in connection.execute("PRAGMA table_info(revision_ledger)")
+        }
+        if "semantic_sha256" not in columns:
+            connection.execute(
+                "ALTER TABLE revision_ledger ADD COLUMN semantic_sha256 TEXT"
+            )
         connection.commit()
         self._connection = connection
         return connection
 
     def next_revision(self) -> int:
-        self.connection.execute("UPDATE revision_ledger SET revision=revision+1 WHERE id=1")
-        self.connection.commit()
-        return int(self.connection.execute("SELECT revision FROM revision_ledger WHERE id=1").fetchone()[0])
+        revision, _ = self.save_projection(None)
+        return revision
+
+    def save_projection(self, semantic_sha256: str | None) -> tuple[int, bool]:
+        self.connection.execute("BEGIN IMMEDIATE")
+        try:
+            row = self.connection.execute(
+                "SELECT revision, semantic_sha256 FROM revision_ledger WHERE id=1"
+            ).fetchone()
+            assert row is not None
+            current = int(row[0])
+            stored = row[1]
+            if (
+                semantic_sha256 is not None
+                and stored is not None
+                and stored == semantic_sha256
+            ):
+                self.connection.commit()
+                return current, False
+            revision = current + 1
+            self.connection.execute(
+                """
+                UPDATE revision_ledger
+                SET revision=?, semantic_sha256=?
+                WHERE id=1
+                """,
+                (revision, semantic_sha256),
+            )
+            self.connection.commit()
+            return revision, True
+        except Exception:
+            self.connection.rollback()
+            raise
 
     def close(self) -> None:
         if self._connection is not None:
@@ -177,7 +215,7 @@ class ContextWorldProvider:
         if now.tzinfo is None:
             now = now.replace(tzinfo=UTC)
         observed_at = now.isoformat()
-        revision = self.store.next_revision()
+        revision = 0
         local = EntityV1(
             "context:local", self.target_id, "context.local", self.plugin_id,
             "Local context", {"timezone": str(now.tzinfo)},
@@ -276,7 +314,7 @@ class ContextWorldProvider:
             ),
         )
         self._fire_due(now)
-        return TargetObservationV2(
+        result = TargetObservationV2(
             self.target_id, revision, observed_at,
             (local, location_entity, weather_entity), relations, tuple(observations),
             {
@@ -290,6 +328,8 @@ class ContextWorldProvider:
             available=True,
             errors=tuple(errors),
         )
+        assigned, _ = self.store.save_projection(result.semantic_fingerprint())
+        return replace(result, revision=assigned)
 
     def subscribe(self, wake: Callable[..., None]) -> Callable[[], None] | None:
         # Polling is authoritative; scheduled wakes can additionally call this

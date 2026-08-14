@@ -1077,3 +1077,33 @@ def test_mode_and_disable_are_serialized_and_audited(tmp_path: Path) -> None:
         ) is None
     finally:
         _close(app, plugin)
+
+
+def test_unbound_dispatch_cannot_take_an_enrolled_resource(tmp_path: Path) -> None:
+    app, plugin = _application(tmp_path)
+    try:
+        _enroll(app)
+        enrollment = app.store.autonomy_enrollments(enabled_only=True)[0]
+        target_id, entity_id, domain = enrollment_resource_keys(
+            app.registry, enrollment
+        )[0]
+        attempt = DispatchAttemptV1(
+            id="dispatch-attempt:unbound",
+            operation_key="operation:unbound",
+            request_id="request:unbound",
+            authorization_id="authorization:unbound",
+            target_id=target_id,
+            entity_id=entity_id,
+            conflict_domain=domain,
+            state=DispatchAttemptStateV1.PREPARED,
+            prepared_at="2026-08-14T12:00:00+00:00",
+        )
+        with pytest.raises(
+            PermissionError, match="enrollment owns this target/entity/conflict_domain"
+        ):
+            app.store.admit_prepared_dispatch_attempt(
+                attempt, validate=lambda: None
+            )
+        assert app.store.dispatch_attempts() == ()
+    finally:
+        _close(app, plugin)
