@@ -22,6 +22,7 @@ from engine_sdk import (
     ContractError,
     DesiredEffectV1,
     DispatchAttemptStateV1,
+    DispatchAttemptV1,
     GoalCandidateV1,
     GoalModeV2,
     GoalSpecV2,
@@ -309,6 +310,40 @@ def test_executive_route_calls_once_and_model_failure_defers(tmp_path: Path) -> 
         assert evaluation.decision.kind is AutonomyDecisionKindV1.DEFER
         assert "model offline" in evaluation.decision.rationale
         assert app.store.dispatch_attempts() == ()
+    finally:
+        _close(app, plugin)
+
+
+def test_recovery_horizon_closes_unknown_and_releases_the_resource(tmp_path: Path) -> None:
+    app, plugin = _application(tmp_path)
+    try:
+        _enroll(app)
+        stale = datetime.now(UTC) - timedelta(hours=2)
+        app.store.save_dispatch_attempt(
+            DispatchAttemptV1(
+                id="dispatch-attempt:unknown-horizon",
+                operation_key="operation:unknown-horizon",
+                request_id="request:unknown-horizon",
+                authorization_id="authorization:unknown-horizon",
+                target_id=TARGET,
+                entity_id=ENTITY,
+                conflict_domain=FAMILY,
+                state=DispatchAttemptStateV1.RECOVERY_REQUIRED,
+                prepared_at=stale.isoformat(),
+                updated_at=stale.isoformat(),
+            )
+        )
+        with app.lease():
+            app.heart.run_cycle()
+        closed = next(
+            item
+            for item in app.store.dispatch_attempts()
+            if item.id == "dispatch-attempt:unknown-horizon"
+        )
+        assert closed.state is DispatchAttemptStateV1.CLOSED_UNKNOWN
+        assert app.store.dispatch_attempts(open_only=True) == ()
+        listed = app.autonomy_attempts()
+        assert any(item["id"] == closed.id for item in listed)
     finally:
         _close(app, plugin)
 

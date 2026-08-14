@@ -1756,29 +1756,39 @@ class WorldHeartV2:
             raise PermissionError(limit_error)
 
     def _recover_dispatch_attempts(self, snapshot: WorldSnapshotV2) -> None:
+        now = self._clock()
         for attempt in self.store.dispatch_attempts(open_only=True):
-            if attempt.state is not DispatchAttemptStateV1.PREPARED:
+            if attempt.state is DispatchAttemptStateV1.PREPARED:
+                recovered = replace(
+                    attempt,
+                    state=DispatchAttemptStateV1.RECOVERY_REQUIRED,
+                    updated_at=now.isoformat(),
+                )
+                self.store.save_dispatch_attempt(recovered)
+                self.store.append_event(
+                    None,
+                    "dispatch_recovery_required",
+                    "heart.v3",
+                    {
+                        "attempt_id": attempt.id,
+                        "request_id": attempt.request_id,
+                        "target_id": attempt.target_id,
+                        "entity_id": attempt.entity_id,
+                        "conflict_domain": attempt.conflict_domain,
+                        "observed_snapshot_id": snapshot.id,
+                        "redispatched": False,
+                    },
+                )
                 continue
-            recovered = replace(
-                attempt,
-                state=DispatchAttemptStateV1.RECOVERY_REQUIRED,
-                updated_at=self._clock().isoformat(),
-            )
-            self.store.save_dispatch_attempt(recovered)
-            self.store.append_event(
-                None,
-                "dispatch_recovery_required",
-                "heart.v3",
-                {
-                    "attempt_id": attempt.id,
-                    "request_id": attempt.request_id,
-                    "target_id": attempt.target_id,
-                    "entity_id": attempt.entity_id,
-                    "conflict_domain": attempt.conflict_domain,
-                    "observed_snapshot_id": snapshot.id,
-                    "redispatched": False,
-                },
-            )
+            if (
+                attempt.state is DispatchAttemptStateV1.RECOVERY_REQUIRED
+                and now - _datetime(attempt.updated_at) >= timedelta(hours=1)
+            ):
+                self.store.close_unknown_dispatch_attempt(
+                    attempt.id,
+                    closed_at=now.isoformat(),
+                    reason="recovery horizon elapsed without observed closure",
+                )
 
     @staticmethod
     def _validate_receipt(receipt: ExecutionReceiptV2, request: Any, authorization_id: str) -> None:

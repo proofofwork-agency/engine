@@ -122,6 +122,8 @@ class EngineRuntimeTests(unittest.TestCase):
             ["yolo", "status"],
             ["yolo", "disable"],
             ["autonomy", "shadow-report"],
+            ["autonomy", "attempts", "list"],
+            ["autonomy", "attempts", "close", "attempt:1"],
             ["routines", "list"],
             ["routines", "inspect", "routine:1"],
             ["routines", "approve", "candidate:1"],

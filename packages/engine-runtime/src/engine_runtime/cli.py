@@ -108,6 +108,16 @@ def build_parser() -> argparse.ArgumentParser:
     proposal_reject = proposals_sub.add_parser("reject")
     proposal_reject.add_argument("id")
     proposal_reject.add_argument("--reason", default="local owner rejected proposal")
+    attempts = autonomy_sub.add_parser("attempts")
+    attempts_sub = attempts.add_subparsers(
+        dest="autonomy_attempts_command", required=True
+    )
+    attempts_sub.add_parser("list")
+    attempt_close = attempts_sub.add_parser("close")
+    attempt_close.add_argument("id")
+    attempt_close.add_argument(
+        "--reason", default="operator closed ambiguous attempt as unknown"
+    )
 
     yolo = top.add_parser("yolo")
     yolo_sub = yolo.add_subparsers(dest="yolo_command", required=True)
@@ -283,6 +293,18 @@ def main(argv: list[str] | None = None) -> int:
                     else:
                         _print(
                             app.autonomy_proposal_reject(args.id, reason=args.reason)
+                        )
+                    return 0
+                if args.autonomy_command == "attempts":
+                    if args.autonomy_attempts_command == "list":
+                        _print(app.autonomy_attempts())
+                    else:
+                        _print(
+                            canonical_data(
+                                app.autonomy_attempt_close(
+                                    args.id, reason=args.reason
+                                )
+                            )
                         )
                     return 0
             if args.command == "yolo":

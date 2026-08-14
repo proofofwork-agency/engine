@@ -1380,6 +1380,44 @@ class WorldStore:
         ).fetchone()
         return DispatchAttemptV1.from_dict(json.loads(row["body_json"])) if row else None
 
+    def close_unknown_dispatch_attempt(
+        self,
+        attempt_id: str,
+        *,
+        closed_at: str,
+        reason: str,
+    ) -> DispatchAttemptV1:
+        attempt = next(
+            (item for item in self.dispatch_attempts() if item.id == attempt_id),
+            None,
+        )
+        if attempt is None:
+            raise KeyError(attempt_id)
+        if attempt.state not in {
+            DispatchAttemptStateV1.RECOVERY_REQUIRED,
+            DispatchAttemptStateV1.RECEIPT_RECORDED,
+        }:
+            raise ValueError(
+                "only recovery-required or receipt-recorded attempts can close unknown"
+            )
+        closed = replace(
+            attempt,
+            state=DispatchAttemptStateV1.CLOSED_UNKNOWN,
+            updated_at=closed_at,
+        )
+        self.save_dispatch_attempt(closed)
+        self.append_event(
+            None,
+            "dispatch_closed_unknown",
+            "heart.v3",
+            {
+                "attempt_id": attempt.id,
+                "request_id": attempt.request_id,
+                "reason": reason,
+            },
+        )
+        return closed
+
     def dispatch_attempts(self, *, open_only: bool = False) -> tuple[DispatchAttemptV1, ...]:
         where = ""
         parameters: tuple[str, ...] = ()

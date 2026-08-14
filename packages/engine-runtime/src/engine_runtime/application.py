@@ -414,6 +414,16 @@ class EngineApplication:
         )
         return enrollment
 
+    def autonomy_attempts(self) -> list[dict[str, Any]]:
+        return [canonical_data(item) for item in self.store.dispatch_attempts()]
+
+    def autonomy_attempt_close(self, attempt_id: str, *, reason: str) -> Any:
+        return self.store.close_unknown_dispatch_attempt(
+            attempt_id,
+            closed_at=datetime.now(UTC).isoformat(),
+            reason=reason,
+        )
+
     def autonomy_enrollment_inspect(self, enrollment_id: str) -> Any:
         return canonical_data(self.store.get_autonomy_enrollment(enrollment_id))
 
