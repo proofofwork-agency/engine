@@ -313,6 +313,25 @@ def test_executive_route_calls_once_and_model_failure_defers(tmp_path: Path) -> 
         _close(app, plugin)
 
 
+def test_nonempty_enrollment_budget_is_rejected(tmp_path: Path) -> None:
+    app, plugin = _application(tmp_path)
+    try:
+        with pytest.raises(ValueError, match="budget is not enforced"):
+            with app.lease():
+                app.autonomy_enroll(
+                    plugin_id=PLUGIN,
+                    strategy_id=STRATEGY,
+                    target_ids=(TARGET,),
+                    entity_ids=(ENTITY,),
+                    capability_families=(FAMILY,),
+                    goal_template_ids=(TEMPLATE,),
+                    budget={"cycles": 3},
+                )
+        assert app.store.autonomy_enrollments() == ()
+    finally:
+        _close(app, plugin)
+
+
 def test_missing_privacy_grant_is_rejected_at_enroll_time(tmp_path: Path) -> None:
     class CountingStrategy:
         id = STRATEGY

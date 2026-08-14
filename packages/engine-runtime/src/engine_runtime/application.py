@@ -301,6 +301,10 @@ class EngineApplication:
     ) -> AutonomyEnrollmentV2:
         if expires_hours <= 0:
             raise ValueError("autonomy enrollment expiry must be positive")
+        if budget:
+            raise ValueError(
+                "autonomy enrollment budget is not enforced and must be empty"
+            )
         snapshot = self.observe()
         registered = self.registry.plugin(plugin_id)
         if registered.static_manifest.contract_version != "engine.plugin/v3":
