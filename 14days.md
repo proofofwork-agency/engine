@@ -9,23 +9,27 @@ ever disagree.
 
 ## Current state
 
-Last updated: `2026-08-14T00:53Z` (burn-in restart; official clock still off).
+Last updated: `2026-08-14T08:08Z` (meter-identity restart; official clock still off).
 
-- The discarded Aug-11 preflight was stopped and archived. It is not the
-  official window.
+- The discarded Aug-11 preflight and the 2026-08-14 pre-A1.6 burn-in were
+  stopped and archived. They are not the official window.
 - A fresh isolated runtime is running on the original Mac under launchd
   label `com.proofofworks.engine.observe`, built from commit
-  `46dbd7470486f90e6193cf725f38a9e1e3d37800`.
+  `9f123c8`.
 - Mode is Homey `observe`, unarmed. Dispatch attempts are zero.
 - Installed plugin entry points: `engine.context`, `engine.homey`,
   `engine.ntfy`. `engine.reference-world` is absent.
 - Homey polling is authoritative at 30 seconds (`events = false`).
-- Burn-in 0 h: `2026-08-14T00:52:42Z`, aggregate `2,158,848` bytes.
-  Next required marks: 24 h and 48 h, then sleep/wake, then the official
-  fourteen-day timestamp.
+- House identity now ignores watt/kWh/voltage/current, `rssi` and
+  `net_load_phase1_pct`. A real change still stores current watts.
+- Burn-in 0 h: `2026-08-14T08:08:09Z`, aggregate `2,253,608` bytes.
+  After five extra polls Homey still had **one** snapshot row and five
+  deduplications. Next required marks: 24 h and 48 h, then sleep/wake,
+  then the official fourteen-day timestamp.
 - H2 plugin-store retention remains wired to nothing.
-- ADR-0011 Amendment 1 remains unsigned; growth is still measured across
-  all three stores including WAL.
+- ADR-0011 Amendment 1 remains unsigned; A1.6 (meter identity) is in
+  force by owner implementation direction. Growth is still measured
+  across all three stores including WAL.
 
 ### Before the clock may start (as of commit `89a99ac`)
 

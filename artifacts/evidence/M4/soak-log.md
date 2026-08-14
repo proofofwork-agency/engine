@@ -190,3 +190,50 @@ required. ADR-0011 Amendment 1 and H2 enablement remain unsigned. The
 existing local read-only PAT was reused from the LaunchAgent plist at the
 owner's "run the 14-day handoff" instruction; the token value is not
 recorded here. Rotating it is still the safer credential hygiene.
+
+### Meter-identity restart (A1.6)
+
+The owner ordered watt/kWh ticks to stop minting a new house, while
+keeping current watts on the snapshot after a real change (a light
+flip). That sampling decision is ADR-0011 A1.6.
+
+The ~7 h burn-in above was still on the old identity rule (a new house
+every 30 s). It was stopped at `07:59:50Z` and archived read-only to
+`/Users/danillofelanso/engine-m4/discarded-burnin-2026-08-14-pre-meter-identity/`:
+
+- `engine.sqlite3` `16,830,464` bytes
+  `sha256=f66936a81c255aac58bb0accb0639ebea943c3ca62ce6e1be4332312d81b490f`
+- `homeops.local.db` `10,600,448` bytes
+  `sha256=53418f053c8891499f78014eba4ed2b14b716e6c0c9f55d9c3254bd194a67579`
+- `context.sqlite3` `8,192` bytes
+  `sha256=69380d4616e228acde43e82ebe1907caae6c94afe71f50680a37b6de341993ab`
+
+Those files are `chmod 444`. They are not the official window.
+
+A first restart on `d8c81a9` (meters only) still minted a house every
+poll. Diffing those rows showed the leftover identity signals were P1
+`rssi` and `net_load_phase1_pct`, not lights. `9f123c8` added those to
+the same exclusion set. That probe was wiped, not archived.
+
+Isolated runtime reinstalled from `9f123c8`. Fresh stores under
+`engine-m4/live/`. Mode `observe`, unarmed, 30 s poll.
+
+`08:05:30Z`: launchd pid `52721`, `runs=1`, lease generation 1.
+
+At `08:08:09Z` (~2.5 min / five extra polls):
+
+```text
+engine.sqlite3         main=4096         wal=811672     total=815768
+context.sqlite3        main=8192         wal=0          total=8192
+homeops.local.db       main=4096         wal=1425552    total=1429648
+aggregate_bytes=2253608
+```
+
+HomeOps: `snapshot_rows_written=1`, `snapshot_deduplications=5`,
+revision still `0`. Engine `home`: 2 rows / max revision 1,
+`target_observation_deduplications=4`. Dispatch attempts: 0.
+
+`checkpoint=2026-08-14T08:08:09Z aggregate_bytes=2253608`
+
+This is the new **burn-in 0 h**. Official fourteen-day clock is still
+off. 24 h / 48 h and sleep/wake remain required.
