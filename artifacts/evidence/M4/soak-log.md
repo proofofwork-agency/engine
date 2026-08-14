@@ -237,3 +237,18 @@ revision still `0`. Engine `home`: 2 rows / max revision 1,
 
 This is the new **burn-in 0 h**. Official fourteen-day clock is still
 off. 24 h / 48 h and sleep/wake remain required.
+
+### Owner decisions 2026-08-14 (ADR-0011/12/13, H2, EXP-2026-004)
+
+The owner accepted ADR-0011 Amendment 1, ADR-0012 and ADR-0013. H2 was
+rejected as a 24-hour Homey tail ("too large") and replaced with
+keep-latest-only. EXP-2026-004 was left to the implementer and is
+**parked unsealed**.
+
+At `08:14:33Z` the soak was stopped, the Homey wheel was reinstalled
+from `df4d79e`, and the same live stores were restarted (pid `58840`,
+observe, unarmed). This is a code upgrade, not a new 0 h.
+
+At `08:15:27Z`: HomeOps `snapshots` count `1` (revision 3),
+`snapshot_rows_pruned=3`, `snapshot_prune_runs=2`,
+`snapshot_deduplications=16`. Dispatch attempts still 0.

@@ -9,13 +9,13 @@ ever disagree.
 
 ## Current state
 
-Last updated: `2026-08-14T08:08Z` (meter-identity restart; official clock still off).
+Last updated: `2026-08-14T08:15Z` (ADRs accepted; H2 keep-latest live; official clock still off).
 
 - The discarded Aug-11 preflight and the 2026-08-14 pre-A1.6 burn-in were
   stopped and archived. They are not the official window.
 - A fresh isolated runtime is running on the original Mac under launchd
   label `com.proofofworks.engine.observe`, built from commit
-  `9f123c8`.
+  `df4d79e` on the same stores as the `08:08Z` 0 h mark.
 - Mode is Homey `observe`, unarmed. Dispatch attempts are zero.
 - Installed plugin entry points: `engine.context`, `engine.homey`,
   `engine.ntfy`. `engine.reference-world` is absent.
