@@ -1247,9 +1247,13 @@ _VOLATILE_METERING_EXACT = frozenset(
         "frequency",
         "house_power_w",
         "measure_current",
+        "measure_gas",
         "measure_power",
         "measure_voltage",
+        "measure_water",
+        "meter_gas",
         "meter_power",
+        "meter_water",
         "net_load_phase1_pct",
         "power_w",
         "rssi",
@@ -1261,12 +1265,18 @@ _VOLATILE_METERING_PREFIXES = (
     "current.",
     "measure_current.",
     "measure_current_",
+    "measure_gas.",
     "measure_power.",
     "measure_power_",
     "measure_voltage.",
     "measure_voltage_",
+    "measure_water.",
+    "meter_gas.",
+    "meter_gas_",
     "meter_power.",
     "meter_power_",
+    "meter_water.",
+    "meter_water_",
     "net_load",
     "power.",
     "voltage.",
@@ -1274,12 +1284,16 @@ _VOLATILE_METERING_PREFIXES = (
 )
 
 
-def is_volatile_metering_signal(name: str) -> bool:
-    """True when a watt/kWh/voltage/current/rssi tick must not mint house identity."""
+def is_volatile_metering_signal(name: str, value: Any = None) -> bool:
+    """True when a watt/kWh/water/gas/rssi tick must not mint house identity."""
     key = name.casefold().strip()
     if key in _VOLATILE_METERING_EXACT:
         return True
-    return key.startswith(_VOLATILE_METERING_PREFIXES)
+    if key.startswith(_VOLATILE_METERING_PREFIXES):
+        return True
+    if key in {"water", "gas"} and isinstance(value, (int, float)) and type(value) is not bool:
+        return True
+    return False
 
 
 def _world_content_semantic_data(
@@ -1315,7 +1329,7 @@ def _world_content_semantic_data(
                 "artifact_identity": item.artifact_identity,
             }
             for item in observations
-            if not is_volatile_metering_signal(item.property)
+            if not is_volatile_metering_signal(item.property, item.value)
         ],
     }
 

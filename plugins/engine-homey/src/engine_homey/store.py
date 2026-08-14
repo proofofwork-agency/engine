@@ -708,9 +708,9 @@ def _identity_capability(capability: Any) -> Any:
     semantic = str(capability.get("semantic") or "")
     projected = dict(capability)
     projected["observed_at"] = None
-    if is_volatile_metering_signal(cap_id) or is_volatile_metering_signal(
-        semantic
-    ):
+    if is_volatile_metering_signal(
+        cap_id, projected.get("value")
+    ) or is_volatile_metering_signal(semantic, projected.get("value")):
         projected["value"] = None
     return projected
 

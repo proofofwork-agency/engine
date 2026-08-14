@@ -291,7 +291,10 @@ an identity-sampling rule. The first minutes of the post-A1.6 restart
 showed the remaining 30 s revisions were `rssi` (92/94/98/100) and
 `net_load_phase1_pct` (2/3), not lights or presence. Those two signals
 are therefore in the same exclusion set; they stay on the stored body
-when a real transition writes. Existing stores computed fingerprints
+when a real transition writes. The 4 h soak then showed leftover
+revisions from `meter_water*` / numeric `measure_water` (and the same
+class of gas registers). Those ticks join the exclusion set. Boolean
+leak/gas alarms stay in identity. Existing stores computed fingerprints
 including these values; the rule requires a fresh-store restart so the
 same-revision fingerprint invariant is not violated by the contract
 change.

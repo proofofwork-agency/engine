@@ -309,6 +309,20 @@ class TargetAndStoreTests(unittest.TestCase):
                                 "observed_at": observed,
                                 "evidence": "OBSERVED",
                             },
+                            {
+                                "id": "meter_water.daily",
+                                "semantic": "meter_water",
+                                "value": 0.01 * watts,
+                                "observed_at": observed,
+                                "evidence": "OBSERVED",
+                            },
+                            {
+                                "id": "measure_water",
+                                "semantic": "water",
+                                "value": 0.2 * watts,
+                                "observed_at": observed,
+                                "evidence": "OBSERVED",
+                            },
                         ],
                     }
                 ],

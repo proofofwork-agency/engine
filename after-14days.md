@@ -256,12 +256,9 @@ with cuts.
 - **Storage growth is measured across every store the runtime writes**, main
   file plus write-ahead log, per ADR-0011 Amendment 1. The Engine store is not
   the whole picture; that mistake cost a fourteen-day window once already.
-- **Latent traps we know about and chose not to fix yet.** `schedule_wake`
-  does not validate its timestamp, and `HomeOpsStore.prune_snapshots` parses
-  `observed_at` from every row inside its transaction — a malformed value
-  would abort every future prune. Both are harmless while their callers are
-  controlled. Fix them the moment either becomes reachable from untrusted or
-  automatic input.
+- **Latent traps.** `schedule_wake` now rejects a non-ISO timestamp.
+  `HomeOpsStore.prune_snapshots` still parses `observed_at` when a time
+  horizon is used; production keep-latest does not take that path.
 - **ADRs 0011 Amendment 1, 0012 and 0013 are accepted.** Homey plugin
   retention (H2) keeps only the newest snapshot. EXP-2026-004 is parked
   unsealed until someone wants the M5 exam.
