@@ -294,3 +294,38 @@ Vs 0 h `2026-08-14T08:08:09Z` / `2,253,608`: `+8,149,432` in 8111 s ≈
 `86.8 MB/day`. Above 50 MB/day target, below 150 hard fail. WAL is 80%
 of the aggregate (`8,289,504`); mains-only slope ≈ `22.3 MB/day`. Early
 WAL/fill, not another house-every-poll leak. Soak left running.
+
+### Water-identity restart (new burn-in 0 h)
+
+The ~4 h soak still minted Engine/Homey revisions on `meter_water` /
+numeric `measure_water` ticks (presence and lux were the other real
+churn). Archived read-only to
+`/Users/danillofelanso/engine-m4/discarded-burnin-2026-08-14-pre-water-identity/`
+(`engine.sqlite3` `4,423,680`
+`sha256=e0632e595b177e14fda7cf19bd5d516d0d355729bf74586c63235db736537bd3`,
+`homeops.local.db` `102,400`
+`sha256=be9a2ad47d8a5d5e5562389fd63b71a05b23693c1673b21f97abc3b49b31ce7f`,
+`context.sqlite3` `8,192`
+`sha256=c6b743588f4d083fe8606ee5bdac26d591669559a25baa0df2ea9a6e21430225`).
+Not the official window.
+
+Runtime reinstalled from `6490f35`. Fresh stores. Observe, unarmed.
+
+`12:22:18Z`: launchd pid `62783`, `runs=1`.
+
+At `12:24:04Z` (~3 extra polls):
+
+```text
+engine.sqlite3         main=4096         wal=675712     total=679808
+context.sqlite3        main=8192         wal=0          total=8192
+homeops.local.db       main=4096         wal=1425552    total=1429648
+aggregate_bytes=2117648
+```
+
+HomeOps: `snapshot_rows_written=1`, `snapshot_deduplications=3`,
+revision `0`. Engine `home` 2/1. Dispatch 0.
+
+`checkpoint=2026-08-14T12:24:04Z aggregate_bytes=2117648`
+
+This replaces the `08:08Z` mark as **burn-in 0 h**. Official clock still
+off. 24 h is `2026-08-15T12:24Z`.

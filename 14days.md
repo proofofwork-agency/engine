@@ -9,23 +9,24 @@ ever disagree.
 
 ## Current state
 
-Last updated: `2026-08-14T08:15Z` (ADRs accepted; H2 keep-latest live; official clock still off).
+Last updated: `2026-08-14T12:24Z` (water-identity restart; official clock still off).
 
 - The discarded Aug-11 preflight and the 2026-08-14 pre-A1.6 burn-in were
   stopped and archived. They are not the official window.
 - A fresh isolated runtime is running on the original Mac under launchd
   label `com.proofofworks.engine.observe`, built from commit
-  `df4d79e` on the same stores as the `08:08Z` 0 h mark.
+  `6490f35` on fresh stores after the water-identity change.
 - Mode is Homey `observe`, unarmed. Dispatch attempts are zero.
 - Installed plugin entry points: `engine.context`, `engine.homey`,
   `engine.ntfy`. `engine.reference-world` is absent.
 - Homey polling is authoritative at 30 seconds (`events = false`).
-- House identity now ignores watt/kWh/voltage/current, `rssi` and
-  `net_load_phase1_pct`. A real change still stores current watts.
-- Burn-in 0 h: `2026-08-14T08:08:09Z`, aggregate `2,253,608` bytes.
-  After five extra polls Homey still had **one** snapshot row and five
-  deduplications. Next required marks: 24 h and 48 h, then sleep/wake,
-  then the official fourteen-day timestamp.
+- House identity now ignores watt/kWh/voltage/current, water/gas
+  registers, `rssi` and `net_load_phase1_pct`. A real change still
+  stores current meters. Boolean leak alarms stay in identity.
+- Burn-in 0 h: `2026-08-14T12:24:04Z`, aggregate `2,117,648` bytes.
+  After three extra polls Homey still had **one** snapshot and three
+  deduplications. Next required marks: 24 h (`2026-08-15T12:24Z`) and
+  48 h, then sleep/wake, then the official fourteen-day timestamp.
 - H2 plugin-store retention is signed and smaller: keep only the newest
   Homey snapshot. Engine still keeps its own 24-hour observation history.
 - ADR-0011 Amendment 1, ADR-0012 and ADR-0013 are accepted. EXP-2026-004
