@@ -252,3 +252,13 @@ observe, unarmed). This is a code upgrade, not a new 0 h.
 At `08:15:27Z`: HomeOps `snapshots` count `1` (revision 3),
 `snapshot_rows_pruned=3`, `snapshot_prune_runs=2`,
 `snapshot_deduplications=16`. Dispatch attempts still 0.
+
+### Continuous loop 2026-08-14T08:16Z
+
+Owner asked the autonomous loop to continue with ntfy `pow-job-x`.
+D1 landed (`41775db`): PREPARED admission is `BEGIN IMMEDIATE`; an
+enrollment owns its reserved resource. Soak left running on the same
+stores (pid `58840`, observe, unarmed). Official clock still off.
+At `08:21:53Z` (~0.23 h): HomeOps still 1 snapshot, 24 dedupes, 0
+dispatches, aggregate `2,411,000` bytes. Early MB/day is WAL/fill
+noise, not a new 30 s house leak.
