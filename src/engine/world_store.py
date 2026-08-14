@@ -2066,6 +2066,11 @@ class WorldStore:
         goal_id: str | None = None, target_id: str | None = None,
         payload: Mapping[str, Any] | None = None,
     ) -> None:
+        try:
+            when = _as_utc(wake_at)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("scheduled wake_at must be an ISO-8601 timestamp") from exc
+        wake_at = when.isoformat()
         self.connection.execute(
             """
             INSERT OR REPLACE INTO scheduled_wakes_v2(

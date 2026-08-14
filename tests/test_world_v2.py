@@ -243,6 +243,19 @@ class WorldV2Tests(unittest.TestCase):
         self.assertEqual(latest, store.save_lifecycle_cursor(observer_id, baseline))
         self.assertEqual(latest, peer.lifecycle_cursor(observer_id))
 
+    def test_schedule_wake_rejects_a_malformed_timestamp(self) -> None:
+        plugin, registry, store, brain, heart, goal = self._system()
+        del plugin, registry, brain, heart, goal
+        store.schedule_wake(
+            "wake:ok",
+            "2026-08-14T08:00:00+00:00",
+            "poll_task",
+        )
+        with self.assertRaisesRegex(ValueError, "ISO-8601"):
+            store.schedule_wake("wake:bad", "soon", "poll_task")
+        due = store.due_wakes("2026-08-14T09:00:00+00:00")
+        self.assertEqual(("wake:ok",), tuple(item["id"] for item in due))
+
     def test_generated_bootstrap_world_runs_same_maintain_heart_without_core_change(self) -> None:
         root = scaffold_plugin(self.base, "generated-world", "world")
         sys.path.insert(0, str(root / "src"))
