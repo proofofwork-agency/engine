@@ -168,6 +168,7 @@ class HomeyTarget:
                     ),
                 )
         stored = self.store.record_snapshot(state, observed_at)
+        self.store.prune_snapshots(observed_at, keep_latest=1)
         self._last_state = state
         self._last_observed_monotonic = time.monotonic()
         return WorldSnapshot(

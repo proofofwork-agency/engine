@@ -1,7 +1,7 @@
 # ADR-0012 — Cross-plugin evidence and derived observation privacy
 
-- Status: proposed; implementation of the evidence and privacy slice has
-  landed as C2/C3. Owner signature still required.
+- Status: **accepted by the owner on 2026-08-14**. C2/C3 already implement
+  the evidence and privacy slice.
 - Owner: project owner
 - Date: 2026-08-14
 
@@ -54,6 +54,25 @@ physical safety. Simulator 5/5 is not live evidence.
 
 Existing enrollments without required grants cannot be recreated. Revert
 the C2/C3 commits if the owner rejects this ADR.
+
+## Who can flip a light
+
+This ADR does not grant actuation. It only says a Homey proposal may cite
+typed context evidence. The people and modes that can actually change a
+light are:
+
+1. A human in the Homey app or on the wall switch. Engine does not block
+   that path.
+2. Nobody through Engine while the mode is `OBSERVE` or the runtime is
+   unarmed. That is the current soak.
+3. The owner, in `SUPERVISED`, by approving one exact proposal after a
+   fresh observe. The device must be write-allowlisted and
+   `ENGINE_HOMEY_ARMED=1`.
+4. An enabled `DELEGATED` enrollment, for that exact zone and capability
+   only, still armed, still low-risk, still policy `ALLOW`.
+
+An LLM, planner, or skill may only emit a `ProposedAction`. It cannot
+arm the runtime, approve itself, or widen its enrollment.
 
 ## Reversibility
 

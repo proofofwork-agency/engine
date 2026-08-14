@@ -409,15 +409,30 @@ class HomeOpsStore:
         self,
         boundary: datetime | str,
         *,
-        horizon_hours: float,
+        keep_latest: int = 1,
+        horizon_hours: float | None = None,
     ) -> SnapshotPruneSummary:
-        if isinstance(horizon_hours, bool):
-            raise ValueError("snapshot retention horizon must be a positive number")
-        horizon = float(horizon_hours)
-        if not isfinite(horizon) or horizon <= 0:
-            raise ValueError("snapshot retention horizon must be a positive number")
+        if isinstance(keep_latest, bool) or keep_latest < 1:
+            raise ValueError("keep_latest must be a positive integer")
+        keep = int(keep_latest)
+        if horizon_hours is not None:
+            if isinstance(horizon_hours, bool):
+                raise ValueError(
+                    "snapshot retention horizon must be a non-negative number"
+                )
+            horizon = float(horizon_hours)
+            if not isfinite(horizon) or horizon < 0:
+                raise ValueError(
+                    "snapshot retention horizon must be a non-negative number"
+                )
+        else:
+            horizon = 0.0
         boundary_at = _as_utc(boundary)
-        cutoff = boundary_at - timedelta(hours=horizon)
+        cutoff = (
+            boundary_at - timedelta(hours=horizon)
+            if horizon_hours is not None
+            else boundary_at
+        )
         page_count_before = int(
             self._connection.execute("PRAGMA page_count").fetchone()[0]
         )
@@ -430,11 +445,17 @@ class HomeOpsStore:
                 """
             ).fetchall()
             newest_revision = int(rows[-1]["revision"]) if rows else None
+            protected = {int(row["revision"]) for row in rows[-keep:]}
+            if horizon_hours is not None:
+                protected.update(
+                    int(row["revision"])
+                    for row in rows
+                    if _as_utc(str(row["observed_at"])) >= cutoff
+                )
             doomed = tuple(
                 int(row["revision"])
                 for row in rows
-                if int(row["revision"]) != newest_revision
-                and _as_utc(str(row["observed_at"])) < cutoff
+                if int(row["revision"]) not in protected
             )
             if doomed:
                 cursor = self._connection.executemany(

@@ -265,6 +265,6 @@ with cuts.
   would abort every future prune. Both are harmless while their callers are
   controlled. Fix them the moment either becomes reachable from untrusted or
   automatic input.
-- **New ADRs still owed:** ADR-0012 for cross-plugin evidence and privacy
-  (Phase C), ADR-0013 for dispatch admission and closure (Phase D). ADR-0011
-  Amendment 1 needs the owner's signature or an explicit rejection.
+- **ADRs 0011 Amendment 1, 0012 and 0013 are accepted.** Homey plugin
+  retention (H2) keeps only the newest snapshot. EXP-2026-004 is parked
+  unsealed until someone wants the M5 exam.

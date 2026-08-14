@@ -24,24 +24,21 @@ class HomeOpsRetentionTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def test_prune_honours_horizon_and_unconditionally_keeps_newest(self) -> None:
+    def test_prune_keeps_only_the_newest_snapshot(self) -> None:
         old = self._record(0, self.boundary - timedelta(hours=72))
-        inside = self._record(1, self.boundary - timedelta(hours=23))
-        newest_but_old = self._record(2, self.boundary - timedelta(hours=48))
+        middle = self._record(1, self.boundary - timedelta(hours=23))
+        newest = self._record(2, self.boundary - timedelta(hours=1))
 
-        summary = self.store.prune_snapshots(
-            self.boundary, horizon_hours=24
-        )
+        summary = self.store.prune_snapshots(self.boundary, keep_latest=1)
 
         history = self.store.snapshot_history()
-        self.assertEqual([inside.revision, newest_but_old.revision], [
-            item.revision for item in history
-        ])
+        self.assertEqual([newest.revision], [item.revision for item in history])
         self.assertNotIn(old.revision, [item.revision for item in history])
-        self.assertEqual(newest_but_old.revision, summary.newest_revision)
-        self.assertEqual(2, summary.retained_rows)
-        self.assertEqual(1, summary.rows_deleted)
-        self.assertEqual(24.0, summary.horizon_hours)
+        self.assertNotIn(middle.revision, [item.revision for item in history])
+        self.assertEqual(newest.revision, summary.newest_revision)
+        self.assertEqual(1, summary.retained_rows)
+        self.assertEqual(2, summary.rows_deleted)
+        self.assertEqual(0.0, summary.horizon_hours)
 
     def test_prune_leaves_every_non_snapshot_table_untouched(self) -> None:
         self._record(0, self.boundary - timedelta(hours=48))
@@ -71,7 +68,7 @@ class HomeOpsRetentionTests(unittest.TestCase):
         )
         before = {table: self._row_count(table) for table in tables}
 
-        self.store.prune_snapshots(self.boundary, horizon_hours=24)
+        self.store.prune_snapshots(self.boundary, keep_latest=1)
 
         self.assertEqual(before, {table: self._row_count(table) for table in tables})
         self.assertEqual(alias, self.store.alias_for("zone", "zone-id", "ignored"))
@@ -83,7 +80,7 @@ class HomeOpsRetentionTests(unittest.TestCase):
         first = self._record(0, self.boundary - timedelta(hours=72))
         newest = self._record(1, self.boundary - timedelta(hours=48))
 
-        self.store.prune_snapshots(self.boundary, horizon_hours=24)
+        self.store.prune_snapshots(self.boundary, keep_latest=1)
         after = self._record(2, self.boundary + timedelta(minutes=1))
 
         self.assertEqual(first.revision + 1, newest.revision)
@@ -101,9 +98,7 @@ class HomeOpsRetentionTests(unittest.TestCase):
         before_size = self.database.stat().st_size
         before_pages = self._pragma("page_count")
 
-        summary = self.store.prune_snapshots(
-            self.boundary, horizon_hours=2
-        )
+        summary = self.store.prune_snapshots(self.boundary, keep_latest=1)
         self._checkpoint()
         status = self.store.snapshot_storage_status()
 
@@ -149,7 +144,7 @@ class HomeOpsRetentionTests(unittest.TestCase):
         self.store._connection.commit()
 
         with self.assertRaisesRegex(sqlite3.IntegrityError, "prune counter failed"):
-            self.store.prune_snapshots(self.boundary, horizon_hours=24)
+            self.store.prune_snapshots(self.boundary, keep_latest=1)
 
         status = self.store.snapshot_storage_status()
         self.assertEqual(2, status.rows)
@@ -170,19 +165,14 @@ class HomeOpsRetentionTests(unittest.TestCase):
         finally:
             store.close()
 
-    def test_explicit_hourly_pruning_plateaus_over_simulated_forty_eight_hours(
-        self,
-    ) -> None:
-        start = self.boundary - timedelta(hours=48)
+    def test_keep_latest_pruning_plateaus_after_many_writes(self) -> None:
+        start = self.boundary - timedelta(hours=6)
         halfway_status = None
-        for poll in range(48 * 60 * 2 + 1):
-            observed_at = start + timedelta(seconds=30 * poll)
-            self._record(poll, observed_at, payload_bytes=512)
-            if poll and poll % 120 == 0:
-                self.store.prune_snapshots(
-                    observed_at, horizon_hours=24
-                )
-            if poll == 24 * 60 * 2:
+        for poll in range(25):
+            observed_at = start + timedelta(minutes=15 * poll)
+            self._record(poll, observed_at, payload_bytes=4096)
+            self.store.prune_snapshots(observed_at, keep_latest=1)
+            if poll == 12:
                 self._checkpoint()
                 halfway_status = self.store.snapshot_storage_status()
 
@@ -190,20 +180,14 @@ class HomeOpsRetentionTests(unittest.TestCase):
         final_status = self.store.snapshot_storage_status()
         assert halfway_status is not None
 
-        self.assertEqual(24 * 60 * 2 + 1, halfway_status.rows)
-        self.assertEqual(halfway_status.rows, final_status.rows)
-        # Five percent is a unit-test tolerance for B-tree/counter overhead,
-        # not a storage product budget. Unbounded growth would be about 100%.
+        self.assertEqual(1, halfway_status.rows)
+        self.assertEqual(1, final_status.rows)
         self.assertLessEqual(
             final_status.allocated_bytes,
-            halfway_status.allocated_bytes * 1.05,
+            halfway_status.allocated_bytes * 1.15,
         )
-        self.assertLessEqual(
-            final_status.total_database_bytes,
-            halfway_status.total_database_bytes * 1.05,
-        )
-        self.assertEqual(48, final_status.counters["snapshot_prune_runs"])
-        self.assertGreater(final_status.counters["snapshot_rows_pruned"], 0)
+        self.assertEqual(25, final_status.counters["snapshot_prune_runs"])
+        self.assertEqual(24, final_status.counters["snapshot_rows_pruned"])
 
     def _record(
         self,

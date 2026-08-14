@@ -112,9 +112,9 @@ class TargetAndStoreTests(unittest.TestCase):
             aliases, [item["alias"] for item in restarted.state["devices"]]
         )
         history = second_store.snapshot_history()
-        self.assertEqual(
-            list(range(history[-1].revision + 1)), [item.revision for item in history]
-        )
+        self.assertEqual(1, len(history))
+        self.assertEqual(restarted.revision, history[0].revision)
+        self.assertGreater(restarted.revision, first.revision)
         second_store.close()
 
     def test_snapshot_bodies_are_compressed_and_storage_counters_are_durable(

@@ -154,10 +154,11 @@ reconciliation: `OBSERVE` mode has no in-flight mutations by construction.
 
 ## Amendment 1 — M4 day-0 preflight corrections
 
-- Status: **proposed, awaiting owner signature**. Nothing in this amendment
-  is in force until the owner accepts it. The decisions above stay exactly
-  as written and are not edited retroactively.
-- Date: 2026-08-12
+- Status: **accepted by the owner on 2026-08-14**, including the smaller
+  H2 retention in A1.4. The original Decision 6 Engine-store horizon is
+  unchanged. The decisions above stay exactly as written and are not
+  edited retroactively.
+- Date: 2026-08-12; accepted 2026-08-14
 - Trigger: a live preflight run of ~2 hours on the real house, started
   2026-08-11T19:35Z. That run is **exploratory preflight evidence and is
   discarded**; it is never promoted to the frozen M4 soak, and no scored
@@ -236,15 +237,16 @@ encoding change (landed in `bd86078`; verified against 284 real preflight
 rows, all decoding and round-tripping, compressing to 9.11% of raw).
 Encoding discards no evidence and needs no signature.
 
-**Retention for the plugin store is the open decision.** Deleting
-observation history is an evidence boundary and needs the same explicit
-signature Decision 6 received for the Engine store. The proposal is: keep
-the newest snapshot unconditionally, keep a 24-hour horizon, prune only the
-`snapshots` table, leave preference evidence, aliases, charters and the
-projection and revision ledgers untouched, preserve revision monotonicity,
-and reclaim pages verifiably. Production reads only `latest_snapshot`;
-`snapshot_history` has one caller repo-wide and it is a test. Until this is
-signed, the capability may exist but is wired to nothing.
+**Retention for the plugin store is accepted, smaller than the 24-hour
+proposal.** A 24-hour tail of whole-house bodies is still too large for
+this house. Production keeps **only the newest snapshot**. Observe writes
+the new body, then prunes every older `snapshots` row. Preference
+evidence, aliases, charters and the projection and revision ledgers stay.
+Revision numbers stay monotone. Pages are reclaimed when incremental
+vacuum is on. Production reads only `latest_snapshot`; Engine still holds
+the 24-hour observation history that Decision 6 already signed. Watts
+after a light change live on that newest body. Older Homey photocopies
+are discarded on purpose.
 
 ### A1.5 — Additional durable diagnostics
 

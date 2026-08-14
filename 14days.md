@@ -26,32 +26,23 @@ Last updated: `2026-08-14T08:08Z` (meter-identity restart; official clock still 
   After five extra polls Homey still had **one** snapshot row and five
   deduplications. Next required marks: 24 h and 48 h, then sleep/wake,
   then the official fourteen-day timestamp.
-- H2 plugin-store retention remains wired to nothing.
-- ADR-0011 Amendment 1 remains unsigned; A1.6 (meter identity) is in
-  force by owner implementation direction. Growth is still measured
-  across all three stores including WAL.
+- H2 plugin-store retention is signed and smaller: keep only the newest
+  Homey snapshot. Engine still keeps its own 24-hour observation history.
+- ADR-0011 Amendment 1, ADR-0012 and ADR-0013 are accepted. EXP-2026-004
+  is parked unsealed. Growth is still measured across all three stores
+  including WAL.
 
-### Before the clock may start (as of commit `89a99ac`)
+### Before the clock may start
 
-1. **Rotate the Homey PAT.** It was exposed in an agent transcript on
-   2026-08-11. Create a new read-only token, revoke the old one, and reinstall
-   it in the LaunchAgent plist only. Owner-only step.
-2. **Sign or reject ADR-0011 Amendment 1** (`docs/adr/ADR-0011-bounded-continuous-observation.md`).
-   It is proposed and not in force. It clarifies that the growth budget covers
-   all three stores including write-ahead logs with the numeric gates
-   unchanged, restates the falsified "idle house writes near-zero rows"
-   consequence honestly, records the fixture mismatch without raising the
-   budget, and names plugin-store retention as the open decision.
-3. **Decide on plugin-store retention (H2).** The capability is being built
-   deliberately wired to nothing; enabling it deletes observation history and
-   needs the same explicit signature the Engine store's retention received.
-4. **Rebuild the runtime and the stores from the committed code.** The daemon
-   runs its own virtual environment at `engine-m4/runtime-venv/`; reinstall it
-   so the code under test is the committed code, and start from fresh stores.
-   A store holding rows written before `bd86078` mixes uncompressed and
-   compressed bodies and pollutes the compression evidence.
-5. **Run the mandatory 24 h/48 h burn-in** per `docs/RUNBOOK_M4.md` §5a, then
-   the sleep/wake gate, and only then start the fourteen days.
+1. **Rotate the Homey PAT** remains the safer credential hygiene. The
+   owner said the current token is a test token.
+2. **ADR-0011 Amendment 1, ADR-0012 and ADR-0013 are accepted.** H2 is
+   keep-latest-only, not a 24-hour Homey tail.
+3. **EXP-2026-004 is parked**, not sealed. No scored M5 window.
+4. **Run the mandatory 24 h/48 h burn-in** per `docs/RUNBOOK_M4.md` §5a,
+   then the sleep/wake gate, and only then start the fourteen days. The
+   current isolated runtime must be reinstalled from the commit that
+   wires H2 before that code is what the soak is testing.
 
 What already landed in response: snapshot bodies in the plugin store are
 zlib-compressed with permanent legacy readability, measured at 9.11% of raw

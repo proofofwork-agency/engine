@@ -1,8 +1,27 @@
 # EXP-2026-004 — shadow lighting competence
 
-Status: drafted, **not sealed**. No scored window may open until the owner
-signs the seal block below. Burn-in and M4 observation data are excluded.
-Negative results, partial runs, and failed gates must be retained.
+Status: drafted, **parked, not sealed**. The owner asked what this is and
+left the decision to the implementer. Decision: do **not** seal and do
+**not** open a scored window. M4 burn-in is still running; sealing now
+would start a scientific clock nobody asked to start. Burn-in and M4
+observation data stay excluded. Negative results, partial runs, and failed
+gates must be retained if a later owner seal ever happens.
+
+## In human language
+
+This is not a product feature. It is a later exam (M5) that asks: when
+Engine *suggests* a light change but is forbidden to touch the house,
+does the house later do what Engine guessed — often enough to beat a
+dumb timetable?
+
+It watches. It never flips a light. After 45 minutes it marks each guess
+right, late, or contradicted. Then it compares Engine to three boring
+baselines (do nothing, copy last week, copy last snapshot). Pass means
+Engine is clearly better. Fail is an honest result, not a reason to
+move the numbers.
+
+It is parked until M4 has a real soak and someone actually wants that
+exam. The draft numbers below stay as a proposal only.
 
 This protocol implements `GOAL-0.2.md` §2.2 and `after-14days.md` §B3. It does
 not dispatch, authorize, or actuate. `dispatch_count` on every scored outcome
